@@ -1,0 +1,21 @@
+# Liste blanche : seuls les fichiers du programme sont publiés.
+# Tout le reste (applications installées dans apps/, moteurs, réglages du poste, fichier .ktec…)
+# reste sur le poste et n'est jamais envoyé sur GitHub.
+/*
+!/.github/
+!/.gitignore
+!/.gitattributes
+!/docs/
+!/interface/
+!/moteur-java/
+!/serveur/
+!/*.bat
+!/*.sh
+!/README.md
+!/VERSION
+!/package.json
+
+# Fichiers propres à chaque poste, même dans les dossiers du programme
+*.ktec
+*.birtec
+*.datassitec

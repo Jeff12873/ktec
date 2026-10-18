@@ -1,0 +1,9 @@
+{
+  "name": "ktec",
+  "private": true,
+  "type": "module",
+  "description": "KTEC : le portail et le socle commun des applications de l'atelier (BiRTEC, PDRTec, AITEC). Aucune dépendance : seulement Node.",
+  "scripts": {
+    "demarrer": "node serveur/demarrer.js"
+  }
+}
