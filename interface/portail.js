@@ -31,10 +31,10 @@ const tuiles = [
       h('div', {}, h('strong', {}, a.nom), h('span', {}, a.sousTitre || ''))),
     h('p', {}, a.description || ''),
     h('span', { class: 'version' }, `Version ${a.version}`))),
-  ...SUITE.filter((a) => !installees.has(a.id)).map((a) => h('div', { class: 'tuile-appli absente', title: 'Pas encore installée sur ce poste' },
+  ...SUITE.filter((a) => !installees.has(a.id)).map((a) => h('a', { class: 'tuile-appli absente', href: '/installation/', title: 'Pas encore installée sur ce poste : cliquer pour l’installer' },
     h('div', { class: 'tete' }, h('img', { src: '/icone.svg', alt: '' }), h('div', {}, h('strong', {}, a.nom), h('span', {}, a.sousTitre))),
     h('p', {}, a.description),
-    h('span', { class: 'version' }, 'Pas encore installée'))),
+    h('span', { class: 'version' }, 'Pas encore installée — l’installer'))),
 ]
 
 // Réglages communs (connexion MySQL, ce poste) : bouton « Réglages » ou adresse /#reglages.
@@ -72,6 +72,7 @@ vider(
       h('span', { title: 'Les connaissances du site, communes à toutes les applications' }, ic('livre', 14), ' ', etat.partage?.fichier || etat.fichierKtec),
       h('span', {}, `KTEC ${etat.version}`),
       h('div', { style: { flex: 1 } }),
+      h('a', { class: 'bouton petit discret', href: '/installation/', title: 'Mettre à jour, ajouter ou désinstaller des applications' }, ic('telecharger', 14), 'Installation et mises à jour'),
       h('button', { class: 'petit discret', onclick: ouvrirReglages }, ic('reglages', 14), 'Réglages'),
       h('button', { class: 'petit discret', onclick: quitter }, ic('sortie', 14), 'Arrêter KTEC'),
     ),

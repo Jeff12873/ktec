@@ -1,5 +1,6 @@
 {
-  "_lisez_moi": "Versions téléchargées par la préparation (outils/preparer.js). Voir docs/MODELES.md pour changer de modèle, docs/JAVA-BIRT.md pour Java et BIRT.",
+  "_lisez_moi": "Versions des composants communs installés par l'installateur KTEC (serveur/installation/) et modèles d'IA proposés. Node est la version du lanceur (Installer KTEC.bat, installer-ktec.sh).",
+  "node": "v24.21.0",
   "llama": "b11556",
   "java": {
     "version": "21",

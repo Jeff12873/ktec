@@ -1,9 +1,7 @@
 // L'icône de KTEC (raccourcis).
 //
-// Par défaut : interface/icone.svg et interface/icone.png.
-// L'administrateur peut en importer une autre (écran Administration) : elle est enregistrée
-// dans le fichier .datassitec, donc la même pour tous les postes. Chaque poste en garde une copie
-// dans cache/ pour ses raccourcis (icone.png sous Linux, icone.ico sous Windows).
+// interface/icone.svg (pages) et interface/icone.png (raccourcis). Chaque poste en garde une copie dans cache/
+// pour ses raccourcis : icone.png sous Linux, icone.ico sous Windows (fabriquée à partir du PNG).
 
 import fs from 'node:fs'
 import path from 'node:path'

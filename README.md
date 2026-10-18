@@ -24,8 +24,14 @@ Le portail et le socle commun des applications de l'atelier :
 
 ## Installer
 
-L'installateur (page dans le thème, paquets en ligne ou hors ligne sur clé USB, installation silencieuse dans le
-dossier choisi, mises à jour et désinstallation) est en préparation.
+- **Avec Internet** : télécharger [KTEC.zip](https://github.com/Jeff12873/ktec/releases/latest/download/KTEC.zip),
+  le décompresser, lancer **`Installer KTEC.bat`** (Windows) ou `sh installer-ktec.sh` (Linux).
+- **Sans Internet** : le kit hors ligne (un gros zip, fabriqué par `node outils/fabriquer-kit.js`), décompressé,
+  puis **`Installer KTEC.bat`**.
+
+Une page s'ouvre dans le navigateur : on coche les applications, on choisit le dossier et le modèle d'IA, et tout
+s'installe en silence, une seule fois pour les composants communs. La même page sert ensuite aux mises à jour et
+à la désinstallation (portail › « Installation et mises à jour »). Détails : [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
 ## Développer
 
@@ -48,7 +54,9 @@ propre dossier, sans la copier, avec `reglages-poste.json` :
 | `serveur/portail.js` | Routes communes (`/api/ktec/…`) : état, applications, connexion MySQL, réglages du poste |
 | `serveur/socle/` | Serveur web (`http.js`), applications (`applis.js`), fichier partagé (`partage.js` : copie, verrou, publication, mode administrateur), connaissances (`ktec.js`), préférences du poste (`preferences.js`), IA (`ia.js`), MySQL (`mysql.js`), réglages (`installation.js`), zip, téléchargements |
 | `moteur-java/Moteur.java` | Le programme Java : connexion MySQL, structure, requêtes en lecture seule, moteur BIRT |
-| `outils/catalogue.json` | Versions des composants et modèles d'IA |
+| `serveur/installation/`, `interface/installation/` | L'installateur : composants communs, applications, raccourcis, mises à jour, désinstallation, et sa page |
+| `outils/` | Versions des composants et modèles d'IA (`catalogue.json`), catalogue des applications (`applis.json`), fabrication du kit hors ligne (`fabriquer-kit.js`) |
+| `Installer KTEC.bat`, `installer-ktec.sh` | Lanceurs de l'installation (Node du kit, ou téléchargé) |
 | `interface/` | Portail (`index.html`, `portail.js`, bouton « Réglages »), coquille des applications (`appli.html`, `appli.js`), thème commun, outils d’écran (`socle/` : API, connexion MySQL, réglages communs…) |
 
 Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) et [docs/AJOUTER-UNE-APPLICATION.md](docs/AJOUTER-UNE-APPLICATION.md).

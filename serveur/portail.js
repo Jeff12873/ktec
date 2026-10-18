@@ -163,7 +163,9 @@ function racines() {
       if (fs.existsSync(chemin)) liste.push({ nom, chemin })
     }
   }
-  liste.unshift({ nom: 'Dossier du fichier actuel', chemin: path.dirname(cheminKtec()) })
+  // (sans créer le dossier de travail : l'explorateur sert aussi à l'installation, avant tout fichier)
+  const fichier = reglagesPoste().fichierKtec
+  if (fichier) liste.unshift({ nom: 'Dossier du fichier actuel', chemin: path.dirname(fichier) })
   return liste
 }
 

@@ -154,6 +154,7 @@ function lireCorps(req, limite = 2 * 1024 ** 3) {
 //   /apps/<appli>/interface/…  → fichiers de l'application (menu, aide, icône, styles)
 //   /apps/<appli>/blocs/…      → écrans de l'application (seulement vue.js et .css : le code serveur
 //                                 des blocs n'est jamais envoyé au navigateur)
+//   /installation/             → la page d'installation, mises à jour, désinstallation
 //   le reste                   → interface/ de KTEC (socle commun, thème)
 function envoyerFichierStatique(res, chemin) {
   chemin = decodeURIComponent(chemin)
@@ -170,7 +171,7 @@ function envoyerFichierStatique(res, chemin) {
     res.writeHead(302, { Location: `/${morceaux[0]}/` })
     return res.end()
   } else {
-    fichier = path.join(chemins.interface, chemin === '/' ? 'index.html' : chemin)
+    fichier = path.join(chemins.interface, chemin.endsWith('/') ? chemin + 'index.html' : chemin)
     if (!fichier.startsWith(chemins.interface)) fichier = null
   }
   if (!fichier || !fs.existsSync(fichier) || !fs.statSync(fichier).isFile()) throw new ErreurHttp(404, 'Introuvable : ' + chemin)

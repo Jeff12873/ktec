@@ -1,0 +1,30 @@
+{
+  "_lisez_moi": "Catalogue des applications KTEC, lu par l'installateur (en ligne : depuis GitHub, branche main). Chaque application a son dépôt ; la dernière Release de ce dépôt contient <id>.zip. Le socle (KTEC.zip) vient du dépôt ktec.",
+  "socle": { "depot": "Jeff12873/ktec", "paquet": "KTEC.zip" },
+  "applis": [
+    {
+      "id": "birtec",
+      "nom": "BiRTEC",
+      "sousTitre": "Rapports BIRT",
+      "description": "Rapports BIRT et indicateurs ITM, construits par formulaire sur la base de la GMAO.",
+      "depot": "Jeff12873/birtec",
+      "besoins": ["java", "birt", "ia"]
+    },
+    {
+      "id": "pdrtec",
+      "nom": "PDRTec",
+      "sousTitre": "Recherche de pièces",
+      "description": "Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo — en direct sur la base de la GMAO.",
+      "depot": "Jeff12873/pdrtec",
+      "besoins": ["java"]
+    },
+    {
+      "id": "aitec",
+      "nom": "AITEC",
+      "sousTitre": "Assistant IA",
+      "description": "L’assistant IA de l’atelier : parc, historique des interventions et documents, réponses en français avec leurs sources.",
+      "depot": "Jeff12873/aitec",
+      "besoins": ["ia", "java"]
+    }
+  ]
+}

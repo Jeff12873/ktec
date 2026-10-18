@@ -5,7 +5,9 @@
 //    (sur ce poste uniquement) ;
 // 3. on ouvre le navigateur sur le portail, http://127.0.0.1:<port>.
 //
-// Option : --sans-navigateur (pour les essais).
+// Options : --sans-navigateur (pour les essais) ;
+//           --installation (lancé par « Installer KTEC » depuis le kit ou le zip : seule la page d'installation,
+//           sans ouvrir de fichier de connaissances).
 
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -13,21 +15,25 @@ import { spawn } from 'node:child_process'
 import { creerRoutes, demarrerServeur, pourAppli } from './socle/http.js'
 import { chargerApplis } from './socle/applis.js'
 import { routes as routesPortail } from './portail.js'
+import { routes as routesInstallation } from './installation/routes.js'
 import { ktec } from './socle/ktec.js'
 import { publierMaintenant } from './socle/partage.js'
 import { arreterIA } from './socle/ia.js'
 import { RACINE, WINDOWS, chemins, version, journal, lireJson, ecrireJson } from './socle/installation.js'
 
-const PREMIER_PORT = 47700 // les anciens IASSITEC (47800) et BiRTEC (47900) peuvent tourner à côté
-const fichierServeur = path.join(chemins.cache, 'serveur.json')
-const identifiant = crypto.createHash('sha256').update(RACINE).digest('hex').slice(0, 16)
+const modeInstallation = process.argv.includes('--installation')
+// Les anciens IASSITEC (47800) et BiRTEC (47900) peuvent tourner à côté ; l'installation a ses propres ports.
+const PREMIER_PORT = modeInstallation ? 47690 : 47700
+const fichierServeur = path.join(chemins.cache, process.argv.includes('--installation') ? 'serveur-installation.json' : 'serveur.json')
+const identifiant = crypto.createHash('sha256').update(RACINE + (modeInstallation ? ' installation' : '')).digest('hex').slice(0, 16)
+const page = modeInstallation ? '/installation/' : '/'
 const sansNavigateur = process.argv.includes('--sans-navigateur')
 
 // ---- 1. déjà lancé ?
 const precedent = lireJson(fichierServeur, null)
 if (precedent && (await repond(precedent.port))) {
   console.log('KTEC est déjà lancé : ouverture du navigateur.')
-  if (!sansNavigateur) ouvrirNavigateur(`http://127.0.0.1:${precedent.port}`)
+  if (!sansNavigateur) ouvrirNavigateur(`http://127.0.0.1:${precedent.port}${page}`)
   process.exit(0)
 }
 
@@ -36,17 +42,20 @@ journal(`Démarrage de KTEC ${version()} (${RACINE})`)
 const routes = creerRoutes()
 routes.get('/api/ping', () => ({ identifiant }))
 routesPortail(routes)
-await chargerApplis((id) => pourAppli(routes, id))
-// Ouvre le fichier de connaissances dès le départ (et reprend l'ancien .birtec au premier lancement).
-try {
-  ktec()
-} catch (erreur) {
-  journal(`Fichier de connaissances inaccessible : ${erreur.message}`)
+routesInstallation(routes, { modeInstallation })
+if (!modeInstallation) {
+  await chargerApplis((id) => pourAppli(routes, id))
+  // Ouvre le fichier de connaissances dès le départ (et reprend l'ancien .birtec au premier lancement).
+  try {
+    ktec()
+  } catch (erreur) {
+    journal(`Fichier de connaissances inaccessible : ${erreur.message}`)
+  }
 }
 
 const port = await demarrerSurUnPortLibre()
 ecrireJson(fichierServeur, { port, pid: process.pid })
-const adresse = `http://127.0.0.1:${port}`
+const adresse = `http://127.0.0.1:${port}${page}`
 journal(`KTEC prêt : ${adresse}`)
 console.log(`\n  KTEC est ouvert dans votre navigateur : ${adresse}\n  Fermer cette fenêtre arrête KTEC.\n`)
 if (!sansNavigateur) ouvrirNavigateur(adresse)
