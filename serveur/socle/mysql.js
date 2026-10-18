@@ -90,14 +90,17 @@ export function moteurJava(commande, options = {}, { motDePasse: mdp = '', texte
 
   return new Promise((ok, echec) => {
     const processus = spawn(config.java, args, { windowsHide: true })
-    let sortie = ''
+    // Les morceaux sont gardés tels quels et décodés à la fin : un caractère accentué peut être coupé
+    // entre deux morceaux (il deviendrait « ��� » si chaque morceau était décodé à part).
+    const morceaux = []
     let erreurs = ''
     const minuterie = setTimeout(() => processus.kill(), delai)
-    processus.stdout.on('data', (morceau) => (sortie += morceau))
+    processus.stdout.on('data', (morceau) => morceaux.push(morceau))
     processus.stderr.on('data', (morceau) => (erreurs += morceau))
     processus.on('error', echec)
     processus.on('close', () => {
       clearTimeout(minuterie)
+      const sortie = Buffer.concat(morceaux).toString('utf8')
       const ligne = sortie.trim().split('\n').pop() // la réponse JSON est la dernière ligne
       let reponse
       try {

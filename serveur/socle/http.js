@@ -8,6 +8,9 @@
 //   ctx.query    → paramètres après le « ? »
 //   ctx.json()   → corps de la requête lu comme du JSON
 //   ctx.octets() → corps brut (fichiers envoyés)
+//   ctx.admin    → true si ce navigateur est en mode administrateur sur le fichier .ktec
+//   ctx.exigerAdmin() → avant une modification du fichier .ktec : refuse si ce n'est pas permis
+//                  (voir exigerEcriture dans partage.js)
 // Elle renvoie un objet (envoyé en JSON) ou utilise ctx.res directement (fichiers, flux).
 
 import http from 'node:http'
@@ -15,6 +18,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { chemins, journal } from './installation.js'
 import { applis } from './applis.js'
+import { requeteEnCours, estAdmin, exigerEcriture, noterActiviteAdmin } from './partage.js'
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -92,6 +96,7 @@ async function traiterApi(routes, req, res, url) {
     if (!correspondance) continue
 
     const params = Object.fromEntries(route.noms.map((nom, i) => [nom, decodeURIComponent(correspondance[i + 1])]))
+    const cookie = lireCookie(req, 'ktec_admin')
     const ctx = {
       req,
       res,
@@ -99,12 +104,25 @@ async function traiterApi(routes, req, res, url) {
       query: Object.fromEntries(url.searchParams),
       octets: () => lireCorps(req),
       json: async () => JSON.parse((await lireCorps(req)).toString('utf8') || '{}'),
+      cookie,
+      admin: estAdmin(cookie),
+      exigerAdmin() {
+        exigerEcriture()
+        noterActiviteAdmin()
+      },
     }
-    const resultat = await route.action(ctx)
+    // Le cookie suit la requête jusqu'aux écritures (même après des await).
+    const resultat = await requeteEnCours.run({ cookie }, () => route.action(ctx))
     if (!res.headersSent && !res.writableEnded) envoyerJson(res, 200, resultat ?? { ok: true })
     return
   }
   throw new ErreurHttp(404, 'Adresse inconnue : ' + url.pathname)
+}
+
+function lireCookie(req, nom) {
+  const cookies = req.headers.cookie || ''
+  const trouve = cookies.split(';').map((c) => c.trim().split('=')).find(([cle]) => cle === nom)
+  return trouve ? trouve[1] : null
 }
 
 export function envoyerJson(res, statut, donnees) {

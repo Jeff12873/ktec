@@ -45,10 +45,19 @@ Documents/KTEC/            (dossier de travail)
   passe est gardé en mémoire par le serveur, transmis au moteur Java par son entrée standard, jamais écrit.
 - **Moteur Java** (`moteur-java/Moteur.java`) : compilé à l'installation. Connexion en lecture seule, requêtes de
   lecture uniquement (SELECT, WITH, SHOW, DESCRIBE, EXPLAIN), 30 s au plus ; rendu et vérification des rapports BIRT.
-- **Fichier .ktec** (`serveur/socle/ktec.js`) : base SQLite, un seul fichier. Tables communes : `tables_base`, `liens`,
-  `dictionnaire`, `liens_dico`, `notes`, `requetes`, `infos` ; et ce qui est propre à une application (`indicateurs`,
-  `fichiers` pour BiRTEC, clés `infos` préfixées par le nom de l'application). Au premier lancement, l'ancien
-  `.birtec` de BiRTEC est copié en `.ktec` (l'original reste en place), avec les rapports et la connexion MySQL.
+- **Fichier .ktec partagé** (`serveur/socle/partage.js`, repris d'IASSITEC) : KTEC lit une copie locale
+  (`cache/base.ktec`), remplacée dès que le fichier partagé change (contrôle toutes les 10 s). Pour écrire, il faut le
+  **verrou** (`connaissances.ktec.verrou`, à côté du fichier) : un seul poste à la fois. Sans mot de passe sur le
+  fichier, il est pris tout seul à la première écriture (`exigerEcriture`) ; avec, il faut le mode administrateur
+  (cookie de ce navigateur, `ctx.exigerAdmin()`). Chaque écriture est publiée quelques secondes plus tard (copie sous
+  un nom temporaire puis renommage) ; sauvegarde à chaque prise du verrou (`KTEC-sauvegardes`, une par heure au plus,
+  5 gardées). Les applications déclarent leurs tables avec `ajouterStructure()`.
+- **Connaissances** (`serveur/socle/ktec.js`) : tables communes `tables_base`, `liens`, `dictionnaire`, `liens_dico`,
+  `notes`, `requetes`, `infos`, et `indicateurs`, `fichiers` (BiRTEC) ; chaque écriture passe par le verrou puis la
+  publication. Au premier lancement, l'ancien `.birtec` de BiRTEC est copié en `.ktec` (l'original reste en place).
+  Les tables d'AITEC (machines, interventions, documents, passages…) sont déclarées par AITEC.
+- **Préférences du poste** (`serveur/socle/preferences.js`, `preferences.json`) : ce qui ne regarde que l'agent
+  (disposition de la Constellation, tuiles de l'accueil), pour ne pas republier le fichier partagé à chaque geste.
 - **IA** (`serveur/socle/ia.js`) : llama-server lancé à la demande, arrêté après un délai sans question ; un seul
   modèle pour toutes les applications.
 

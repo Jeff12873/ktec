@@ -14,6 +14,7 @@ import { creerRoutes, demarrerServeur, pourAppli } from './socle/http.js'
 import { chargerApplis } from './socle/applis.js'
 import { routes as routesPortail } from './portail.js'
 import { ktec } from './socle/ktec.js'
+import { publierMaintenant } from './socle/partage.js'
 import { arreterIA } from './socle/ia.js'
 import { RACINE, WINDOWS, chemins, version, journal, lireJson, ecrireJson } from './socle/installation.js'
 
@@ -52,6 +53,7 @@ if (!sansNavigateur) ouvrirNavigateur(adresse)
 
 for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
   process.on(signal, () => {
+    publierMaintenant() // les dernières modifications du fichier .ktec partent avant l'arrêt
     arreterIA()
     process.exit(0)
   })

@@ -9,6 +9,7 @@ import { h, vider, ic, fenetreOuverte, notifier } from './socle/ui.js'
 import { etat, suivreEtat, surChangement } from './socle/etat.js'
 import { appli, api } from './socle/api.js'
 import { etiquetteIA, etiquetteMySQL } from './socle/connexion.js'
+import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
 
 const racine = document.getElementById('appli')
 const toutes = await api('/api/ktec/applis')
@@ -27,6 +28,7 @@ const menu = h('nav', { class: 'menu' })
 const barre = h('header', { class: 'barre' })
 const zone = h('main', { class: 'contenu' })
 let contenuBarre = ''
+let affiche = null // le bloc affiché, pour le recharger quand le fichier partagé change
 const autresApplis = toutes.filter((a) => a.id !== appli)
 
 await suivreEtat()
@@ -50,6 +52,7 @@ function routeActuelle() {
 
 async function afficherBloc() {
   const { bloc, id, query } = routeActuelle()
+  affiche = bloc
   dessinerMenu()
   vider(zone)
   try {
@@ -70,7 +73,8 @@ function dessinerMenu() {
       h('div', {}, h('strong', {}, description.nom), h('span', {}, description.sousTitre || ''))),
     // Les écrans par groupe (« groupe » de chaque bloc) : un titre discret avant chaque nouveau groupe.
     // Le groupe « Réglages » est poussé en bas du menu.
-    BLOCS.filter((b) => b.menu).map((b, i, liste) => [
+    // menu: 'admin' → écran visible seulement en mode administrateur.
+    BLOCS.filter((b) => b.menu === true || (b.menu === 'admin' && etat.admin)).map((b, i, liste) => [
       b.groupe && b.groupe !== liste[i - 1]?.groupe
         ? h('div', { class: `menu-groupe ${b.groupe === 'Réglages' ? 'en-bas' : ''}` }, b.groupe)
         : null,
@@ -87,22 +91,40 @@ function dessinerMenu() {
 
 function dessinerBarre() {
   const c = etat.connexion
-  const cle = JSON.stringify([etat.ia, c])
+  const p = etat.partage || {}
+  const cle = JSON.stringify([etat.ia, c, p.nomFichier, p.avertissement, p.aPublier, p.publication, p.autreAdmin, p.admin, p.motDePasse])
   if (cle === contenuBarre) return
   contenuBarre = cle
   vider(
     barre,
+    app.barre?.() || null,
     h('div', { class: 'espace' }),
     etiquetteIA(etat.ia),
-    etiquetteMySQL(c, `#/${app.configurationBloc || 'configuration'}`),
+    etiquetteMySQL(c, '/#reglages'),
+    etiquetteFichier(p),
+    boutonAdmin(p),
     h('button', { class: 'discret icone-seule', title: 'Aide sur cet écran', onclick: () => (location.hash = `#/aide/${routeActuelle().bloc.aide || 'premiers-pas'}`) }, ic('aide', 19)),
   )
 }
 
-function quandEtatChange(nouveau) {
+function quandEtatChange(nouveau, ancien) {
   if (nouveau.injoignable) return notifier('KTEC ne répond plus : relancez-le avec son raccourci.', 'erreur')
   dessinerBarre()
-  if (fenetreOuverte()) return
+  if (nouveau.partage?.avertissement && nouveau.partage.avertissement !== ancien.partage?.avertissement) notifier(nouveau.partage.avertissement)
+  // Mode administrateur pris ou rendu : les écrans montrent ou cachent leurs boutons de modification.
+  if (Boolean(nouveau.admin) !== Boolean(ancien.admin)) {
+    dessinerMenu()
+    if (!fenetreOuverte()) afficherBloc()
+    return
+  }
+  // Le contenu du fichier a changé (modification d'un autre poste) : on recharge l'écran,
+  // sauf si l'agent est en train d'écrire ou si l'écran ne le souhaite pas (assistant).
+  if (ancien.partage && nouveau.partage?.version !== ancien.partage.version && affiche?.rafraichir !== false && !fenetreOuverte() && !saisieEnCours()) afficherBloc()
+}
+
+function saisieEnCours() {
+  const actif = document.activeElement
+  return actif && ['INPUT', 'TEXTAREA', 'SELECT'].includes(actif.tagName) && actif.value
 }
 
 // Les blocs redessinent l'écran avec window.ktec.recharger() (window.birtec : ancien nom, gardé).

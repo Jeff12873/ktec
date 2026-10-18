@@ -53,16 +53,21 @@ Les blocs importent le socle commun par `ktec/…` :
 ```js
 import { ErreurHttp } from 'ktec/http.js'
 import { lireInfo, ecrireInfo } from 'ktec/ktec.js'      // fichier .ktec (réglages : clés « monappli.… »)
+import { db, ajouterStructure, noterModification } from 'ktec/partage.js' // ses propres tables
 import { executerRequete, etatConnexion } from 'ktec/mysql.js'
 import { discuter } from 'ktec/ia.js'
 ```
+
+Ses propres tables : `ajouterStructure((db) => db.exec('CREATE TABLE IF NOT EXISTS …'))`. Toute écriture directe
+commence par `ctx.exigerAdmin()` (verrou du fichier partagé) et se termine par `noterModification()` (publication) ;
+`ecrireInfo` et les autres fonctions de `ktec.js` le font d'elles-mêmes.
 
 ## Côté écran
 
 ```js
 import { h, vider, ic, notifier } from '/socle/ui.js'
 import { api, adresse } from '/socle/api.js'   // api('/api/x') → /api/monappli/x
-import { etat } from '/socle/etat.js'          // état commun : IA, connexion MySQL, fichier .ktec
+import { etat, peutModifier } from '/socle/etat.js' // état commun : IA, connexion MySQL, fichier .ktec ; ce poste peut-il modifier ?
 import { demanderMotDePasse } from '/socle/connexion.js'
 import autre from '../autre/vue.js'           // entre blocs de la même application : chemins relatifs
 ```

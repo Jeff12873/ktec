@@ -1,10 +1,11 @@
 // Réglages communs à tout KTEC : connexion MySQL (une seule pour toutes les applications) et ce poste.
 // Montrés par le portail (bouton « Réglages ») et par l'écran de configuration des applications.
 
-import { h, ic, formulaire, essayer, confirmer } from './ui.js'
+import { h, ic, formulaire, essayer, confirmer, fenetre, tailleFr, dateHeureFr } from './ui.js'
 import { api } from './api.js'
 import { etat, actualiserEtat } from './etat.js'
 import { demanderMotDePasse } from './connexion.js'
+import { ouvrirAutreFichier, creerNouveauFichier } from './fichier.js'
 
 // ---------------------------------------------------------------- connexion MySQL
 
@@ -76,4 +77,57 @@ export function cartePoste(apres = () => {}) {
       }, ic('sortie', 16), 'Arrêter KTEC'),
     ),
   )
+}
+
+// ---------------------------------------------------------------- fichier de connaissances
+
+export function carteFichier(apres = () => {}) {
+  const p = etat.partage || {}
+  const ligne = (libelle, valeur) => h('div', { style: { display: 'flex', gap: '12px', padding: '6px 0', borderBottom: '1px solid var(--bord)' } }, h('span', { class: 'discret', style: { minWidth: '140px' } }, libelle), h('span', {}, valeur || '—'))
+  const sauvegardes = h('div')
+  api('/api/ktec/sauvegardes').then((liste) => sauvegardes.replaceChildren(
+    liste.length ? h('ul', { style: { margin: '6px 0 0', paddingLeft: '18px' } }, liste.map((s) => h('li', { class: 'discret', style: { fontSize: '13px' } }, `${dateHeureFr(new Date(s.date).toISOString())} — ${tailleFr(s.taille)}`)))
+      : h('p', { class: 'discret', style: { fontSize: '13px' } }, 'Aucune pour l’instant (une à chaque prise de la main, une par heure au plus).'))).catch(() => {})
+  return h(
+    'div',
+    { class: 'carte' },
+    h('div', { class: 'carte-entete' }, h('h2', {}, ic('livre', 18), 'Fichier de connaissances')),
+    h('p', { class: 'texte-2', style: { marginTop: 0 } }, 'Le fichier .ktec contient tout ce que les applications savent du site. Placé sur un lecteur réseau, il est partagé par tous les postes : un seul modifie à la fois, les autres suivent ses changements.'),
+    ligne('Fichier', h('span', { class: 'mono' }, p.fichier)),
+    ligne('Taille', p.taille ? tailleFr(p.taille) : ''),
+    ligne('Modifications', p.motDePasse ? 'protégées par un mot de passe (mode administrateur)' : 'libres : la main est prise toute seule'),
+    p.autreAdmin ? ligne('En ce moment', `${p.autreAdmin.nom} (${p.autreAdmin.poste}) modifie le fichier`) : null,
+    h('div', { class: 'actions', style: { marginTop: '14px' } },
+      h('button', { onclick: ouvrirAutreFichier }, ic('dossier', 16), 'Ouvrir un autre fichier'),
+      h('button', { class: 'discret', onclick: creerNouveauFichier }, ic('plus', 16), 'Créer un fichier'),
+      h('button', { class: 'discret', onclick: () => changerMotDePasse(p.motDePasse).then(apres) }, ic('cadenas', 16), p.motDePasse ? 'Changer le mot de passe' : 'Protéger par un mot de passe'),
+    ),
+    h('h3', { style: { margin: '16px 0 0', fontSize: '14px' } }, 'Sauvegardes (dossier KTEC-sauvegardes, à côté du fichier)'),
+    sauvegardes,
+  )
+}
+
+async function changerMotDePasse(existe) {
+  const champs = []
+  if (existe) champs.push({ nom: 'actuel', libelle: 'Mot de passe actuel', type: 'mot-de-passe', obligatoire: true })
+  champs.push({ nom: 'nouveau', libelle: existe ? 'Nouveau mot de passe (vide = plus de mot de passe)' : 'Mot de passe administrateur', type: 'mot-de-passe', obligatoire: !existe, aide: '4 caractères au moins. Il sera demandé pour toute modification du fichier, sur tous les postes.' })
+  champs.push({ nom: 'confirmation', libelle: 'Encore une fois', type: 'mot-de-passe' })
+  const form = formulaire(champs)
+  await fenetre({
+    titre: existe ? 'Mot de passe administrateur' : 'Protéger le fichier par un mot de passe',
+    contenu: form.element,
+    boutons: [
+      { texte: 'Annuler', classe: 'discret' },
+      {
+        texte: 'Enregistrer',
+        classe: 'principal',
+        action: async () => {
+          const v = form.lire()
+          if ((v.nouveau || '') !== (v.confirmation || '')) throw new Error('Les deux mots de passe sont différents.')
+          await api('/api/ktec/mot-de-passe', { methode: 'POST', corps: { actuel: v.actuel, nouveau: v.nouveau } })
+          await actualiserEtat()
+        },
+      },
+    ],
+  })
 }

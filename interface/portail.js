@@ -5,7 +5,8 @@ import { h, vider, ic, notifier, confirmer, fenetre } from './socle/ui.js'
 import { api } from './socle/api.js'
 import { etat, suivreEtat, surChangement } from './socle/etat.js'
 import { etiquetteIA, etiquetteMySQL, demanderMotDePasse } from './socle/connexion.js'
-import { carteMySQL, cartePoste } from './socle/reglages.js'
+import { carteMySQL, cartePoste, carteFichier } from './socle/reglages.js'
+import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
 
 // Les applications de la suite, pour montrer aussi celles qui ne sont pas (encore) installées.
 const SUITE = [
@@ -39,13 +40,13 @@ const tuiles = [
 // Réglages communs (connexion MySQL, ce poste) : bouton « Réglages » ou adresse /#reglages.
 function ouvrirReglages() {
   const recharger = () => location.reload()
-  fenetre({ titre: 'Réglages de KTEC', large: true, contenu: h('div', { class: 'grille grille-2' }, carteMySQL(recharger), cartePoste(recharger)), boutons: [{ texte: 'Fermer', classe: 'discret' }] })
+  fenetre({ titre: 'Réglages de KTEC', large: true, contenu: h('div', { class: 'grille grille-2' }, carteMySQL(recharger), cartePoste(recharger), carteFichier(recharger)), boutons: [{ texte: 'Fermer', classe: 'discret' }] })
     .then(() => history.replaceState(null, '', '/'))
 }
 window.addEventListener('hashchange', () => location.hash === '#reglages' && ouvrirReglages())
 const lienConfiguration = '#reglages'
 function dessinerEtat() {
-  vider(barre, etiquetteIA(etat.ia), etiquetteMySQL(etat.connexion, lienConfiguration))
+  vider(barre, etiquetteIA(etat.ia), etiquetteMySQL(etat.connexion, lienConfiguration), etiquetteFichier(etat.partage), boutonAdmin(etat.partage))
 }
 dessinerEtat()
 surChangement((e) => (e.injoignable ? notifier('KTEC ne répond plus : relancez-le avec son raccourci.', 'erreur') : dessinerEtat()))
@@ -68,7 +69,7 @@ vider(
     applis.length ? null : h('div', { class: 'bandeau' }, ic('alerte'), 'Aucune application installée sur ce poste.'),
     h('div', { class: 'tuiles-applis' }, tuiles),
     h('div', { class: 'portail-pied' },
-      h('span', { title: 'Les connaissances du site, communes à toutes les applications' }, ic('livre', 14), ' ', etat.fichierKtec),
+      h('span', { title: 'Les connaissances du site, communes à toutes les applications' }, ic('livre', 14), ' ', etat.partage?.fichier || etat.fichierKtec),
       h('span', {}, `KTEC ${etat.version}`),
       h('div', { style: { flex: 1 } }),
       h('button', { class: 'petit discret', onclick: ouvrirReglages }, ic('reglages', 14), 'Réglages'),

@@ -18,31 +18,39 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { DatabaseSync } from 'node:sqlite'
 import os from 'node:os'
 import { reglagesPoste, modifierReglagesPoste, dossierTravail, journal, lireJson, dossierInstallationParDefaut } from './installation.js'
+import { db, ajouterStructure, definirCheminParDefaut, ouvrirFichier, creerFichier, exigerEcriture, noterModification, transaction, etatPartage, FORMAT } from './partage.js'
 
-export const FORMAT = 1 // à augmenter si la structure change (et ajouter la migration dans preparer())
+// Le fichier partagé lui-même (verrou, publication, mode administrateur) : voir partage.js.
+export { db, transaction, exigerEcriture, noterModification, ajouterStructure }
+export { FORMAT }
 
-let base = null
-let cheminOuvert = null
-
-// Le fichier en cours (celui des réglages du poste, sinon <dossier de travail>/connaissances.ktec).
+// Le fichier du poste (réglages), sinon <dossier de travail>/connaissances.ktec.
 export function cheminKtec() {
   return reglagesPoste().fichierKtec || path.join(dossierTravail(), 'connaissances.ktec')
 }
 
-export function ktec() {
+// Premier accès : l'ancien .birtec est repris, sinon un fichier vide est créé.
+definirCheminParDefaut(() => {
   const chemin = cheminKtec()
   if (!fs.existsSync(chemin)) reprendreAncienBirtec(chemin)
-  if (base && cheminOuvert === chemin) return base
-  base?.close()
-  fs.mkdirSync(path.dirname(chemin), { recursive: true })
-  base = new DatabaseSync(chemin)
-  base.exec('PRAGMA journal_mode = DELETE') // le fichier reste toujours en un seul morceau
-  cheminOuvert = chemin
-  preparer(base)
-  return base
+  if (!fs.existsSync(chemin)) creerFichier(chemin)
+  return chemin
+})
+
+// La base (copie locale du fichier partagé), en lecture. Pour écrire : les fonctions ci-dessous, ou
+// exigerEcriture() avant et noterModification() après.
+export function ktec() {
+  return db()
+}
+
+// Une écriture : verrou d'abord (pris tout seul si le fichier n'a pas de mot de passe), publication ensuite.
+function ecrire(travail) {
+  exigerEcriture()
+  const resultat = travail(db())
+  noterModification()
+  return resultat
 }
 
 // Ouvre (ou crée) un autre fichier .ktec et le retient pour les prochaines ouvertures.
@@ -59,10 +67,7 @@ export function changerKtec(chemin) {
     journal(`Ancien fichier ${chemin} converti en ${converti}`)
     chemin = converti
   }
-  modifierReglagesPoste({ fichierKtec: chemin })
-  ktec()
-  journal(`Fichier de connaissances : ${chemin}`)
-  return chemin
+  return fs.existsSync(chemin) ? ouvrirFichier(chemin) : creerFichier(chemin)
 }
 
 // Premier lancement de KTEC sur un poste où BiRTEC était installé : on reprend son fichier .birtec
@@ -88,7 +93,8 @@ function reprendreAncienBirtec(destination) {
   if (mysql && !reglagesPoste().mysql.serveur) modifierReglagesPoste({ mysql })
 }
 
-function preparer(db) {
+// La structure commune du fichier (les applications ajoutent la leur avec ajouterStructure).
+ajouterStructure((db) => {
   db.exec(`
     CREATE TABLE IF NOT EXISTS infos (cle TEXT PRIMARY KEY, valeur TEXT);
     CREATE TABLE IF NOT EXISTS notes (
@@ -117,7 +123,7 @@ function preparer(db) {
   `)
   db.prepare('INSERT OR IGNORE INTO infos VALUES (?, ?)').run('format', String(FORMAT))
   db.prepare('INSERT OR IGNORE INTO infos VALUES (?, ?)').run('cree', new Date().toISOString())
-}
+})
 
 const maintenant = () => new Date().toISOString()
 
@@ -134,7 +140,7 @@ export function lireInfo(cle, defaut = null) {
   }
 }
 
-export function ecrireInfo(cle, valeur) {
+function ecrireInfoBrut(cle, valeur) {
   ktec().prepare('INSERT OR REPLACE INTO infos VALUES (?, ?)').run(cle, JSON.stringify(valeur))
 }
 
@@ -145,7 +151,7 @@ export function listerIndicateurs() {
     .map((i) => ({ ...i, definition: i.definition ? JSON.parse(i.definition) : null }))
 }
 
-export function enregistrerIndicateur({ id, nom, fenetre, demande = '', definition = null, requeteIndicateur, requeteListe, source = null }) {
+function enregistrerIndicateurBrut({ id, nom, fenetre, demande = '', definition = null, requeteIndicateur, requeteListe, source = null }) {
   const db = ktec()
   const valeurs = [nom, fenetre, demande, definition ? JSON.stringify(definition) : null, requeteIndicateur, requeteListe, source, maintenant()]
   if (id) {
@@ -155,7 +161,7 @@ export function enregistrerIndicateur({ id, nom, fenetre, demande = '', definiti
   return Number(db.prepare('INSERT INTO indicateurs (nom, fenetre, demande, definition, requete_indicateur, requete_liste, source, modifie) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(...valeurs).lastInsertRowid)
 }
 
-export function supprimerIndicateur(id) {
+function supprimerIndicateurBrut(id) {
   ktec().prepare('DELETE FROM indicateurs WHERE id = ?').run(id)
 }
 
@@ -183,7 +189,7 @@ export function listerNotes() {
   return ktec().prepare('SELECT id, titre, contenu, toujours, source, modifie FROM notes ORDER BY toujours DESC, titre').all()
 }
 
-export function enregistrerNote({ id, titre, contenu = '', toujours = false, source = null }) {
+function enregistrerNoteBrut({ id, titre, contenu = '', toujours = false, source = null }) {
   const db = ktec()
   if (id) {
     db.prepare('UPDATE notes SET titre = ?, contenu = ?, toujours = ?, modifie = ? WHERE id = ?').run(titre, contenu, toujours ? 1 : 0, maintenant(), id)
@@ -200,14 +206,14 @@ export function enregistrerNote({ id, titre, contenu = '', toujours = false, sou
   return Number(db.prepare('INSERT INTO notes (titre, contenu, toujours, source, modifie) VALUES (?, ?, ?, ?, ?)').run(titre, contenu, toujours ? 1 : 0, source, maintenant()).lastInsertRowid)
 }
 
-export function supprimerNote(id) {
+function supprimerNoteBrut(id) {
   ktec().prepare('DELETE FROM notes WHERE id = ?').run(id)
 }
 
 // ---------------------------------------------------------------- structure des tables et liens
 
 // tables : [{ nom, commentaire, colonnes: [{ nom, type, cle, commentaire }] }]
-export function enregistrerTables(tables, source) {
+function enregistrerTablesBrut(tables, source) {
   const db = ktec()
   const ecrire = db.prepare('INSERT OR REPLACE INTO tables_base (nom, commentaire, colonnes, source, modifie) VALUES (?, ?, ?, ?, ?)')
   db.exec('BEGIN')
@@ -223,7 +229,7 @@ export function lireTables() {
 }
 
 // liens : [{ deTable, deColonne, versTable, versColonne }]
-export function enregistrerLiens(liens, source) {
+function enregistrerLiensBrut(liens, source) {
   const db = ktec()
   // Un lien importé ou déclaré l'emporte sur un lien déduit ; l'inverse ne remplace rien.
   const ecrire = db.prepare(source === 'déduit'
@@ -272,7 +278,7 @@ export function lireDictionnaire() {
 
 // Enregistre le nom clair, la description ou l'exclusion d'une table (colonne vide) ou d'une colonne.
 // Seuls les champs fournis sont modifiés.
-export function enregistrerDictionnaire({ table, colonne = '', libelle, description, exclue }) {
+function enregistrerDictionnaireBrut({ table, colonne = '', libelle, description, exclue }) {
   const db = ktec()
   const actuel = db.prepare('SELECT libelle, description, exclue FROM dictionnaire WHERE table_nom = ? AND colonne = ?').get(table, colonne) || {}
   db.prepare('INSERT OR REPLACE INTO dictionnaire (table_nom, colonne, libelle, description, exclue) VALUES (?, ?, ?, ?, ?)').run(
@@ -289,18 +295,18 @@ export function lireLiensDictionnaire() {
   return liens
 }
 
-export function enregistrerLienDictionnaire({ deTable, deColonne, versTable, libelle = '', description = '' }) {
+function enregistrerLienDictionnaireBrut({ deTable, deColonne, versTable, libelle = '', description = '' }) {
   ktec().prepare('INSERT OR REPLACE INTO liens_dico VALUES (?, ?, ?, ?, ?)').run(deTable, deColonne, versTable, libelle, description)
 }
 
 // Ajoute un lien saisi à la main (ex. une colonne au nom inhabituel) : il l'emporte sur un lien déduit.
-export function ajouterLien({ deTable, deColonne, versTable, versColonne }) {
+function ajouterLienBrut({ deTable, deColonne, versTable, versColonne }) {
   ktec().prepare('INSERT OR REPLACE INTO liens VALUES (?, ?, ?, ?, ?)').run(deTable, deColonne, versTable, versColonne, 'saisi')
 }
 
 // ---------------------------------------------------------------- requêtes du site
 
-export function enregistrerRequete({ titre, sql, description = '', source }) {
+function enregistrerRequeteBrut({ titre, sql, description = '', source }) {
   ktec()
     .prepare(`INSERT INTO requetes (titre, sql, description, source, modifie) VALUES (?, ?, ?, ?, ?)
               ON CONFLICT(source) DO UPDATE SET titre = excluded.titre, sql = excluded.sql, description = excluded.description, modifie = excluded.modifie`)
@@ -311,13 +317,13 @@ export function listerRequetes() {
   return ktec().prepare('SELECT id, titre, sql, description, source, modifie FROM requetes ORDER BY titre').all()
 }
 
-export function supprimerRequete(id) {
+function supprimerRequeteBrut(id) {
   ktec().prepare('DELETE FROM requetes WHERE id = ?').run(id)
 }
 
 // ---------------------------------------------------------------- fichiers (modèles, ressources, documents)
 
-export function enregistrerFichier(categorie, nom, contenu, source = null) {
+function enregistrerFichierBrut(categorie, nom, contenu, source = null) {
   ktec()
     .prepare('INSERT OR REPLACE INTO fichiers (categorie, nom, contenu, taille, source, modifie) VALUES (?, ?, ?, ?, ?, ?)')
     .run(categorie, nom, contenu, contenu.length, source, maintenant())
@@ -331,7 +337,7 @@ export function lireFichier(categorie, nom) {
   return ktec().prepare('SELECT contenu FROM fichiers WHERE categorie = ? AND nom = ?').get(categorie, nom)?.contenu ?? null
 }
 
-export function supprimerFichier(categorie, nom) {
+function supprimerFichierBrut(categorie, nom) {
   ktec().prepare('DELETE FROM fichiers WHERE categorie = ? AND nom = ?').run(categorie, nom)
 }
 
@@ -345,3 +351,20 @@ export function dossierRessources(dossierCache) {
   }
   return dossier
 }
+
+// ---------------------------------------------------------------- écritures (verrou puis publication)
+
+export const ecrireInfo = (...args) => ecrire(() => ecrireInfoBrut(...args))
+export const enregistrerIndicateur = (...args) => ecrire(() => enregistrerIndicateurBrut(...args))
+export const supprimerIndicateur = (...args) => ecrire(() => supprimerIndicateurBrut(...args))
+export const enregistrerNote = (...args) => ecrire(() => enregistrerNoteBrut(...args))
+export const supprimerNote = (...args) => ecrire(() => supprimerNoteBrut(...args))
+export const enregistrerTables = (...args) => ecrire(() => enregistrerTablesBrut(...args))
+export const enregistrerLiens = (...args) => ecrire(() => enregistrerLiensBrut(...args))
+export const enregistrerDictionnaire = (...args) => ecrire(() => enregistrerDictionnaireBrut(...args))
+export const enregistrerLienDictionnaire = (...args) => ecrire(() => enregistrerLienDictionnaireBrut(...args))
+export const ajouterLien = (...args) => ecrire(() => ajouterLienBrut(...args))
+export const enregistrerRequete = (...args) => ecrire(() => enregistrerRequeteBrut(...args))
+export const supprimerRequete = (...args) => ecrire(() => supprimerRequeteBrut(...args))
+export const enregistrerFichier = (...args) => ecrire(() => enregistrerFichierBrut(...args))
+export const supprimerFichier = (...args) => ecrire(() => supprimerFichierBrut(...args))
