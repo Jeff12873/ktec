@@ -5,7 +5,7 @@ Le portail et le socle commun des applications de l'atelier :
 | Application | Rôle | Dépôt |
 |---|---|---|
 | **BiRTEC** | Rapports BIRT et indicateurs ITM, construits par formulaire sur la base de la GMAO | [birtec](https://github.com/Jeff12873/birtec) |
-| **PDRTec** | Recherche de pièces de rechange (caractéristiques, emplacement, photo) | à venir |
+| **PDRTec** | Recherche de pièces de rechange (caractéristiques, emplacement, photo), en direct sur la base | [pdrtec](https://github.com/Jeff12873/pdrtec) |
 | **AITEC** | L'assistant IA de l'atelier (ex IASSITEC) | à venir |
 
 - **Un seul lanceur** (`Lancer KTEC.bat`, `lancer-ktec.sh`) ouvre le portail dans le navigateur : une tuile par
@@ -45,7 +45,7 @@ propre dossier, sans la copier, avec `reglages-poste.json` :
 | `serveur/portail.js` | Routes communes (`/api/ktec/…`) : état, applications, connexion MySQL, réglages du poste |
 | `serveur/socle/` | Serveur web (`http.js`), applications (`applis.js`), fichier .ktec (`ktec.js`), IA (`ia.js`), MySQL (`mysql.js`), réglages (`installation.js`), zip, téléchargements |
 | `moteur-java/Moteur.java` | Le programme Java : connexion MySQL, structure, requêtes en lecture seule, moteur BIRT |
-| `interface/` | Portail (`index.html`, `portail.js`), coquille des applications (`appli.html`, `appli.js`), thème commun, outils d'écran (`socle/`) |
+| `interface/` | Portail (`index.html`, `portail.js`, bouton « Réglages »), coquille des applications (`appli.html`, `appli.js`), thème commun, outils d’écran (`socle/` : API, connexion MySQL, réglages communs…) |
 
 Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) et [docs/AJOUTER-UNE-APPLICATION.md](docs/AJOUTER-UNE-APPLICATION.md).
 

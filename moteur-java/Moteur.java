@@ -75,6 +75,10 @@ public class Moteur {
         proprietes.setProperty("allowPublicKeyRetrieval", "true"); // comptes MySQL 8 (caching_sha2_password) sans SSL
         proprietes.setProperty("characterEncoding", "UTF-8");
         Connection connexion = DriverManager.getConnection(options.get("url"), proprietes);
+        // Les GROUP_CONCAT (listes regroupées : emplacements, machines…) sont coupés à 1 024 caractères par défaut.
+        try (Statement s = connexion.createStatement()) {
+            s.execute("SET SESSION group_concat_max_len = 1048576");
+        }
         connexion.setReadOnly(true);
         return connexion;
     }
@@ -180,7 +184,7 @@ public class Moteur {
             erreur("Seules les requêtes de lecture sont acceptées (SELECT, WITH, SHOW, DESCRIBE, EXPLAIN).");
             return;
         }
-        if (sql.contains(";")) {
+        if (pointVirguleHorsTexte(sql)) {
             erreur("Une seule requête à la fois.");
             return;
         }
@@ -218,6 +222,21 @@ public class Moteur {
                 System.out.println(r.champ("tronque", tronque).champ("dureeMs", System.currentTimeMillis() - depart).fermer());
             }
         }
+    }
+
+    // Un « ; » hors des textes entre apostrophes ou guillemets (« SEPARATOR ' ; ' » est permis).
+    // Le pilote refuse de toute façon plusieurs requêtes à la fois (allowMultiQueries=false).
+    static boolean pointVirguleHorsTexte(String sql) {
+        char guillemet = 0;
+        for (int i = 0; i < sql.length(); i++) {
+            char c = sql.charAt(i);
+            if (guillemet != 0) {
+                if (c == '\\') i++;
+                else if (c == guillemet) guillemet = 0;
+            } else if (c == '\'' || c == '"' || c == '`') guillemet = c;
+            else if (c == ';') return true;
+        }
+        return false;
     }
 
     // ---------------------------------------------------------------- rendu d'un rapport par le moteur BIRT

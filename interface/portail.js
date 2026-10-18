@@ -1,10 +1,11 @@
 // Le portail KTEC : les applications installées sur ce poste, en tuiles.
 // Un clic ouvre l'application (/birtec/, /pdrtec/…) ; la connexion MySQL et l'IA sont communes.
 
-import { h, vider, ic, notifier, confirmer } from './socle/ui.js'
+import { h, vider, ic, notifier, confirmer, fenetre } from './socle/ui.js'
 import { api } from './socle/api.js'
 import { etat, suivreEtat, surChangement } from './socle/etat.js'
 import { etiquetteIA, etiquetteMySQL, demanderMotDePasse } from './socle/connexion.js'
+import { carteMySQL, cartePoste } from './socle/reglages.js'
 
 // Les applications de la suite, pour montrer aussi celles qui ne sont pas (encore) installées.
 const SUITE = [
@@ -19,7 +20,8 @@ const applis = await api('/api/ktec/applis')
 await suivreEtat()
 
 // Connexion MySQL configurée mais fermée : on propose le mot de passe une fois pour toutes les applications.
-if (etat.connexion.configuree && !etat.connexion.ouverte && applis.length) demanderMotDePasse({ automatique: true })
+// Pas encore configurée : on ouvre les réglages.
+if (location.hash !== '#reglages' && etat.connexion.configuree && !etat.connexion.ouverte && applis.length) demanderMotDePasse({ automatique: true })
 
 const installees = new Set(applis.map((a) => a.id))
 const tuiles = [
@@ -34,7 +36,14 @@ const tuiles = [
     h('span', { class: 'version' }, 'Pas encore installée'))),
 ]
 
-const lienConfiguration = installees.has('birtec') ? '/birtec/#/configuration' : '#'
+// Réglages communs (connexion MySQL, ce poste) : bouton « Réglages » ou adresse /#reglages.
+function ouvrirReglages() {
+  const recharger = () => location.reload()
+  fenetre({ titre: 'Réglages de KTEC', large: true, contenu: h('div', { class: 'grille grille-2' }, carteMySQL(recharger), cartePoste(recharger)), boutons: [{ texte: 'Fermer', classe: 'discret' }] })
+    .then(() => history.replaceState(null, '', '/'))
+}
+window.addEventListener('hashchange', () => location.hash === '#reglages' && ouvrirReglages())
+const lienConfiguration = '#reglages'
 function dessinerEtat() {
   vider(barre, etiquetteIA(etat.ia), etiquetteMySQL(etat.connexion, lienConfiguration))
 }
@@ -62,7 +71,10 @@ vider(
       h('span', { title: 'Les connaissances du site, communes à toutes les applications' }, ic('livre', 14), ' ', etat.fichierKtec),
       h('span', {}, `KTEC ${etat.version}`),
       h('div', { style: { flex: 1 } }),
+      h('button', { class: 'petit discret', onclick: ouvrirReglages }, ic('reglages', 14), 'Réglages'),
       h('button', { class: 'petit discret', onclick: quitter }, ic('sortie', 14), 'Arrêter KTEC'),
     ),
   ),
 )
+
+if (location.hash === '#reglages' || !etat.connexion.configuree) ouvrirReglages()
