@@ -58,6 +58,8 @@ async function main() {
     fs.rmSync(path.join(sortie, nom), { recursive: true, force: true })
     if (fs.existsSync(path.join(RACINE, nom))) fs.cpSync(path.join(RACINE, nom), path.join(sortie, nom), { recursive: true })
   }
+  // Les lanceurs Windows doivent avoir des fins de ligne Windows (CRLF) : cmd lit mal un .bat en fins Linux.
+  for (const nom of fs.readdirSync(sortie).filter((n) => n.endsWith('.bat'))) finsDeLigneWindows(path.join(sortie, nom))
   if (!fs.existsSync(path.join(sortie, 'installer-ktec.sh'))) erreur('installer-ktec.sh manquant')
   fs.chmodSync(path.join(sortie, 'installer-ktec.sh'), 0o755)
   fs.chmodSync(path.join(sortie, 'lancer-ktec.sh'), 0o755)
@@ -227,6 +229,11 @@ function paquetLocal(dossier, id) {
   }
   for (const n of PUBLIES) if (fs.existsSync(path.join(dossier, n))) ajouter(path.join(dossier, n), `${id}/${n}`)
   return creerZip(fichiers)
+}
+
+function finsDeLigneWindows(fichier) {
+  const texte = fs.readFileSync(fichier, 'utf8').replace(/\r\n/g, '\n').replace(/\n/g, '\r\n')
+  fs.writeFileSync(fichier, texte)
 }
 
 // Le dossier de base d'un composant installé (ex. …/moteur/java/jdk-21…/bin/java → …/moteur/java).

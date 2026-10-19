@@ -43,6 +43,10 @@ public class Moteur {
     public static void main(String[] args) throws Exception {
         Map<String, String> options = lireOptions(args);
         String commande = args.length > 0 ? args[0] : "";
+        // Sortie toujours en UTF-8 : sous Windows, Java écrirait sinon dans l'encodage du système (cp1252),
+        // et les accents des données de la GMAO arriveraient abîmés (« � ») dans KTEC.
+        System.setOut(new java.io.PrintStream(new java.io.FileOutputStream(java.io.FileDescriptor.out), true, StandardCharsets.UTF_8));
+        System.setErr(new java.io.PrintStream(new java.io.FileOutputStream(java.io.FileDescriptor.err), true, StandardCharsets.UTF_8));
         BufferedReader entree = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
         String motDePasse = entree.readLine();
         StringBuilder reste = new StringBuilder();

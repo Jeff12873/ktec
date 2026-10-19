@@ -84,7 +84,8 @@ export function moteurJava(commande, options = {}, { motDePasse: mdp = '', texte
   if (!javaInstalle()) throw Object.assign(new Error("Java n'est pas installé sur ce poste : lancez la préparation."), { statut: 409 })
   const { mysql } = reglagesPoste()
   const classes = [config.moteurJava, config.connecteur, path.join(config.birt, 'lib', '*')].join(path.delimiter)
-  const args = ['-cp', classes, 'Moteur', commande, '--url', urlJdbc(), '--utilisateur', mysql.utilisateur]
+  // Entrées et sorties en UTF-8 quel que soit le système (Windows écrirait sinon en cp1252 : accents abîmés).
+  const args = ['-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8', '-Dfile.encoding=UTF-8', '-cp', classes, 'Moteur', commande, '--url', urlJdbc(), '--utilisateur', mysql.utilisateur]
   for (const [nom, valeur] of Object.entries(options)) args.push(`--${nom}`, String(valeur))
   for (const parametre of parametres) args.push('--param', parametre) // paramètres de rapport « nom=valeur »
 

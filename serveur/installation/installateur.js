@@ -199,6 +199,11 @@ function copierSocle(source, destination) {
     fs.cpSync(depuis, path.join(destination, nom), { recursive: true })
   }
   if (!WINDOWS) for (const sh of ['lancer-ktec.sh', 'installer-ktec.sh']) if (fs.existsSync(path.join(destination, sh))) fs.chmodSync(path.join(destination, sh), 0o755)
+  // Lanceurs Windows en fins de ligne Windows (cmd lit mal un .bat en fins Linux).
+  for (const bat of ['Lancer KTEC.bat', 'Installer KTEC.bat']) {
+    const f = path.join(destination, bat)
+    if (fs.existsSync(f)) fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n').replace(/\n/g, '\r\n'))
+  }
 }
 
 const lireVersion = (dossier) => {
