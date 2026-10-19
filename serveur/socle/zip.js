@@ -129,10 +129,12 @@ export function creerZip(fichiers) {
 // (plusieurs Go, des modèles d'IA de plus de 4 Go). Format ZIP64 quand c'est nécessaire, que Windows
 // (Explorateur) et Linux (unzip) savent ouvrir. Les fichiers exécutables gardent ce droit sous Linux.
 //   prefixe : dossier racine dans le zip (ex. « KTEC-hors-ligne-windows/ »)
-export async function zipperDossier(source, destination, { prefixe = '', surProgression = () => {} } = {}) {
+// garder(nom) : les entrées du premier niveau à mettre dans le zip (par défaut : toutes).
+export async function zipperDossier(source, destination, { prefixe = '', surProgression = () => {}, garder = () => true } = {}) {
   const fichiers = []
   const parcourir = (dossier) => {
     for (const entree of fs.readdirSync(dossier, { withFileTypes: true })) {
+      if (dossier === source && !garder(entree.name)) continue
       const chemin = path.join(dossier, entree.name)
       if (entree.isDirectory()) parcourir(chemin)
       else if (entree.isFile()) fichiers.push(chemin)

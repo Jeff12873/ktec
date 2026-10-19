@@ -212,7 +212,9 @@ async function main() {
   }
   etape(7, 'Le zip')
   const fichierZip = `${sortie}.zip`
-  const { taille } = await zipperDossier(sortie, fichierZip, { prefixe: `${nomKit}/`, surProgression: progression(path.basename(fichierZip)) })
+  // Seulement le kit : rien de ce qui a pu être ajouté dans son dossier (notes, essais, cache d'un lancement…).
+  const duKit = new Set([...FICHIERS_DU_PROGRAMME, 'hors-ligne'])
+  const { taille } = await zipperDossier(sortie, fichierZip, { prefixe: `${nomKit}/`, surProgression: progression(path.basename(fichierZip)), garder: (nom) => duKit.has(nom) })
   finProgression()
   console.log(`\nKit prêt : ${fichierZip} (${tailleLisible(taille)})`)
   console.log('Sur le poste : décompresser le zip, puis lancer « Installer KTEC.bat » (ou installer-ktec.sh).\n')
