@@ -70,6 +70,7 @@ function carteInstallee() {
     h('div', { class: 'carte-entete' }, h('h2', {}, ic('coche', 18), 'KTEC est installé'),
       h('div', { class: 'actions' },
         h('button', { class: 'principal', onclick: () => lancerMiseAJour(null) }, ic('rafraichir', 16), 'Tout mettre à jour'),
+        h('button', { title: 'Poste sans accès à GitHub : choisir le zip de mise à jour (fabriqué ailleurs, apporté sur clé USB)', onclick: choisirFichierMaj }, ic('dossier', 16), 'Depuis un fichier…'),
         etat.modeInstallation ? h('button', { onclick: () => ouvrirKtec(inst.dossier) }, ic('lecture', 16), 'Ouvrir KTEC') : null)),
     h('p', { class: 'texte-2', style: { marginTop: 0 } }, 'Dans ', h('span', { class: 'mono' }, inst.dossier), `. Programme KTEC ${versionLisible(inst.ktec)}`, socleAJour ? ' (à jour).' : ` — version ${versionLisible(catalogue.socle.version)} disponible.`),
     h('table', { class: 'tableau' }, h('thead', {}, h('tr', {}, h('th', {}, 'Application'), h('th', {}, 'Installée'), h('th', {}, 'Disponible'), h('th', {}, ''))), h('tbody', {}, lignes)),
@@ -198,11 +199,11 @@ async function installerSelection(applis, dossier, modele = 'auto', raccourcis =
       h('button', { class: 'discret', onclick: charger }, 'Revenir')))
 }
 
-async function lancerMiseAJour(applis) {
+async function lancerMiseAJour(applis, adresse = '/api/ktec/installation/mettre-a-jour') {
   const suivi = vueSuivi('Mise à jour')
   let resultat = null
   try {
-    await flux('/api/ktec/installation/mettre-a-jour', { applis }, (type, d) => {
+    await flux(adresse, { applis }, (type, d) => {
       suivi.surEvenement(type, d)
       if (type === 'fin') resultat = d
       if (type === 'erreur') throw new Error(d.message)
@@ -215,6 +216,38 @@ async function lancerMiseAJour(applis) {
   vider(suivi.fin, h('div', { class: 'bandeau info', style: { marginTop: '14px' } }, ic('coche'), resultat.redemarrer ? 'Mise à jour installée : KTEC redémarre…' : 'Tout est à jour.'))
   if (resultat.redemarrer) attendreRedemarrage()
   else setTimeout(charger, 1500)
+}
+
+// Mise à jour par fichier : le zip est lu, on montre ce qui va changer, puis on l'applique.
+function choisirFichierMaj() {
+  const choix = h('input', { type: 'file', accept: '.zip', style: { display: 'none' } })
+  choix.addEventListener('change', async () => {
+    const fichier = choix.files[0]
+    choix.remove()
+    if (!fichier) return
+    notifier('Lecture de la mise à jour…')
+    let contenu
+    try {
+      contenu = await api('/api/ktec/installation/fichier', { methode: 'POST', fichier })
+    } catch (erreur) {
+      return notifier(erreur.message, 'erreur')
+    }
+    const change = (installee, fournie) => (installee && installee === fournie ? h('span', { class: 'discret' }, 'déjà à jour') : h('strong', {}, `${versionLisible(installee)} → ${fournie}`))
+    const lignes = [
+      h('tr', {}, h('td', {}, 'Programme KTEC'), h('td', {}, change(contenu.socle.installee, contenu.socle.fournie))),
+      ...contenu.applis.map((a) => h('tr', {}, h('td', {}, a.id), h('td', {}, a.installee ? change(a.installee, a.fournie) : h('span', { class: 'discret' }, 'pas installée ici : ignorée')))),
+    ]
+    const ok = await fenetre({
+      titre: 'Mise à jour depuis un fichier',
+      contenu: h('div', {},
+        h('p', { class: 'texte-2' }, `Fichier fabriqué le ${dateHeureFr(contenu.cree)}. Vos données (fichier de connaissances, rapports, réglages) ne sont pas touchées.`),
+        h('table', { class: 'tableau' }, h('tbody', {}, lignes))),
+      boutons: [{ texte: 'Annuler', classe: 'discret', valeur: false }, { texte: 'Mettre à jour', classe: 'principal', valeur: true }],
+    })
+    if (ok) lancerMiseAJour(null, '/api/ktec/installation/fichier/appliquer')
+  })
+  document.body.append(choix)
+  choix.click()
 }
 
 async function desinstaller(a) {

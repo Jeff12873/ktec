@@ -8,7 +8,7 @@ import path from 'node:path'
 import { journal, RACINE } from '../socle/installation.js'
 import { publierMaintenant } from '../socle/partage.js'
 import { arreterIA } from '../socle/ia.js'
-import { etat, catalogueApplis, installer, mettreAJour, desinstallerAppli, toutDesinstaller, lancerKtec } from './installateur.js'
+import { etat, catalogueApplis, installer, mettreAJour, desinstallerAppli, toutDesinstaller, lancerKtec, lireMiseAJour, appliquerMiseAJour } from './installateur.js'
 
 export function routes(r, { modeInstallation }) {
   r.get('/api/ktec/installation/etat', () => ({ ...etat(), modeInstallation }))
@@ -28,6 +28,14 @@ export function routes(r, { modeInstallation }) {
   r.post('/api/ktec/installation/mettre-a-jour', async (ctx) => {
     const demande = await ctx.json()
     await suivreEnFlux(ctx, (suivi) => mettreAJour(demande, suivi), (resultat) => resultat.redemarrer && redemarrer())
+  })
+
+  // Mise à jour par fichier (poste sans accès à GitHub) : le zip est d'abord lu (ce qui va changer)…
+  r.post('/api/ktec/installation/fichier', async (ctx) => lireMiseAJour(await ctx.octets()))
+
+  // … puis appliqué (réponse en flux, comme une mise à jour en ligne).
+  r.post('/api/ktec/installation/fichier/appliquer', async (ctx) => {
+    await suivreEnFlux(ctx, (suivi) => appliquerMiseAJour(suivi), (resultat) => resultat.redemarrer && redemarrer())
   })
 
   r.post('/api/ktec/installation/desinstaller', async (ctx) => {

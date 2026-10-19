@@ -64,7 +64,10 @@ public class Moteur {
         } catch (SQLException e) {
             erreur(messageSql(e));
         } catch (Exception e) {
-            erreur(e.getClass().getSimpleName() + " : " + e.getMessage());
+            // La cause première est la plus parlante (« Error happened while running the report » seul n'aide pas).
+            Throwable cause = e;
+            while (cause.getCause() != null && cause.getCause() != cause) cause = cause.getCause();
+            erreur(e.getClass().getSimpleName() + " : " + e.getMessage() + (cause != e ? " — " + cause.getMessage() : ""));
         }
     }
 
@@ -290,7 +293,14 @@ public class Moteur {
             if (format.equals("html")) {
                 var html = new org.eclipse.birt.report.engine.api.HTMLRenderOption();
                 html.setEmbeddable(false);
-                html.setImageDirectory(new java.io.File(options.get("sortie")).getParent());
+                if (options.containsKey("images")) {
+                    // Images de l'aperçu (graphiques…) : rangées à côté de la page, servies par KTEC à cette adresse.
+                    html.setImageDirectory(options.get("sortie").replaceAll("\\.html$", "") + "_images");
+                    html.setBaseImageURL(options.get("images"));
+                    html.setImageHandler(new org.eclipse.birt.report.engine.api.HTMLServerImageHandler());
+                } else {
+                    html.setImageDirectory(new java.io.File(options.get("sortie")).getParent());
+                }
                 rendu = html;
             } else if (format.equals("pdf")) {
                 rendu = new org.eclipse.birt.report.engine.api.PDFRenderOption();

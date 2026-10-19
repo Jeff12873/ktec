@@ -7,10 +7,11 @@ import { etat, suivreEtat, surChangement } from './socle/etat.js'
 import { etiquetteIA, etiquetteMySQL, demanderMotDePasse } from './socle/connexion.js'
 import { carteMySQL, cartePoste, carteFichier } from './socle/reglages.js'
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
+import { constellation } from './fond.js'
 
 // Les applications de la suite, pour montrer aussi celles qui ne sont pas (encore) installées.
 const SUITE = [
-  { id: 'birtec', nom: 'BiRTEC', sousTitre: 'Rapports BIRT', description: 'Rapports BIRT et indicateurs ITM, construits par formulaire sur la base de la GMAO.' },
+  { id: 'birtec', nom: 'BiRTEC', sousTitre: 'Rapports BIRT', description: 'Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs ITM, sur la base de la GMAO.' },
   { id: 'pdrtec', nom: 'PDRTec', sousTitre: 'Recherche de pièces', description: 'Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo.' },
   { id: 'aitec', nom: 'AITEC', sousTitre: 'Assistant IA', description: 'L’assistant IA de l’atelier : parc, historique, documents, réponses sourcées.' },
 ]
@@ -68,6 +69,14 @@ vider(
     ),
     applis.length ? null : h('div', { class: 'bandeau' }, ic('alerte'), 'Aucune application installée sur ce poste.'),
     h('div', { class: 'tuiles-applis' }, tuiles),
+    // La confidentialité, dite simplement : c'est la première question qu'on pose sur ces outils.
+    h('div', { class: 'portail-confiance' },
+      h('h2', {}, ic('bouclier', 18), 'Vos informations restent chez vous'),
+      h('p', {}, 'Ces outils ont été développés dans le respect de la propriété des informations : aucune donnée sensible ou d’entreprise n’est stockée dans les applications.'),
+      h('div', { class: 'points-confiance' },
+        h('div', {}, ic('livre', 16), h('span', {}, h('b', {}, 'Un fichier local unique. '), 'Tout ce qui concerne le site passe par un seul fichier de connaissances (.ktec), rangé chez vous.')),
+        h('div', {}, ic('etincelle', 16), h('span', {}, h('b', {}, 'Une IA locale. '), 'L’intelligence artificielle tourne sur ce poste : rien n’est envoyé à l’extérieur.')),
+        h('div', {}, ic('nuage', 16), h('span', {}, h('b', {}, 'Hors ligne. '), 'Le système fonctionne sans connexion à Internet.')))),
     h('div', { class: 'portail-pied' },
       h('span', { title: 'Les connaissances du site, communes à toutes les applications' }, ic('livre', 14), ' ', etat.partage?.fichier || etat.fichierKtec),
       h('span', {}, `KTEC ${etat.version}`),
@@ -78,5 +87,7 @@ vider(
     ),
   ),
 )
+
+constellation()
 
 if (location.hash === '#reglages' || !etat.connexion.configuree) ouvrirReglages()

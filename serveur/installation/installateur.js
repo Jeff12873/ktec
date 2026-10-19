@@ -215,10 +215,13 @@ const lireVersion = (dossier) => {
 }
 
 // Une application : son paquet <id>.zip (dossier <id>/ dedans), décompressé dans apps/<id>/ à la place de l'ancien.
-async function installerAppli(dossier, appli, suivi) {
+// zipLocal : le paquet est déjà sur le poste (mise à jour par fichier).
+async function installerAppli(dossier, appli, suivi, zipLocal = null) {
   const k = kit()
   let octets
-  if (k) {
+  if (zipLocal) {
+    octets = fs.readFileSync(zipLocal)
+  } else if (k) {
     const zip = path.join(KIT, 'applis', `${appli.id}.zip`)
     if (!fs.existsSync(zip)) throw new Error(`${appli.nom} absente du kit hors ligne`)
     octets = fs.readFileSync(zip)
@@ -287,6 +290,78 @@ export async function mettreAJour({ applis = null, socle = true } = {}, suivi) {
   }
   reg.misAJourLe = new Date().toISOString()
   ecrireJson(path.join(dossier, 'registre.json'), reg)
+  return { redemarrer, registre: reg }
+}
+
+// ---------------------------------------------------------------- mise à jour par fichier
+//
+// Pour un poste sans accès à GitHub : un petit zip (fabriqué par outils/fabriquer-mise-a-jour.js) avec
+// le programme KTEC et les paquets des applications, sans les composants (Java, BIRT, IA, modèles).
+//   mise-a-jour.json   { cree, ktec, applis: { id: version } }
+//   KTEC/              le programme
+//   applis/<id>.zip    les applications
+// Envoyé depuis la page d'installation : d'abord lu (ce qui va changer), puis appliqué.
+
+const DOSSIER_MAJ = path.join(RACINE, 'cache', 'mise-a-jour')
+
+export function lireMiseAJour(octets) {
+  const dossier = dossierInstalle()
+  if (!dossier) throw new Error('KTEC n’est pas installé sur ce poste.')
+  fs.rmSync(DOSSIER_MAJ, { recursive: true, force: true })
+  try {
+    decompresser(octets, DOSSIER_MAJ)
+  } catch {
+    throw new Error('Ce fichier n’est pas un zip lisible.')
+  }
+  // Le zip peut contenir un dossier racine (KTEC-mise-a-jour-…/).
+  const racineMaj = trouverRacineMaj()
+  const infos = racineMaj && lireJson(path.join(racineMaj, 'mise-a-jour.json'), null)
+  if (!infos) throw new Error('Ce zip n’est pas une mise à jour de KTEC (mise-a-jour.json absent).')
+  const reg = registre(dossier)
+  return {
+    cree: infos.cree,
+    socle: { installee: reg.ktec, fournie: infos.ktec },
+    applis: Object.entries(infos.applis || {}).map(([id, version]) => ({ id, fournie: version, installee: reg.applis[id] || null })),
+  }
+}
+
+function trouverRacineMaj() {
+  if (fs.existsSync(path.join(DOSSIER_MAJ, 'mise-a-jour.json'))) return DOSSIER_MAJ
+  const sous = fs.existsSync(DOSSIER_MAJ) ? fs.readdirSync(DOSSIER_MAJ).map((n) => path.join(DOSSIER_MAJ, n)).find((d) => fs.existsSync(path.join(d, 'mise-a-jour.json'))) : null
+  return sous || null
+}
+
+// Applique la mise à jour lue : le programme s'il est différent, et les applications installées dont la version diffère.
+export async function appliquerMiseAJour(suivi) {
+  const dossier = dossierInstalle()
+  if (!dossier) throw new Error('KTEC n’est pas installé sur ce poste.')
+  const racineMaj = trouverRacineMaj()
+  const infos = racineMaj && lireJson(path.join(racineMaj, 'mise-a-jour.json'), null)
+  if (!infos) throw new Error('Aucune mise à jour lue : choisissez d’abord le fichier.')
+  const reg = registre(dossier)
+  let redemarrer = false
+  if (infos.ktec && infos.ktec !== reg.ktec && fs.existsSync(path.join(racineMaj, 'KTEC'))) {
+    suivi('etape', { numero: 1, total: 2, titre: `Programme KTEC ${reg.ktec} → ${infos.ktec}` })
+    copierSocle(path.join(racineMaj, 'KTEC'), dossier)
+    const config = lireJson(path.join(dossier, 'installation.json'), {})
+    if (config.java && config.birt && config.connecteur) {
+      composants.compilerMoteurJava(dossier, { javac: path.join(path.dirname(config.java), WINDOWS ? 'javac.exe' : 'javac') }, config.birt, config.connecteur, suivi)
+    }
+    reg.ktec = lireVersion(dossier)
+    suivi('message', `Programme KTEC ${reg.ktec} installé.`)
+    redemarrer = path.resolve(dossier) === path.resolve(RACINE)
+  }
+  suivi('etape', { numero: 2, total: 2, titre: 'Applications' })
+  const catalogueLocal = lireJson(path.join(dossier, 'outils', 'applis.json'), { applis: [] })
+  for (const [id, version] of Object.entries(infos.applis || {})) {
+    if (!(id in reg.applis) || reg.applis[id] === version) continue
+    const appli = catalogueLocal.applis.find((a) => a.id === id) || { id, nom: id }
+    reg.applis[id] = await installerAppli(dossier, appli, suivi, path.join(racineMaj, 'applis', `${id}.zip`))
+    redemarrer ||= path.resolve(dossier) === path.resolve(RACINE)
+  }
+  reg.misAJourLe = new Date().toISOString()
+  ecrireJson(path.join(dossier, 'registre.json'), reg)
+  fs.rmSync(DOSSIER_MAJ, { recursive: true, force: true })
   return { redemarrer, registre: reg }
 }
 

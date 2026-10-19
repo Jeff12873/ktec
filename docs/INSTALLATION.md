@@ -44,9 +44,13 @@ et la carte graphique détectée par llama.cpp.
 - **Mettre à jour** : versions disponibles (kit, ou dernières Releases GitHub) comparées au registre ; seules les
   applications plus récentes sont remplacées (d'un coup : en cas d'erreur, l'ancienne reste). Le programme KTEC
   lui-même aussi (moteur Java recompilé) ; KTEC redémarre tout seul.
+- **Mettre à jour depuis un fichier** (poste sans accès à GitHub) : `node outils/fabriquer-mise-a-jour.js` fabrique
+  sur un PC connecté un petit zip (quelques Mo : le programme et les applications, sans Java, BIRT ni modèles d'IA),
+  valable pour Windows et Linux. Sur le poste : « Installation et mises à jour » › **Depuis un fichier…** ; la page
+  montre ce qui va changer, puis l'applique comme une mise à jour en ligne.
 - **Désinstaller une application** : son dossier `apps/<id>` ; ses données dans le `.ktec` sont gardées.
 - **Désinstaller KTEC** : le dossier d'installation et les raccourcis ; les modèles d'IA seulement si demandé.
   Le fichier `.ktec`, `Documents/KTEC` et les réglages hors du dossier ne sont jamais supprimés.
 
 Code : `serveur/installation/` (composants, installateur, raccourcis, routes), `interface/installation/` (la page),
-`outils/fabriquer-kit.js`, `Installer KTEC.bat`, `installer-ktec.sh`.
+`outils/fabriquer-kit.js`, `outils/fabriquer-mise-a-jour.js`, `Installer KTEC.bat`, `installer-ktec.sh`.

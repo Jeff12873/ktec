@@ -48,10 +48,12 @@ export function executerRequete(sql, limite = 200) {
 }
 
 // Fait tourner un rapport dans le moteur BIRT (aperçu HTML ou export). Renvoie { erreurs }.
-export function rendreRapport(fichier, format, sortie, parametres = {}, ressources = null) {
+// images : adresse où KTEC sert les images d'un aperçu HTML (graphiques), rangées dans <sortie>_images.
+export function rendreRapport(fichier, format, sortie, parametres = {}, ressources = null, images = null) {
   exigerSession()
   const options = { rapport: fichier, format, sortie }
   if (ressources) options.ressources = ressources
+  if (images && format === 'html') options.images = images
   const parametresListe = Object.entries(parametres).filter(([, v]) => v !== '' && v !== null && v !== undefined).map(([nom, valeur]) => `${nom}=${valeur}`)
   return moteurJava('rendu', options, { motDePasse, parametres: parametresListe, delai: 300_000 })
 }
