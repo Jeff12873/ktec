@@ -90,4 +90,28 @@ vider(
 
 constellation()
 
+// Mises à jour : au lancement, KTEC regarde sur GitHub s'il existe des versions plus récentes que celles installées
+// (programme et applications). Si oui, un bandeau propose de tout mettre à jour d'un clic : seuls les paquets
+// changés sont téléchargés (quelques Mo), jamais Java, BIRT ni les modèles d'IA.
+async function verifierMisesAJour() {
+  try {
+    const e = await api('/api/ktec/installation/etat')
+    if (!e.installe || e.enInstallation || e.source !== 'github') return // en développement, ou lancé depuis un kit
+    const cat = await api('/api/ktec/installation/catalogue')
+    // « 0.4.2 » (copié du kit) et « 0.4.2.7 » (numéro de publication sur GitHub) sont la même version.
+    const differente = (dispo, installee) => dispo && installee && dispo !== installee && !dispo.startsWith(installee + '.') && !installee.startsWith(dispo + '.')
+    const nouveautes = [
+      ...(differente(cat.socle?.version, e.installe.ktec) ? [`KTEC ${cat.socle.version}`] : []),
+      ...cat.applis.filter((a) => differente(a.disponible, e.installe.applis?.[a.id])).map((a) => `${a.nom} ${a.disponible}`),
+    ]
+    if (!nouveautes.length) return
+    document.querySelector('.portail-entete')?.after(h('div', { class: 'bandeau info bandeau-maj' }, ic('telecharger'),
+      h('span', { style: { flex: 1 } }, `Mise à jour disponible : ${nouveautes.join(', ')}.`),
+      h('a', { class: 'bouton petit principal', href: '/installation/?tout=1' }, 'Mettre à jour maintenant')))
+  } catch {
+    // Pas d'accès à GitHub (hors ligne) : rien à signaler, la mise à jour par fichier reste possible.
+  }
+}
+verifierMisesAJour()
+
 if (location.hash === '#reglages' || !etat.connexion.configuree) ouvrirReglages()

@@ -252,6 +252,9 @@ async function installerAppli(dossier, appli, suivi, zipLocal = null) {
 
 // ---------------------------------------------------------------- mises à jour
 
+// « 0.4.2 » (copié du kit) et « 0.4.2.7 » (numéro de publication sur GitHub) sont la même version.
+const differente = (dispo, installee) => Boolean(dispo) && dispo !== installee && !(installee && (dispo.startsWith(installee + '.') || installee.startsWith(dispo + '.')))
+
 // Met à jour les applications installées (et le socle KTEC) vers les versions disponibles.
 // Renvoie { redemarrer } : vrai si le programme KTEC qui tourne a été remplacé.
 export async function mettreAJour({ applis = null, socle = true } = {}, suivi) {
@@ -260,7 +263,7 @@ export async function mettreAJour({ applis = null, socle = true } = {}, suivi) {
   const reg = registre(dossier)
   const cat = await catalogueApplis()
   let redemarrer = false
-  if (socle && cat.socle.version && cat.socle.version !== reg.ktec) {
+  if (socle && differente(cat.socle.version, reg.ktec)) {
     suivi('etape', { numero: 1, total: 2, titre: `Programme KTEC ${reg.ktec} → ${cat.socle.version}` })
     if (kit()) copierSocle(RACINE, dossier)
     else {
@@ -284,7 +287,7 @@ export async function mettreAJour({ applis = null, socle = true } = {}, suivi) {
   suivi('etape', { numero: 2, total: 2, titre: 'Applications' })
   for (const a of cat.applis) {
     if (!(a.id in reg.applis) || (applis && !applis.includes(a.id))) continue
-    if (a.disponible && a.disponible === reg.applis[a.id]) continue
+    if (!differente(a.disponible, reg.applis[a.id])) continue
     reg.applis[a.id] = await installerAppli(dossier, a, suivi)
     redemarrer ||= path.resolve(dossier) === path.resolve(RACINE) // les routes serveur d'une application sont chargées au démarrage
   }

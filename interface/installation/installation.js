@@ -45,7 +45,8 @@ function dessiner() {
 }
 
 const versionLisible = (v) => v || '—'
-const plusRecente = (dispo, installee) => dispo && installee && dispo !== installee
+// « 0.4.2 » (copié du kit) et « 0.4.2.7 » (numéro de publication sur GitHub) sont la même version.
+const plusRecente = (dispo, installee) => dispo && installee && dispo !== installee && !dispo.startsWith(installee + '.') && !installee.startsWith(dispo + '.')
 
 // ---------------------------------------------------------------- installation existante
 
@@ -292,3 +293,8 @@ function attendreRedemarrage() {
 
 // Au chargement de la page (à la fin : toutes les fonctions ci-dessus sont alors prêtes).
 await charger()
+// Depuis le bandeau « Mise à jour disponible » du portail : tout est mis à jour sans autre clic.
+if (new URLSearchParams(location.search).has('tout') && etat?.installe && !etat.modeInstallation) {
+  history.replaceState(null, '', '/installation/')
+  lancerMiseAJour(null)
+}

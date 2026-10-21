@@ -372,3 +372,4 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 .points-confiance > div { display: flex; gap: 8px; align-items: flex-start; color: var(--texte-2); font-size: 13px; }
 .points-confiance svg { flex: none; margin-top: 2px; color: var(--accent); }
 .points-confiance b { color: var(--texte); font-weight: 600; }
+.bandeau-maj { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
