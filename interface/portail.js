@@ -96,6 +96,8 @@ constellation()
 async function verifierMisesAJour() {
   try {
     const e = await api('/api/ktec/installation/etat')
+    // Date de la dernière mise à jour, dans le pied du portail.
+    if (e.installe?.misAJourLe) document.querySelector('.portail-pied span:nth-child(2)')?.after(h('span', { title: 'Dernière mise à jour du programme ou des applications' }, ic('rafraichir', 14), ` Mis à jour le ${new Date(e.installe.misAJourLe).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}`))
     if (!e.installe || e.enInstallation || e.source !== 'github') return // en développement, ou lancé depuis un kit
     const cat = await api('/api/ktec/installation/catalogue')
     // « 0.4.2 » (copié du kit) et « 0.4.2.7 » (numéro de publication sur GitHub) sont la même version.
