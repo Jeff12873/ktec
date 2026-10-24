@@ -86,9 +86,29 @@ const REGLAGES_DEFAUT = {
   applisDev: [],        // en développement : dossiers d'applications chargés en plus de apps/
 }
 
+// La connexion MySQL peut aussi être rangée (chiffrée) dans le fichier de connaissances : elle y est commune
+// à tous les postes. Le fichier la fournit par cette fonction (ktec.js) ; sinon, celle du poste.
+let connexionPartagee = () => null
+let dansConnexion = false
+export function definirConnexionPartagee(fournisseur) {
+  connexionPartagee = fournisseur
+}
+
 export function reglagesPoste() {
   const lus = lireJson(chemins.reglagesPoste, {})
-  return { ...REGLAGES_DEFAUT, ...lus, mysql: { ...REGLAGES_DEFAUT.mysql, ...(lus.mysql || {}) } }
+  let partagee = null
+  if (!dansConnexion) {
+    dansConnexion = true // ouvrir le fichier de connaissances relit les réglages du poste : pas de boucle
+    try {
+      partagee = connexionPartagee()
+    } catch {
+      partagee = null
+    } finally {
+      dansConnexion = false
+    }
+  }
+  const mysql = partagee?.serveur ? partagee : lus.mysql
+  return { ...REGLAGES_DEFAUT, ...lus, mysql: { ...REGLAGES_DEFAUT.mysql, ...(mysql || {}) } }
 }
 
 // Le dossier de travail : rapports créés (.rptdesign) et, par défaut, le fichier .ktec.

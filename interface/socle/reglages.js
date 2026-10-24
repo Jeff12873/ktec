@@ -1,7 +1,7 @@
 // Réglages communs à tout KTEC : connexion MySQL (une seule pour toutes les applications) et ce poste.
 // Montrés par le portail (bouton « Réglages ») et par l'écran de configuration des applications.
 
-import { h, ic, formulaire, essayer, confirmer, fenetre, tailleFr, dateHeureFr } from './ui.js'
+import { h, ic, vider, notifier, formulaire, essayer, confirmer, fenetre, tailleFr, dateHeureFr } from './ui.js'
 import { api } from './api.js'
 import { etat, actualiserEtat } from './etat.js'
 import { demanderMotDePasse } from './connexion.js'
@@ -130,4 +130,48 @@ async function changerMotDePasse(existe) {
       },
     ],
   })
+}
+
+// La clé du site : la configuration (connexion, adresses, requêtes, réglages) chiffrée dans le fichier de
+// connaissances, lisible seulement par KTEC sur un poste qui a la clé. Sans mot de passe à taper.
+export function carteCle(apres = () => {}) {
+  const corps = h('div', {}, h('p', { class: 'discret curseur' }, 'Lecture'))
+  const telechargerCle = async () => {
+    const r = await api('/api/ktec/cle/exporter', { methode: 'POST' })
+    const lien = h('a', { href: URL.createObjectURL(new Blob([r.contenu], { type: 'application/json' })), download: r.nom })
+    document.body.append(lien); lien.click(); lien.remove()
+    notifier('Clé du site exportée : gardez ce fichier en lieu sûr (clé USB, coffre).')
+  }
+  const importer = () => {
+    const choix = h('input', { type: 'file', accept: '.ktecclef,application/json', style: { display: 'none' } })
+    choix.onchange = async () => {
+      const fichier = choix.files[0]
+      if (!fichier) return
+      await essayer(() => api('/api/ktec/cle/importer', { methode: 'POST', fichier }), 'Clé du site importée : la configuration est lisible sur ce poste')
+      dessiner(); apres()
+    }
+    document.body.append(choix); choix.click(); choix.remove()
+  }
+  const chiffrer = async () => {
+    if (!(await confirmer('Chiffrer la configuration ? Une clé du site est créée sur ce poste. Les autres postes qui partagent ce fichier devront importer cette clé pour lire la configuration : exportez-la juste après.', { texte: 'Chiffrer' }))) return
+    await essayer(() => api('/api/ktec/cle/chiffrer', { methode: 'POST' }), 'Configuration chiffrée')
+    dessiner()
+    telechargerCle()
+  }
+  async function dessiner() {
+    const e = await api('/api/ktec/cle').catch(() => null)
+    if (!e) return vider(corps, h('p', { class: 'discret' }, 'État de la clé indisponible.'))
+    vider(corps,
+      h('p', { class: 'texte-2', style: { marginTop: 0 } }, e.chiffree
+        ? (e.bonneCle ? 'La configuration est chiffrée, et ce poste a la clé : tout est lisible.' : 'La configuration est chiffrée, mais ce poste n’a pas la bonne clé : importez la clé du site.')
+        : 'La configuration (connexion MySQL, adresses, requêtes, réglages des applications) est en clair dans le fichier de connaissances. La chiffrer la rend illisible sans la clé du site, sans mot de passe à taper.'),
+      e.chiffree && !e.bonneCle ? h('div', { class: 'bandeau' }, ic('cadenas'), 'Sans la clé, les applications ne voient pas leurs réglages.') : null,
+      h('div', { class: 'actions', style: { marginTop: '10px' } },
+        e.chiffree ? null : h('button', { class: 'principal', onclick: chiffrer }, ic('cadenas', 16), 'Chiffrer la configuration'),
+        e.cleSurLePoste && e.bonneCle ? h('button', { onclick: telechargerCle }, ic('telecharger', 16), 'Exporter la clé') : null,
+        e.chiffree && !e.bonneCle ? h('button', { class: 'principal', onclick: importer }, ic('dossier', 16), 'Importer la clé du site') : null,
+        e.chiffree && e.bonneCle ? null : null))
+  }
+  dessiner()
+  return h('div', { class: 'carte' }, h('div', { class: 'carte-entete' }, h('h2', {}, ic('cadenas', 18), 'Clé du site')), corps)
 }

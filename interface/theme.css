@@ -415,3 +415,19 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
   select option::checkmark { display: none; }
   select > button + selectedcontent, select selectedcontent { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
+
+/* Assistant du premier lancement */
+.assistant { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; background: rgba(5, 10, 7, .55); backdrop-filter: blur(2px); animation: assistant-entree .35s ease-out; }
+.assistant.fin { opacity: 0; transition: opacity .35s; }
+@keyframes assistant-entree { from { opacity: 0; } }
+.carte-assistant { width: min(640px, 100%); max-height: calc(100vh - 48px); overflow: auto; display: grid; gap: 14px; padding: 28px; border-color: var(--bord-fort); animation: assistant-carte .3s ease-out; }
+@keyframes assistant-carte { from { transform: translateY(10px); opacity: 0; } }
+.carte-assistant h1 { font-size: 24px; margin: 0; }
+.etape-assistant { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+.description-assistant { color: var(--texte-2); margin: 0; line-height: 1.55; }
+.boutons-assistant { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.chargement-assistant { display: grid; place-items: center; gap: 16px; padding: 40px 0; color: var(--texte-2); }
+.rond-chargement { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--accent-doux); border-top-color: var(--accent); animation: rond-tourne .9s linear infinite; }
+@keyframes rond-tourne { to { transform: rotate(360deg); } }
+.bilan-assistant { margin: 0; padding-left: 18px; color: var(--texte-2); display: grid; gap: 6px; }
+.bilan-assistant b { color: var(--texte); font-weight: 600; }

@@ -54,3 +54,28 @@ et la carte graphique détectée par llama.cpp.
 
 Code : `serveur/installation/` (composants, installateur, raccourcis, routes), `interface/installation/` (la page),
 `outils/fabriquer-kit.js`, `outils/fabriquer-mise-a-jour.js`, `Installer KTEC.bat`, `installer-ktec.sh`.
+
+## Premier lancement sur un poste : l'assistant
+
+Au premier lancement, KTEC pose trois questions, une par écran, avec un chargement entre deux pendant qu'il vérifie :
+
+1. **Le fichier de connaissances** : en choisir un existant (lecteur réseau, clé USB…) ou en créer un.
+2. **La clé du site** : si la configuration du fichier est chiffrée, importer la clé (fichier `.ktecclef`) ; sinon,
+   proposer de la chiffrer (la clé est alors créée sur ce poste et exportée aussitôt).
+3. **La connexion à la base de la GMAO** : déjà remplie si elle est dans le fichier ; le mot de passe est essayé,
+   jamais enregistré.
+
+Les postes réglés avant l'assistant ne le voient pas. Un poste qui ouvre un fichier chiffré sans en avoir la clé ne
+voit que l'écran de la clé.
+
+## La clé du site : configuration chiffrée, sans mot de passe
+
+La configuration rangée dans le fichier de connaissances (connexion MySQL, adresses, requêtes, réglages des
+applications) peut être chiffrée (AES-256-GCM) : Réglages › « Clé du site » › « Chiffrer la configuration ».
+
+- La clé est créée sur le poste, dans le dossier de KTEC (`cle-site.dat`), protégée sous Windows par la session de
+  l'utilisateur (DPAPI). Elle n'est jamais publiée.
+- « Exporter la clé » donne un petit fichier `.ktecclef` : à garder en lieu sûr ; les autres postes l'importent une
+  fois (assistant, ou Réglages › « Importer la clé du site »). Une clé qui n'ouvre pas ce fichier est refusée.
+- Sans la clé, les applications ne voient pas leurs réglages, et ne peuvent pas les écraser.
+- Restent lisibles : les données du site (structure de la base, dictionnaire, interventions, documents).

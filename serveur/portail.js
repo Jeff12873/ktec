@@ -7,7 +7,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { ErreurHttp } from './socle/http.js'
-import { cheminKtec, changerKtec } from './socle/ktec.js'
+import { cheminKtec, changerKtec, ecrireInfo, etatCle, chiffrerConfiguration, importerCle } from './socle/ktec.js'
+import { fichierCle, cleDuPoste } from './socle/cle.js'
 import { etatPartage, entrerAdmin, quitterAdmin, cookieAdmin, verifierMotDePasse, motDePasseDefini, changerMotDePasse, listerSauvegardes, creerFichier, publierMaintenant } from './socle/partage.js'
 import { etatIA, arreterIA } from './socle/ia.js'
 import { version, reglagesPoste, modifierReglagesPoste, dossierTravail, journal, WINDOWS } from './socle/installation.js'
@@ -35,9 +36,44 @@ export function routes(r) {
   r.post('/api/ktec/configuration/mysql', async (ctx) => {
     const { serveur, port, base, utilisateur } = await ctx.json()
     if (!serveur?.trim() || !base?.trim() || !utilisateur?.trim()) throw new ErreurHttp(400, 'Serveur, base et utilisateur sont obligatoires.')
-    modifierReglagesPoste({ mysql: { serveur: serveur.trim(), port: Number(port) || 3306, base: base.trim(), utilisateur: utilisateur.trim() } })
+    const mysql = { serveur: serveur.trim(), port: Number(port) || 3306, base: base.trim(), utilisateur: utilisateur.trim() }
+    // Rangée aussi dans le fichier de connaissances (chiffrée si la configuration l'est) : commune à tous les postes.
+    try {
+      ecrireInfo('ktec.connexion', mysql)
+    } catch (erreur) {
+      journal(`Connexion MySQL gardée sur ce poste seulement : ${erreur.message}`)
+    }
+    modifierReglagesPoste({ mysql })
     fermerSession() // nouvelle connexion : le mot de passe sera redemandé
   })
+
+  // ---- assistant du premier lancement (fichier de connaissances, clé du site, connexion à la GMAO)
+  // Les postes déjà réglés avant l'assistant (connexion ou fichier choisis) ne le voient pas.
+  const avant = reglagesPoste()
+  if (!avant.assistantTermine && (avant.mysql?.serveur || avant.fichierKtec)) modifierReglagesPoste({ assistantTermine: true })
+
+  r.get('/api/ktec/assistant', (ctx) => {
+    const poste = reglagesPoste()
+    let cle = null
+    let fichier = null
+    try {
+      fichier = etatPartage(ctx.cookie)
+      cle = etatCle()
+    } catch {}
+    return { aFaire: !poste.assistantTermine, cleManquante: Boolean(cle?.chiffree && !cle?.bonneCle), fichier, cle, mysql: poste.mysql }
+  })
+  r.post('/api/ktec/assistant/fini', () => modifierReglagesPoste({ assistantTermine: true }) && { ok: true })
+
+  // ---- clé du site : configuration chiffrée dans le fichier de connaissances
+
+  r.get('/api/ktec/cle', () => etatCle())
+  r.post('/api/ktec/cle/chiffrer', () => chiffrerConfiguration())
+  // Le fichier de la clé, à garder en lieu sûr (demande POST : aucune autre page ne peut le récupérer).
+  r.post('/api/ktec/cle/exporter', () => {
+    if (!cleDuPoste()) throw new ErreurHttp(404, 'Pas de clé du site sur ce poste.')
+    return { nom: 'cle-du-site.ktecclef', contenu: fichierCle() }
+  })
+  r.post('/api/ktec/cle/importer', async (ctx) => importerCle((await ctx.octets()).toString('utf8')))
 
   r.post('/api/ktec/session', async (ctx) => {
     const { motDePasse } = await ctx.json()

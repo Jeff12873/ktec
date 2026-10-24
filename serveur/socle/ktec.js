@@ -19,8 +19,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { reglagesPoste, modifierReglagesPoste, dossierTravail, journal, lireJson, dossierInstallationParDefaut } from './installation.js'
-import { db, ajouterStructure, definirCheminParDefaut, ouvrirFichier, creerFichier, exigerEcriture, noterModification, transaction, etatPartage, FORMAT } from './partage.js'
+import { reglagesPoste, modifierReglagesPoste, dossierTravail, journal, lireJson, dossierInstallationParDefaut, definirConnexionPartagee } from './installation.js'
+import { cleDuPoste, chiffrer, dechiffrer, estChiffre, empreinteCle, nouvelleCle, enregistrerCle, lireFichierCle } from './cle.js'
+import { db, ajouterStructure, definirCheminParDefaut, ouvrirFichier, creerFichier, exigerEcriture, noterModification, transaction, etatPartage, FORMAT, baseOuverte } from './partage.js'
 
 // Le fichier partagé lui-même (verrou, publication, mode administrateur) : voir partage.js.
 export { db, transaction, exigerEcriture, noterModification, ajouterStructure }
@@ -130,19 +131,96 @@ const maintenant = () => new Date().toISOString()
 // ---------------------------------------------------------------- réglages du site (infos)
 
 // Valeur JSON rangée dans la table infos (ex. « charte », « itm »), ou la valeur par défaut.
+// Une configuration chiffrée (clé du site) est déchiffrée ici ; sans la bonne clé : la valeur par défaut.
 export function lireInfo(cle, defaut = null) {
   const ligne = ktec().prepare('SELECT valeur FROM infos WHERE cle = ?').get(cle)
   if (!ligne) return defaut
+  const texte = dechiffrer(ligne.valeur)
+  if (texte === null) return defaut
   try {
-    return JSON.parse(ligne.valeur)
+    return JSON.parse(texte)
   } catch {
     return defaut
   }
 }
 
 function ecrireInfoBrut(cle, valeur) {
-  ktec().prepare('INSERT OR REPLACE INTO infos VALUES (?, ?)').run(cle, JSON.stringify(valeur))
+  ktec().prepare('INSERT OR REPLACE INTO infos VALUES (?, ?)').run(cle, protegerTexte(JSON.stringify(valeur), cle))
 }
+
+// ---------------------------------------------------------------- configuration chiffrée (clé du site)
+//
+// Une fois la configuration chiffrée, la marque « ktec.cle » (en clair : l'empreinte de la clé, jamais la clé)
+// dit qu'il faut la clé du site pour la lire. Restent en clair : le format et la date de création du fichier.
+
+const EN_CLAIR = new Set(['format', 'cree', 'ktec.cle'])
+function marqueCle() {
+  const ligne = ktec().prepare("SELECT valeur FROM infos WHERE cle = 'ktec.cle'").get()
+  try {
+    return ligne ? JSON.parse(ligne.valeur) : null
+  } catch {
+    return null
+  }
+}
+
+// Pour les applications qui ont leurs propres réglages (AITEC) : chiffrer en écrivant, déchiffrer en lisant.
+export function protegerTexte(texte, cle = '') {
+  return typeof texte === 'string' && !EN_CLAIR.has(cle) && marqueCle() ? chiffrer(texte) : texte
+}
+export const lireTexteProtege = (texte) => (estChiffre(texte) ? dechiffrer(texte) : texte)
+
+export function etatCle() {
+  const marque = marqueCle()
+  const c = cleDuPoste()
+  return { chiffree: Boolean(marque), cleSurLePoste: Boolean(c), bonneCle: Boolean(marque && c && empreinteCle(c) === marque.empreinte), empreinte: marque?.empreinte || null }
+}
+
+// Chiffre toute la configuration du fichier (crée la clé du site si ce poste n'en a pas).
+export function chiffrerConfiguration() {
+  return ecrire((db) => {
+    const marque = marqueCle()
+    let c = cleDuPoste()
+    if (marque && (!c || empreinteCle(c) !== marque.empreinte)) throw Object.assign(new Error('La configuration est déjà chiffrée avec une autre clé : importez la clé du site.'), { statut: 409 })
+    if (!c) {
+      c = nouvelleCle()
+      enregistrerCle(c)
+      journal('Clé du site créée sur ce poste')
+    }
+    db.exec('BEGIN')
+    try {
+      db.prepare("INSERT OR REPLACE INTO infos VALUES ('ktec.cle', ?)").run(JSON.stringify({ empreinte: empreinteCle(c), depuis: new Date().toISOString() }))
+      for (const { cle, valeur } of db.prepare('SELECT cle, valeur FROM infos').all()) {
+        if (!EN_CLAIR.has(cle) && !estChiffre(valeur)) db.prepare('UPDATE infos SET valeur = ? WHERE cle = ?').run(chiffrer(valeur, c), cle)
+      }
+      // Les réglages d'AITEC (table à part), s'il y en a : seulement les textes.
+      if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'reglages'").get()) {
+        for (const { cle, valeur } of db.prepare('SELECT cle, valeur FROM reglages').all()) {
+          if (typeof valeur === 'string' && valeur && !EN_CLAIR.has(cle) && !estChiffre(valeur)) db.prepare('UPDATE reglages SET valeur = ? WHERE cle = ?').run(chiffrer(valeur, c), cle)
+        }
+      }
+      db.exec('COMMIT')
+    } catch (erreur) {
+      db.exec('ROLLBACK')
+      throw erreur
+    }
+    journal('Configuration du fichier de connaissances chiffrée')
+    return etatCle()
+  })
+}
+
+// Importe la clé du site sur ce poste (fichier .ktecclef) ; refuse une clé qui n'ouvre pas ce fichier.
+export function importerCle(texte) {
+  const c = lireFichierCle(texte)
+  const marque = marqueCle()
+  if (marque && empreinteCle(c) !== marque.empreinte) throw Object.assign(new Error('Cette clé n’ouvre pas ce fichier de connaissances : ce n’est pas celle de ce site.'), { statut: 400 })
+  enregistrerCle(c)
+  journal('Clé du site importée sur ce poste')
+  return etatCle()
+}
+
+// La connexion MySQL commune à tous les postes, rangée (chiffrée) dans le fichier.
+// (seulement une fois le fichier ouvert : la lire ne doit jamais l'ouvrir, les applications déclarent d'abord leurs tables)
+definirConnexionPartagee(() => (baseOuverte() ? lireInfo('ktec.connexion', null) : null))
 
 // ---------------------------------------------------------------- indicateurs
 

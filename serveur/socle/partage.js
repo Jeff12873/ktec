@@ -83,6 +83,9 @@ function ouvrirBase(chemin, { lectureSeule: seule }) {
   lectureSeule = seule
 }
 
+// Le fichier est-il déjà ouvert ? (sans l'ouvrir : sert à lire la connexion partagée sans effet de bord)
+export const baseOuverte = () => Boolean(connexion)
+
 // La base ouverte (copie locale). Ouvre le fichier du poste au premier appel.
 export function db() {
   if (!connexion) ouvrirFichier(cheminParDefaut())

@@ -5,9 +5,10 @@ import { h, vider, ic, notifier, confirmer, fenetre } from './socle/ui.js'
 import { api } from './socle/api.js'
 import { etat, suivreEtat, surChangement } from './socle/etat.js'
 import { etiquetteIA, etiquetteMySQL, demanderMotDePasse } from './socle/connexion.js'
-import { carteMySQL, cartePoste, carteFichier } from './socle/reglages.js'
+import { carteMySQL, cartePoste, carteFichier, carteCle } from './socle/reglages.js'
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
 import { constellation } from './fond.js'
+import { lancerAssistant } from './assistant.js'
 import { ouvrirMessage } from './socle/message.js'
 import { pointsNouveaux, encartNouveautes } from './socle/nouveautes.js'
 
@@ -23,9 +24,14 @@ const barre = h('div', { class: 'portail-etat' })
 const applis = await api('/api/ktec/applis')
 await suivreEtat()
 
+// Premier lancement sur ce poste : l'assistant (fichier de connaissances, clé du site, connexion à la GMAO).
+// Fichier chiffré sans la clé sur ce poste : seulement l'écran de la clé.
+const assistant = await api('/api/ktec/assistant').catch(() => ({}))
+const avecAssistant = Boolean(assistant.aFaire || assistant.cleManquante)
+
 // Connexion MySQL configurée mais fermée : on propose le mot de passe une fois pour toutes les applications.
 // Pas encore configurée : on ouvre les réglages.
-if (location.hash !== '#reglages' && etat.connexion.configuree && !etat.connexion.ouverte && applis.length) demanderMotDePasse({ automatique: true })
+if (!avecAssistant && location.hash !== '#reglages' && etat.connexion.configuree && !etat.connexion.ouverte && applis.length) demanderMotDePasse({ automatique: true })
 
 const installees = new Set(applis.map((a) => a.id))
 const tuiles = [
@@ -43,7 +49,7 @@ const tuiles = [
 // Réglages communs (connexion MySQL, ce poste) : bouton « Réglages » ou adresse /#reglages.
 function ouvrirReglages() {
   const recharger = () => location.reload()
-  fenetre({ titre: 'Réglages de KTEC', large: true, contenu: h('div', { class: 'grille grille-2' }, carteMySQL(recharger), cartePoste(recharger), carteFichier(recharger)), boutons: [{ texte: 'Fermer', classe: 'discret' }] })
+  fenetre({ titre: 'Réglages de KTEC', large: true, contenu: h('div', { class: 'grille grille-2' }, carteMySQL(recharger), cartePoste(recharger), carteFichier(recharger), carteCle(recharger)), boutons: [{ texte: 'Fermer', classe: 'discret' }] })
     .then(() => history.replaceState(null, '', '/'))
 }
 window.addEventListener('hashchange', () => location.hash === '#reglages' && ouvrirReglages())
@@ -164,4 +170,5 @@ async function verifierMisesAJour() {
 }
 verifierMisesAJour()
 
-if (location.hash === '#reglages' || !etat.connexion.configuree) ouvrirReglages()
+if (avecAssistant) lancerAssistant({ seulementCle: !assistant.aFaire }).then(() => location.reload())
+else if (location.hash === '#reglages' || !etat.connexion.configuree) ouvrirReglages()
