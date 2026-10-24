@@ -8,6 +8,7 @@ import { etiquetteIA, etiquetteMySQL, demanderMotDePasse } from './socle/connexi
 import { carteMySQL, cartePoste, carteFichier } from './socle/reglages.js'
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
 import { constellation } from './fond.js'
+import { ouvrirMessage } from './socle/message.js'
 import { pointsNouveaux, encartNouveautes } from './socle/nouveautes.js'
 
 // Les applications de la suite, pour montrer aussi celles qui ne sont pas (encore) installées.
@@ -53,6 +54,47 @@ function dessinerEtat() {
 dessinerEtat()
 surChangement((e) => (e.injoignable ? notifier('KTEC ne répond plus : relancez-le avec son raccourci.', 'erreur') : dessinerEtat()))
 
+// « Messages » : les messages au développeur rangés dans le fichier de connaissances, avec leur état,
+// et l'export en zip (texte + images) à transmettre.
+const ETATS_MESSAGE = { a_faire: 'À faire', en_cours: 'En cours', fait: 'Fait' }
+const boutonMessages = h('button', { class: 'petit discret', onclick: () => listeMessages() }, ic('livre', 14), 'Messages')
+async function compterMessages() {
+  try {
+    const n = (await api('/api/ktec/messages')).filter((m) => m.etat !== 'fait').length
+    vider(boutonMessages, ic('livre', 14), n ? `Messages (${n})` : 'Messages')
+  } catch {}
+}
+async function listeMessages() {
+  const liste = h('div', { class: 'liste-messages' })
+  const dessiner = async () => {
+    const messages = await api('/api/ktec/messages')
+    vider(liste, messages.length ? messages.map((m) => h('div', { class: `message-dev${m.etat === 'fait' ? ' fait' : ''}` },
+      h('div', { class: 'entete-message' },
+        h('strong', {}, `${m.appli} ${String(m.version).split('.').slice(0, 3).join('.')}`),
+        h('span', {}, `${m.ecran ? m.ecran + ' · ' : ''}${new Date(m.date).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })} · ${m.poste}`),
+        h('span', { style: { flex: 1 } }),
+        h('select', { class: 'mini', onchange: async (e) => { await api(`/api/ktec/messages/${m.id}`, { methode: 'POST', corps: { etat: e.target.value } }); dessiner(); compterMessages() } },
+          Object.entries(ETATS_MESSAGE).map(([v, t]) => h('option', { value: v, selected: m.etat === v }, t))),
+        h('button', { class: 'discret icone-seule', title: 'Supprimer ce message', onclick: async () => { if (!(await confirmer('Supprimer ce message et ses images ?', { texte: 'Supprimer', danger: true }))) return; await api(`/api/ktec/messages/${m.id}`, { methode: 'POST', corps: { supprimer: true } }); dessiner(); compterMessages() } }, ic('poubelle', 15))),
+      m.texte ? h('p', {}, m.texte) : null,
+      m.images?.length ? h('div', { class: 'vignettes-message' }, m.images.map((nom) => h('a', { href: `/api/ktec/messages/images/${encodeURIComponent(nom)}`, target: '_blank', rel: 'noopener' }, h('img', { src: `/api/ktec/messages/images/${encodeURIComponent(nom)}`, alt: 'Capture' })))) : null))
+      : h('p', { class: 'texte-2' }, 'Aucun message pour l’instant. Chaque application a un bouton « Message au développeur » en haut à droite.'))
+  }
+  await dessiner()
+  fenetre({
+    titre: 'Messages au développeur',
+    large: true,
+    contenu: h('div', {},
+      h('p', { class: 'texte-2' }, 'Les propositions d’amélioration envoyées depuis les applications. Elles restent dans le fichier de connaissances ; l’export en zip (textes et images) sert à les transmettre.'),
+      liste),
+    boutons: [
+      { texte: 'Exporter (zip)', classe: '', action: () => { location.href = '/api/ktec/messages/export.zip'; return false } },
+      { texte: 'Fermer', classe: 'principal', valeur: true },
+    ],
+  })
+}
+compterMessages()
+
 async function quitter() {
   if (!(await confirmer('Arrêter KTEC ? Les applications ouvertes ne répondront plus.', { texte: 'Arrêter' }))) return
   await api('/api/ktec/quitter', { methode: 'POST' })
@@ -83,6 +125,8 @@ vider(
       h('span', {}, `KTEC ${etat.version}`),
       h('div', { style: { flex: 1 } }),
       h('a', { class: 'bouton petit discret', href: '/installation/', title: 'Mettre à jour, ajouter ou désinstaller des applications' }, ic('telecharger', 14), 'Installation et mises à jour'),
+      h('button', { class: 'petit discret', onclick: () => ouvrirMessage({ appli: 'ktec', ecran: 'Lanceur' }) }, ic('envoyer', 14), 'Message au développeur'),
+      boutonMessages,
       h('button', { class: 'petit discret', onclick: ouvrirReglages }, ic('reglages', 14), 'Réglages'),
       h('button', { class: 'petit discret', onclick: quitter }, ic('sortie', 14), 'Arrêter KTEC'),
     ),

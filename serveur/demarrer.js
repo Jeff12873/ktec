@@ -16,6 +16,7 @@ import { creerRoutes, demarrerServeur, pourAppli } from './socle/http.js'
 import { chargerApplis } from './socle/applis.js'
 import { routes as routesPortail } from './portail.js'
 import { routes as routesInstallation } from './installation/routes.js'
+import { routes as routesMessages } from './messages.js'
 import { ktec } from './socle/ktec.js'
 import { publierMaintenant } from './socle/partage.js'
 import { arreterIA } from './socle/ia.js'
@@ -43,6 +44,7 @@ const routes = creerRoutes()
 routes.get('/api/ping', () => ({ identifiant }))
 routesPortail(routes)
 routesInstallation(routes, { modeInstallation })
+routesMessages(routes)
 if (!modeInstallation) {
   await chargerApplis((id) => pourAppli(routes, id))
   // Ouvre le fichier de connaissances dès le départ (et reprend l'ancien .birtec au premier lancement).

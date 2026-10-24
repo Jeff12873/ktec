@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.4.8",
+      "date": "2026-10-24",
+      "points": [
+        "« Message au développeur » dans chaque application, avec captures d'écran",
+        "Liste des messages et export en zip depuis le lanceur ; rien ne sort de l'entreprise"
+      ]
+    },
+    {
       "version": "0.4.7",
       "date": "2026-10-24",
       "points": [

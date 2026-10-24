@@ -10,6 +10,7 @@ import { etat, suivreEtat, surChangement } from './socle/etat.js'
 import { appli, api } from './socle/api.js'
 import { etiquetteIA, etiquetteMySQL } from './socle/connexion.js'
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
+import { ouvrirMessage } from './socle/message.js'
 
 const racine = document.getElementById('appli')
 const toutes = await api('/api/ktec/applis')
@@ -105,6 +106,7 @@ function dessinerBarre() {
     etiquetteMySQL(c, '/#reglages'),
     etiquetteFichier(p),
     boutonAdmin(p),
+    h('button', { class: 'discret icone-seule', title: 'Message au développeur : proposer une amélioration', onclick: () => ouvrirMessage({ appli, ecran: routeActuelle().bloc.titre || '' }) }, ic('envoyer', 18)),
     h('button', { class: 'discret icone-seule', title: 'Aide sur cet écran', onclick: () => (location.hash = `#/aide/${routeActuelle().bloc.aide || 'premiers-pas'}`) }, ic('aide', 19)),
   )
 }
