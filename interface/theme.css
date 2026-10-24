@@ -403,3 +403,15 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 .message-dev p { margin: 0; white-space: pre-wrap; }
 .message-dev .vignettes-message img { width: 140px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid var(--bord); cursor: zoom-in; }
 .message-dev .entete-message select { width: auto; padding-top: 4px; padding-bottom: 4px; }
+
+/* Les listes des menus déroulants aux couleurs du thème (Chrome / Edge récents ; ailleurs, la liste du système) */
+@supports (appearance: base-select) {
+  select, select::picker(select) { appearance: base-select; }
+  select::picker-icon { display: none; } /* la flèche du thème est déjà dessinée */
+  select::picker(select) { background: var(--carte); color: var(--texte); border: 1px solid var(--bord-fort); border-radius: 12px; padding: 4px; box-shadow: 0 12px 30px rgba(0, 0, 0, .45); margin-top: 4px; }
+  select option { padding: 6px 10px; border-radius: 8px; font-size: 14px; }
+  select option:hover, select option:focus-visible { background: var(--carte-2); }
+  select option:checked { background: var(--accent-doux); color: var(--accent); font-weight: 600; }
+  select option::checkmark { display: none; }
+  select > button + selectedcontent, select selectedcontent { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
