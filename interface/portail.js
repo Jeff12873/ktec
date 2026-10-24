@@ -8,6 +8,7 @@ import { etiquetteIA, etiquetteMySQL, demanderMotDePasse } from './socle/connexi
 import { carteMySQL, cartePoste, carteFichier } from './socle/reglages.js'
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
 import { constellation } from './fond.js'
+import { pointsNouveaux, encartNouveautes } from './socle/nouveautes.js'
 
 // Les applications de la suite, pour montrer aussi celles qui ne sont pas (encore) installées.
 const SUITE = [
@@ -102,14 +103,17 @@ async function verifierMisesAJour() {
     const cat = await api('/api/ktec/installation/catalogue')
     // « 0.4.2 » (copié du kit) et « 0.4.2.7 » (numéro de publication sur GitHub) sont la même version.
     const differente = (dispo, installee) => dispo && installee && dispo !== installee && !dispo.startsWith(installee + '.') && !installee.startsWith(dispo + '.')
-    const nouveautes = [
-      ...(differente(cat.socle?.version, e.installe.ktec) ? [`KTEC ${cat.socle.version}`] : []),
-      ...cat.applis.filter((a) => differente(a.disponible, e.installe.applis?.[a.id])).map((a) => `${a.nom} ${a.disponible}`),
+    const aJour = [
+      ...(differente(cat.socle?.version, e.installe.ktec) ? [{ nom: 'KTEC', version: cat.socle.version, points: pointsNouveaux(cat.socle.nouveautes, e.installe.ktec) }] : []),
+      ...cat.applis.filter((a) => differente(a.disponible, e.installe.applis?.[a.id])).map((a) => ({ nom: a.nom, version: a.disponible, points: pointsNouveaux(a.nouveautes, e.installe.applis[a.id]) })),
     ]
-    if (!nouveautes.length) return
-    document.querySelector('.portail-entete')?.after(h('div', { class: 'bandeau info bandeau-maj' }, ic('telecharger'),
-      h('span', { style: { flex: 1 } }, `Mise à jour disponible : ${nouveautes.join(', ')}.`),
-      h('a', { class: 'bouton petit principal', href: '/installation/?tout=1' }, 'Mettre à jour maintenant')))
+    if (!aJour.length) return
+    // Le bandeau, puis l'encart des nouveautés (sans détails) de chaque logiciel à mettre à jour.
+    document.querySelector('.portail-entete')?.after(h('div', { class: 'carte-maj' },
+      h('div', { class: 'bandeau info bandeau-maj' }, ic('telecharger'),
+        h('span', { style: { flex: 1 } }, `Mise à jour disponible : ${aJour.map((a) => `${a.nom} ${String(a.version).split('.').slice(0, 3).join('.')}`).join(', ')}.`),
+        h('a', { class: 'bouton petit principal', href: '/installation/?tout=1' }, 'Mettre à jour maintenant')),
+      encartNouveautes(aJour)))
   } catch {
     // Pas d'accès à GitHub (hors ligne) : rien à signaler, la mise à jour par fichier reste possible.
   }

@@ -15,7 +15,7 @@ import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { RACINE, WINDOWS, version, lireJson, ecrireJson, dossierInstallationParDefaut, dossierModelesParDefaut, journal } from '../socle/installation.js'
 import { telecharger } from '../socle/telechargement.js'
-import { decompresser } from '../socle/zip.js'
+import { decompresser, lireZip } from '../socle/zip.js'
 import * as composants from './composants.js'
 import { creerRaccourcis, supprimerRaccourcis } from './raccourcis.js'
 
@@ -23,7 +23,7 @@ const KIT = path.join(RACINE, 'hors-ligne')
 const DEPOT_CATALOGUE = 'https://raw.githubusercontent.com/Jeff12873/ktec/main/outils/applis.json'
 
 // Ce qui fait le programme KTEC lui-même (copié ou remplacé à l'installation et aux mises à jour).
-const FICHIERS_DU_SOCLE = ['serveur', 'interface', 'moteur-java', 'outils', 'docs', 'VERSION', 'package.json', 'README.md',
+const FICHIERS_DU_SOCLE = ['serveur', 'interface', 'moteur-java', 'outils', 'docs', 'VERSION', 'package.json', 'README.md', 'nouveautes.json',
   'Lancer KTEC.bat', 'lancer-ktec.sh', 'Installer KTEC.bat', 'installer-ktec.sh']
 
 export const kit = () => lireJson(path.join(KIT, 'kit.json'), null)
@@ -37,8 +37,8 @@ export async function catalogueApplis() {
   if (k) {
     return {
       source: 'kit',
-      socle: { version: k.ktec },
-      applis: local.applis.filter((a) => k.applis?.[a.id]).map((a) => ({ ...a, disponible: k.applis[a.id] })),
+      socle: { version: k.ktec, nouveautes: lireJson(path.join(RACINE, 'nouveautes.json'), { versions: [] }).versions },
+      applis: local.applis.filter((a) => k.applis?.[a.id]).map((a) => ({ ...a, disponible: k.applis[a.id], nouveautes: nouveautesDuPaquet(path.join(KIT, 'applis', `${a.id}.zip`), a.id) })),
     }
   }
   // En ligne : le catalogue de GitHub (s'il répond), sinon celui de ce programme.
@@ -47,11 +47,32 @@ export async function catalogueApplis() {
     const r = await fetch(DEPOT_CATALOGUE, { signal: AbortSignal.timeout(8000) })
     if (r.ok) cat = await r.json()
   } catch {}
-  const versions = await Promise.all([cat.socle?.depot || 'Jeff12873/ktec', ...cat.applis.map((a) => a.depot)].map(derniereVersion))
+  const depots = [cat.socle?.depot || 'Jeff12873/ktec', ...cat.applis.map((a) => a.depot)]
+  const [versions, nouveautes] = await Promise.all([Promise.all(depots.map(derniereVersion)), Promise.all(depots.map(nouveautesEnLigne))])
   return {
     source: 'github',
-    socle: { ...cat.socle, version: versions[0] },
-    applis: cat.applis.map((a, i) => ({ ...a, disponible: versions[i + 1] })),
+    socle: { ...cat.socle, version: versions[0], nouveautes: nouveautes[0] },
+    applis: cat.applis.map((a, i) => ({ ...a, disponible: versions[i + 1], nouveautes: nouveautes[i + 1] })),
+  }
+}
+
+// Les nouveautés d'un logiciel (nouveautes.json, à la racine de son dépôt) : [{ version, date, points: [] }].
+async function nouveautesEnLigne(depot) {
+  try {
+    const r = await fetch(`https://raw.githubusercontent.com/${depot}/main/nouveautes.json`, { signal: AbortSignal.timeout(8000) })
+    return r.ok ? (await r.json()).versions || [] : []
+  } catch {
+    return []
+  }
+}
+
+// Les nouveautés rangées dans le paquet d'une application (kit hors ligne).
+function nouveautesDuPaquet(zip, id) {
+  try {
+    const f = lireZip(fs.readFileSync(zip)).find((x) => x.nom === `${id}/nouveautes.json`)
+    return f ? JSON.parse(f.lire().toString('utf8')).versions || [] : []
+  } catch {
+    return []
   }
 }
 

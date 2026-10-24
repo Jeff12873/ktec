@@ -33,7 +33,7 @@ jobs:
           echo "$version" > VERSION
           echo "VERSION=$version" >> "$GITHUB_ENV"
           mkdir -p dist/KTEC
-          cp -r serveur interface moteur-java outils docs VERSION package.json README.md \
+          cp -r serveur interface moteur-java outils docs VERSION package.json README.md nouveautes.json \
             "Lancer KTEC.bat" lancer-ktec.sh "Installer KTEC.bat" installer-ktec.sh dist/KTEC/
           chmod +x dist/KTEC/*.sh
           (cd dist && zip -qr KTEC.zip KTEC)

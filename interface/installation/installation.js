@@ -5,6 +5,7 @@
 import { h, vider, ic, notifier, confirmer, fenetre, tailleFr, dateHeureFr } from '/socle/ui.js'
 import { api, flux } from '/socle/api.js'
 import { explorateur } from '/socle/fichier.js'
+import { pointsNouveaux } from '/socle/nouveautes.js'
 
 const racine = document.getElementById('installation')
 let etat = null
@@ -60,8 +61,11 @@ function carteInstallee() {
           h('button', { class: 'petit discret danger', onclick: () => desinstaller(a) }, ic('poubelle', 14), 'Désinstaller'),
         ]
       : [h('button', { class: 'petit', onclick: () => installerSelection([...Object.keys(inst.applis || {}), a.id], inst.dossier) }, ic('plus', 14), 'Ajouter')]
+    // Les nouveautés de la version disponible, en quelques mots, sous le nom de l'application.
+    const points = installee && plusRecente(a.disponible, installee) ? pointsNouveaux(a.nouveautes, installee) : []
     return h('tr', {},
-      h('td', {}, h('strong', {}, a.nom), h('div', { class: 'discret', style: { fontSize: '12px' } }, a.sousTitre)),
+      h('td', {}, h('strong', {}, a.nom), h('div', { class: 'discret', style: { fontSize: '12px' } }, a.sousTitre),
+        points.length ? h('ul', { class: 'nouveautes-ligne' }, points.map((p) => h('li', {}, p))) : null),
       h('td', { class: 'mono' }, installee ? versionLisible(installee) : '—'),
       h('td', { class: 'mono' }, versionLisible(a.disponible)),
       h('td', {}, h('div', { class: 'actions' }, actions)))
@@ -74,6 +78,7 @@ function carteInstallee() {
         h('button', { title: 'Poste sans accès à GitHub : choisir le zip de mise à jour (fabriqué ailleurs, apporté sur clé USB)', onclick: choisirFichierMaj }, ic('dossier', 16), 'Depuis un fichier…'),
         etat.modeInstallation ? h('button', { onclick: () => ouvrirKtec(inst.dossier) }, ic('lecture', 16), 'Ouvrir KTEC') : null)),
     h('p', { class: 'texte-2', style: { marginTop: 0 } }, 'Dans ', h('span', { class: 'mono' }, inst.dossier), `. Programme KTEC ${versionLisible(inst.ktec)}`, socleAJour ? ' (à jour).' : ` — version ${versionLisible(catalogue.socle.version)} disponible.`),
+    socleAJour ? null : (() => { const p = pointsNouveaux(catalogue.socle?.nouveautes, inst.ktec); return p.length ? h('ul', { class: 'nouveautes-ligne' }, p.map((x) => h('li', {}, x))) : null })(),
     h('table', { class: 'tableau' }, h('thead', {}, h('tr', {}, h('th', {}, 'Application'), h('th', {}, 'Installée'), h('th', {}, 'Disponible'), h('th', {}, ''))), h('tbody', {}, lignes)),
     h('p', { class: 'discret', style: { fontSize: '13px', marginTop: '12px' } }, `Composants communs : ${Object.entries(inst.composants || {}).map(([k, v]) => `${k} ${v}`).join(', ') || '—'}. Rien n'est installé deux fois.`),
     h('div', { class: 'actions', style: { marginTop: '10px' } }, h('button', { class: 'petit discret danger', onclick: toutDesinstaller }, ic('poubelle', 14), 'Désinstaller KTEC')),

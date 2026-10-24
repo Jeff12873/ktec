@@ -373,3 +373,11 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 .points-confiance svg { flex: none; margin-top: 2px; color: var(--accent); }
 .points-confiance b { color: var(--texte); font-weight: 600; }
 .bandeau-maj { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+
+/* Nouveautés d'une mise à jour */
+.carte-maj { display: grid; gap: 0; margin-bottom: 18px; }
+.carte-maj .bandeau-maj { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.encart-nouveautes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 20px; padding: 12px 16px; border: 1px solid var(--bord); border-top: 0; border-radius: 0 0 var(--rayon) var(--rayon); background: color-mix(in srgb, var(--carte) 85%, transparent); }
+.nouveautes-appli strong { font-size: 14px; }
+.nouveautes-appli ul, .nouveautes-ligne { margin: 4px 0 0; padding-left: 18px; color: var(--texte-2); font-size: 13px; }
+.nouveautes-ligne { margin-top: 6px; }

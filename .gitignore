@@ -20,3 +20,4 @@
 *.ktec
 *.birtec
 *.datassitec
+!/nouveautes.json

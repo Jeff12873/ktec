@@ -28,7 +28,7 @@ const options = lireOptions(process.argv.slice(2))
 const catalogue = lireCatalogue()
 const applis = lireJson(path.join(RACINE, 'outils', 'applis.json'), { applis: [] })
 const ICI = process.platform === 'win32' ? 'windows' : 'linux'
-const FICHIERS_DU_PROGRAMME = ['serveur', 'interface', 'moteur-java', 'outils', 'docs', 'VERSION', 'package.json', 'README.md',
+const FICHIERS_DU_PROGRAMME = ['serveur', 'interface', 'moteur-java', 'outils', 'docs', 'VERSION', 'package.json', 'README.md', 'nouveautes.json',
   'Lancer KTEC.bat', 'lancer-ktec.sh', 'Installer KTEC.bat', 'installer-ktec.sh']
 
 main().catch((erreur) => {
@@ -223,7 +223,7 @@ async function main() {
 // Le paquet d'une application depuis son dossier de développement : comme la Release GitHub
 // (dossier <id>/ avec les fichiers publiés de l'application).
 function paquetLocal(dossier, id) {
-  const PUBLIES = ['app.json', 'blocs', 'interface', 'lib', 'docs', 'VERSION', 'package.json', 'README.md']
+  const PUBLIES = ['app.json', 'blocs', 'interface', 'lib', 'docs', 'VERSION', 'package.json', 'README.md', 'nouveautes.json']
   const fichiers = []
   const ajouter = (chemin, nom) => {
     if (fs.statSync(chemin).isDirectory()) for (const e of fs.readdirSync(chemin)) ajouter(path.join(chemin, e), `${nom}/${e}`)
