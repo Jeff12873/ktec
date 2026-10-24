@@ -17,8 +17,9 @@
   --texte-3: #6f8c79;
 
   --accent: #4ade80;          /* vert vif : sélection, boutons principaux */
-  --accent-doux: rgba(74, 222, 128, 0.12);
-  --accent-texte: #052e16;
+  /* Chaque application a sa teinte de vert (« couleur » de son app.json) : les nuances en découlent. */
+  --accent-doux: color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-texte: color-mix(in srgb, var(--accent) 18%, #000);
   --violet: #2dd4bf;          /* turquoise (le nom est resté de l'ancien thème) */
   --violet-doux: rgba(45, 212, 191, 0.14);
   --bleu: #a3e635;            /* vert anis */
@@ -49,7 +50,7 @@ h1 { font-size: 24px; }
 h2 { font-size: 18px; }
 h3 { font-size: 15px; }
 p { margin: 0 0 10px; }
-::selection { background: rgba(74, 222, 128, 0.35); }
+::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); }
 
 /* ------------------------------------------------------------ structure */
 
@@ -177,7 +178,7 @@ label.champ .aide { font-size: 12px; color: var(--texte-3); }
 /* ------------------------------------------------------------ étiquettes et états */
 
 .etiquette { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; font-size: 13px; background: var(--carte-2); color: var(--texte-2); border: 1px solid var(--bord); white-space: nowrap; }
-.etiquette.accent { color: var(--accent); border-color: rgba(74, 222, 128, 0.35); background: var(--accent-doux); }
+.etiquette.accent { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: var(--accent-doux); }
 .etiquette.violet { color: #5eead4; border-color: rgba(45, 212, 191, 0.35); background: var(--violet-doux); }
 .etiquette.orange { color: var(--orange); border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.1); }
 .etiquette.rouge { color: var(--rouge); border-color: rgba(240, 82, 82, 0.35); background: var(--rouge-doux); }
@@ -190,7 +191,7 @@ label.champ .aide { font-size: 12px; color: var(--texte-3); }
 .mono { font-family: var(--mono); font-size: 13px; }
 
 .bandeau { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--rayon); margin-bottom: 18px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #fcd38a; }
-.bandeau.info { background: var(--accent-doux); border-color: rgba(74, 222, 128, 0.3); color: #bbf7d0; }
+.bandeau.info { background: var(--accent-doux); border-color: color-mix(in srgb, var(--accent) 30%, transparent); color: #bbf7d0; }
 
 /* ------------------------------------------------------------ tableaux */
 
@@ -381,3 +382,7 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 .nouveautes-appli strong { font-size: 14px; }
 .nouveautes-appli ul, .nouveautes-ligne { margin: 4px 0 0; padding-left: 18px; color: var(--texte-2); font-size: 13px; }
 .nouveautes-ligne { margin-top: 6px; }
+
+/* Tuiles du portail : chacune dans la teinte de son application */
+.tuile-appli { border-top: 3px solid color-mix(in srgb, var(--accent) 70%, transparent); }
+.tuile-appli .version { color: color-mix(in srgb, var(--accent) 60%, var(--texte-3)); }

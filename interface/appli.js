@@ -21,6 +21,8 @@ if (!description) {
 const app = await import(`/apps/${appli}/interface/menu.js`)
 const BLOCS = app.blocs
 document.title = `${description.nom} — KTEC`
+// La teinte de vert de l'application (app.json « couleur ») : boutons, sélections, filtres actifs…
+if (description.couleur) document.documentElement.style.setProperty('--accent', description.couleur)
 document.querySelector('link[rel=icon]').href = `/apps/${appli}/${description.icone || 'interface/icone.svg'}`
 if (app.styles) document.head.append(h('link', { rel: 'stylesheet', href: `/apps/${appli}/${app.styles}` }))
 

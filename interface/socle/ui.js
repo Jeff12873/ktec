@@ -14,7 +14,10 @@ export function h(balise, attributs = {}, ...enfants) {
     if (valeur === undefined || valeur === null || valeur === false) continue
     if (nom.startsWith('on')) element.addEventListener(nom.slice(2), valeur)
     else if (nom === 'class') element.className = valeur
-    else if (nom === 'style' && typeof valeur === 'object') Object.assign(element.style, valeur)
+    else if (nom === 'style' && typeof valeur === 'object') {
+      // Les variables CSS (« --accent ») ne passent que par setProperty.
+      for (const [cle, v] of Object.entries(valeur)) cle.startsWith('--') ? element.style.setProperty(cle, v) : (element.style[cle] = v)
+    }
     else if (nom === 'html') element.innerHTML = valeur
     else if (nom in element && typeof valeur !== 'string') element[nom] = valeur
     else element.setAttribute(nom, valeur === true ? '' : valeur)

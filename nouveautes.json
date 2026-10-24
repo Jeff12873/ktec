@@ -1,8 +1,40 @@
 {
   "versions": [
-    { "version": "0.4.5", "date": "2026-10-24", "points": ["Les nouveautés de chaque mise à jour, avant de l'installer"] },
-    { "version": "0.4.4", "date": "2026-10-22", "points": ["Date de la dernière mise à jour dans le lanceur"] },
-    { "version": "0.4.3", "date": "2026-10-21", "points": ["Mises à jour proposées au lancement, d'un clic, depuis GitHub"] },
-    { "version": "0.4.2", "date": "2026-10-19", "points": ["Mise à jour par un petit fichier, sans Internet", "Nouveau fond du lanceur et mot sur la confidentialité"] }
+    {
+      "version": "0.4.6",
+      "date": "2026-10-24",
+      "points": [
+        "Chaque application a sa propre teinte de vert"
+      ]
+    },
+    {
+      "version": "0.4.5",
+      "date": "2026-10-24",
+      "points": [
+        "Les nouveautés de chaque mise à jour, avant de l'installer"
+      ]
+    },
+    {
+      "version": "0.4.4",
+      "date": "2026-10-22",
+      "points": [
+        "Date de la dernière mise à jour dans le lanceur"
+      ]
+    },
+    {
+      "version": "0.4.3",
+      "date": "2026-10-21",
+      "points": [
+        "Mises à jour proposées au lancement, d'un clic, depuis GitHub"
+      ]
+    },
+    {
+      "version": "0.4.2",
+      "date": "2026-10-19",
+      "points": [
+        "Mise à jour par un petit fichier, sans Internet",
+        "Nouveau fond du lanceur et mot sur la confidentialité"
+      ]
+    }
   ]
 }

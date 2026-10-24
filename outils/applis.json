@@ -4,6 +4,7 @@
   "applis": [
     {
       "id": "birtec",
+      "couleur": "#10b981",
       "nom": "BiRTEC",
       "sousTitre": "Rapports BIRT",
       "description": "Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs ITM, sur la base de la GMAO.",
@@ -12,6 +13,7 @@
     },
     {
       "id": "pdrtec",
+      "couleur": "#a3e635",
       "nom": "PDRTec",
       "sousTitre": "Recherche de pièces",
       "description": "Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo — en direct sur la base de la GMAO.",
@@ -20,6 +22,7 @@
     },
     {
       "id": "aitec",
+      "couleur": "#2dd4bf",
       "nom": "AITEC",
       "sousTitre": "Assistant IA",
       "description": "L’assistant IA de l’atelier : parc, historique des interventions et documents, réponses en français avec leurs sources.",

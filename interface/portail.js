@@ -12,9 +12,9 @@ import { pointsNouveaux, encartNouveautes } from './socle/nouveautes.js'
 
 // Les applications de la suite, pour montrer aussi celles qui ne sont pas (encore) installées.
 const SUITE = [
-  { id: 'birtec', nom: 'BiRTEC', sousTitre: 'Rapports BIRT', description: 'Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs ITM, sur la base de la GMAO.' },
-  { id: 'pdrtec', nom: 'PDRTec', sousTitre: 'Recherche de pièces', description: 'Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo.' },
-  { id: 'aitec', nom: 'AITEC', sousTitre: 'Assistant IA', description: 'L’assistant IA de l’atelier : parc, historique, documents, réponses sourcées.' },
+  { id: 'birtec', nom: 'BiRTEC', couleur: '#10b981', sousTitre: 'Rapports BIRT', description: 'Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs ITM, sur la base de la GMAO.' },
+  { id: 'pdrtec', nom: 'PDRTec', couleur: '#a3e635', sousTitre: 'Recherche de pièces', description: 'Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo.' },
+  { id: 'aitec', nom: 'AITEC', couleur: '#2dd4bf', sousTitre: 'Assistant IA', description: 'L’assistant IA de l’atelier : parc, historique, documents, réponses sourcées.' },
 ]
 
 const racine = document.getElementById('portail')
@@ -28,12 +28,12 @@ if (location.hash !== '#reglages' && etat.connexion.configuree && !etat.connexio
 
 const installees = new Set(applis.map((a) => a.id))
 const tuiles = [
-  ...applis.map((a) => h('a', { class: 'tuile-appli', href: `/${a.id}/` },
+  ...applis.map((a) => h('a', { class: 'tuile-appli', href: `/${a.id}/`, style: a.couleur ? { '--accent': a.couleur } : {} },
     h('div', { class: 'tete' }, h('img', { src: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, alt: '' }),
       h('div', {}, h('strong', {}, a.nom), h('span', {}, a.sousTitre || ''))),
     h('p', {}, a.description || ''),
     h('span', { class: 'version' }, `Version ${a.version}`))),
-  ...SUITE.filter((a) => !installees.has(a.id)).map((a) => h('a', { class: 'tuile-appli absente', href: '/installation/', title: 'Pas encore installée sur ce poste : cliquer pour l’installer' },
+  ...SUITE.filter((a) => !installees.has(a.id)).map((a) => h('a', { class: 'tuile-appli absente', href: '/installation/', style: { '--accent': a.couleur }, title: 'Pas encore installée sur ce poste : cliquer pour l’installer' },
     h('div', { class: 'tete' }, h('img', { src: '/icone.svg', alt: '' }), h('div', {}, h('strong', {}, a.nom), h('span', {}, a.sousTitre))),
     h('p', {}, a.description),
     h('span', { class: 'version' }, 'Pas encore installée — l’installer'))),
