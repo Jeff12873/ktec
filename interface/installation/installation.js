@@ -46,6 +46,8 @@ function dessiner() {
 }
 
 const versionLisible = (v) => v || '—'
+// Les applications qui ont besoin de l'IA ne s'installent pas si le modèle « moyen » n'est pas conseillé pour ce poste.
+const bloquee = (a) => (a.besoins || []).includes('ia') && etat.capaciteIA && !etat.capaciteIA.ia
 // « 0.4.2 » (copié du kit) et « 0.4.2.7 » (numéro de publication sur GitHub) sont la même version.
 const plusRecente = (dispo, installee) => dispo && installee && dispo !== installee && !dispo.startsWith(installee + '.') && !installee.startsWith(dispo + '.')
 
@@ -60,7 +62,9 @@ function carteInstallee() {
           plusRecente(a.disponible, installee) ? h('button', { class: 'petit principal', onclick: () => lancerMiseAJour([a.id]) }, ic('telecharger', 14), `Mettre à jour (${versionLisible(a.disponible)})`) : h('span', { class: 'discret' }, 'à jour'),
           h('button', { class: 'petit discret danger', onclick: () => desinstaller(a) }, ic('poubelle', 14), 'Désinstaller'),
         ]
-      : [h('button', { class: 'petit', onclick: () => installerSelection([...Object.keys(inst.applis || {}), a.id], inst.dossier) }, ic('plus', 14), 'Ajouter')]
+      : bloquee(a)
+        ? [h('span', { class: 'discret', title: etat.capaciteIA.raison }, ic('cadenas', 14), ' Pas sur ce poste')]
+        : [h('button', { class: 'petit', onclick: () => installerSelection([...Object.keys(inst.applis || {}), a.id], inst.dossier) }, ic('plus', 14), 'Ajouter')]
     // Les nouveautés de la version disponible, en quelques mots, sous le nom de l'application.
     const points = installee && plusRecente(a.disponible, installee) ? pointsNouveaux(a.nouveautes, installee) : []
     return h('tr', {},
@@ -90,7 +94,7 @@ function carteInstallee() {
 function formulaireInstallation() {
   // Toutes cochées au départ ; réinstallation depuis un kit : celles déjà installées.
   const dejaLa = Object.keys(etat.installe?.applis || {})
-  const choix = new Set(dejaLa.length ? dejaLa : catalogue.applis.map((a) => a.id))
+  const choix = new Set((dejaLa.length ? dejaLa : catalogue.applis.map((a) => a.id)).filter((id) => !bloquee(catalogue.applis.find((a) => a.id === id) || {})))
   const dossier = h('input', { type: 'text', value: etat.installe?.dossier || etat.dossierParDefaut })
   const modele = h('select', {},
     h('option', { value: 'auto' }, 'Automatique : le plus adapté à ce poste (conseillé)'),
@@ -102,11 +106,12 @@ function formulaireInstallation() {
   const BESOINS = { ia: 'IA', java: 'Java', birt: 'BIRT' }
 
   function dessinerTuiles() {
-    vider(tuiles, catalogue.applis.map((a) => h('label', { class: `tuile-appli ${choix.has(a.id) ? '' : 'absente'}`, style: { cursor: 'pointer' } },
+    vider(tuiles, catalogue.applis.map((a) => h('label', { class: `tuile-appli ${choix.has(a.id) ? '' : 'absente'}${bloquee(a) ? ' bloquee' : ''}`, style: { cursor: bloquee(a) ? 'not-allowed' : 'pointer', ...(a.couleur ? { '--accent': a.couleur } : {}) }, title: bloquee(a) ? etat.capaciteIA.raison : null },
       h('div', { class: 'tete' },
-        h('input', { type: 'checkbox', checked: choix.has(a.id), style: { width: 'auto' }, onchange: (e) => { e.target.checked ? choix.add(a.id) : choix.delete(a.id); dessinerTuiles() } }),
+        h('input', { type: 'checkbox', checked: choix.has(a.id), disabled: bloquee(a), style: { width: 'auto' }, onchange: (e) => { e.target.checked ? choix.add(a.id) : choix.delete(a.id); dessinerTuiles() } }),
         h('div', {}, h('strong', {}, a.nom), h('span', {}, a.sousTitre))),
       h('p', {}, a.description),
+      bloquee(a) ? h('p', { class: 'raison-bloquee' }, ic('cadenas', 14), ' Pas installable sur ce poste : l’IA demandée y serait trop lente.') : null,
       h('span', { class: 'version' }, `Version ${versionLisible(a.disponible)} · demande : ${(a.besoins || []).map((b) => BESOINS[b] || b).join(', ')}`))))
     zoneIA.hidden = !besoins().has('ia')
   }
@@ -116,7 +121,7 @@ function formulaireInstallation() {
     h('h2', { style: { margin: '24px 0 10px' } }, '3. Le modèle d’IA'),
     h('div', { class: 'carte' },
       h('label', { class: 'champ' }, h('span', {}, 'Modèle'), modele),
-      h('p', { class: 'discret', style: { fontSize: '13px' } }, `Ce poste : ${etat.poste.systeme}, ${etat.poste.processeur} (${etat.poste.coeurs} cœurs), ${etat.poste.ramGo} Go de mémoire. La carte graphique est détectée pendant l’installation : le choix automatique en tient compte. Les modèles sont rangés dans un dossier commun du poste (`, h('span', { class: 'mono' }, etat.dossierModeles), ') et ne sont jamais téléchargés deux fois.'),
+      h('p', { class: 'discret', style: { fontSize: '13px' } }, `Ce poste : ${etat.poste.systeme}, ${etat.poste.processeur} (${etat.poste.coeurs} cœurs), ${etat.poste.ramGo} Go de mémoire. ${etat.capaciteIA?.carte ? `Carte graphique : ${etat.capaciteIA.carte}.` : 'Pas de carte graphique reconnue.'} Le choix automatique en tient compte. Les modèles sont rangés dans un dossier commun du poste (`, h('span', { class: 'mono' }, etat.dossierModeles), ') et ne sont jamais téléchargés deux fois.'),
       etat.source === 'kit' ? h('p', { class: 'discret', style: { fontSize: '13px' } }, 'Version hors ligne : seuls les modèles du kit sont proposés.') : null))
 
   const parcourir = () => {
@@ -132,6 +137,7 @@ function formulaireInstallation() {
   return h('div', {},
     etat.installe ? h('h2', { style: { margin: '10px 0' } }, 'Réinstaller depuis ce ' + (etat.source === 'kit' ? 'kit' : 'paquet')) : null,
     h('h2', { style: { margin: '10px 0' } }, '1. Les applications'),
+    catalogue.applis.some(bloquee) ? h('div', { class: 'bandeau', style: { marginBottom: '12px' } }, ic('cadenas'), `${etat.capaciteIA.raison} ${catalogue.applis.filter(bloquee).map((a) => a.nom).join(' et ')} ne peu${catalogue.applis.filter(bloquee).length > 1 ? 'vent' : 't'} donc pas être installé${catalogue.applis.filter(bloquee).length > 1 ? 's' : ''} ici ; les autres applications, si.`) : null,
     tuiles,
     h('h2', { style: { margin: '24px 0 10px' } }, '2. Le dossier d’installation'),
     h('div', { class: 'carte' },

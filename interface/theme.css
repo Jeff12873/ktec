@@ -386,3 +386,5 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 /* Tuiles du portail : chacune dans la teinte de son application */
 .tuile-appli { border-top: 3px solid color-mix(in srgb, var(--accent) 70%, transparent); }
 .tuile-appli .version { color: color-mix(in srgb, var(--accent) 60%, var(--texte-3)); }
+.tuile-appli.bloquee { opacity: .5; border-style: dashed; }
+.raison-bloquee { color: var(--orange, #f59e0b) !important; font-size: 13px !important; flex: none !important; }

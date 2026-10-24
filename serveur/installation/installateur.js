@@ -109,6 +109,7 @@ export function etat() {
     dossierParDefaut: dossierInstallationParDefaut(),
     dossierModeles: dossierModelesParDefaut(),
     poste: composants.poste(),
+    capaciteIA: composants.capaciteIA({ vramConnue: lireJson(path.join(installe || RACINE, 'installation.json'), {}).poste?.vramGo, carteConnue: lireJson(path.join(installe || RACINE, 'installation.json'), {}).poste?.carte }),
     espaceLibreGo: composants.espaceLibre(installe || dossierInstallationParDefaut()),
     modeles: composants.catalogue().modeles.filter((m) => !k || k.modeles?.includes(m.code)).map(({ code, nom, taille_go, pour }) => ({ code, nom, tailleGo: taille_go, pour })),
     systeme: WINDOWS ? 'windows' : 'linux',
@@ -136,6 +137,10 @@ export async function installer({ dossier, applis = [], modele = 'auto', raccour
     const ancien = registre(dossier) || { composants: {}, applis: {} }
     const reg = { ...ancien, composants: { ...ancien.composants }, applis: { ...ancien.applis } }
     const config = lireJson(path.join(dossier, 'installation.json'), {})
+    // Sans le modèle d'IA « moyen » conseillé pour ce poste, pas d'application qui a besoin de l'IA (sans exception).
+    const avecIA = choisies.filter((a) => (a.besoins || []).includes('ia'))
+    const capacite = composants.capaciteIA({ vramConnue: config.poste?.vramGo, carteConnue: config.poste?.carte })
+    if (avecIA.length && !capacite.ia) throw new Error(`${avecIA.map((a) => a.nom).join(' et ')} ne peu${avecIA.length > 1 ? 'vent' : 't'} pas être installé${avecIA.length > 1 ? 's' : ''} sur ce poste. ${capacite.raison}`)
     const etapes = 3 + (besoins.has('ia') ? 2 : 0) + (besoins.has('java') ? 1 : 0) + (raccourcis ? 1 : 0)
     let numero = 0
     const etape = (titre) => suivi('etape', { numero: ++numero, total: etapes, titre })
@@ -155,6 +160,9 @@ export async function installer({ dossier, applis = [], modele = 'auto', raccour
       etape("Moteur d'IA")
       const { llama, appareils, version: v } = await composants.installerLlama(dossier, kitDossier, suivi)
       carte = composants.choisirCarte(appareils)
+      // Seconde vérification, avec la carte vue par le moteur d'IA lui-même.
+      const vue = composants.capaciteIA({ vramConnue: carte?.memoireGo, carteConnue: carte?.nom })
+      if (avecIA.length && !vue.ia) throw new Error(`${avecIA.map((a) => a.nom).join(' et ')} ne peu${avecIA.length > 1 ? 'vent' : 't'} pas être installé${avecIA.length > 1 ? 's' : ''} sur ce poste. ${vue.raison}`)
       Object.assign(config, { llama, appareil: carte ? carte.code : 'none', appareilNom: carte ? carte.nom : 'processeur' })
       reg.composants.llama = v
       suivi('message', `L'IA utilisera : ${carte ? `${carte.nom} (${carte.memoireGo} Go)` : 'le processeur seul'}`)

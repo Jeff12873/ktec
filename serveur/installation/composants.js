@@ -105,6 +105,57 @@ function estIntegree(nom) {
   return /llvmpipe|Ryzen|Raphael|Mendocino|Phoenix|Rembrandt|Renoir|Cezanne|Radeon\(TM\) Graphics|Radeon Graphics|Vega \d|Intel\(R\) (UHD|HD|Iris|Graphics)|Intel.*Arc.*Graphics$|Microsoft Basic/i.test(nom)
 }
 
+// La carte graphique, détectée sans le moteur d'IA (donc avant l'installation) : { nom, memoireGo } ou null.
+// Windows : la mémoire exacte est dans le registre (qwMemorySize) — celle de WMI plafonne à 4 Go.
+let carteDetectee
+export function detecterCarte() {
+  if (carteDetectee !== undefined) return carteDetectee
+  const cartes = []
+  try {
+    if (WINDOWS) {
+      const script = "Get-ChildItem 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}' -ErrorAction SilentlyContinue | ForEach-Object { $p = Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue; $m = $p.'HardwareInformation.qwMemorySize'; if (-not $m) { $m = $p.'HardwareInformation.MemorySize' }; if ($m -is [byte[]]) { $m = if ($m.Length -ge 8) { [BitConverter]::ToUInt64($m, 0) } else { [BitConverter]::ToUInt32($m, 0) } }; if ($m) { '{0}|{1}' -f $p.DriverDesc, $m } }"
+      const sortie = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', timeout: 20_000, windowsHide: true })
+      for (const ligne of sortie.split(/\r?\n/)) {
+        const [nom, octets] = ligne.split('|')
+        if (nom && Number(octets) > 0) cartes.push({ nom: nom.trim(), memoireGo: Math.round(Number(octets) / 1024 ** 3) })
+      }
+    } else {
+      const sortie = execFileSync('nvidia-smi', ['--query-gpu=name,memory.total', '--format=csv,noheader,nounits'], { encoding: 'utf8', timeout: 10_000 })
+      for (const ligne of sortie.split('\n')) {
+        const [nom, mo] = ligne.split(',')
+        if (nom && Number(mo) > 0) cartes.push({ nom: nom.trim(), memoireGo: Math.round(Number(mo) / 1024) })
+      }
+    }
+  } catch {
+    // Pas de carte reconnue (ou pas d'outil pour la lire) : seule la mémoire vive compte.
+  }
+  carteDetectee = choisirCarte(cartes.map((c) => ({ ...c, integree: estIntegree(c.nom) })))
+  return carteDetectee
+}
+
+// Les applications qui ont besoin de l'IA (BiRTEC, AITEC) ne s'installent que si le modèle « moyen » est
+// conseillé pour ce poste : 16 Go de mémoire, ou une carte graphique de 8 Go (règles du catalogue des modèles).
+export function capaciteIA({ vramConnue = null, carteConnue = null } = {}) {
+  const c = catalogue()
+  const ramGo = poste().ramGo
+  // La meilleure des cartes connues : celle lue dans Windows, ou celle vue par le moteur d'IA.
+  const connue = vramConnue ? { nom: carteConnue || 'carte graphique', memoireGo: vramConnue } : null
+  const detectee = detecterCarte()
+  const carte = [detectee, connue].filter(Boolean).sort((a, b) => b.memoireGo - a.memoireGo)[0] || null
+  const vramGo = carte?.memoireGo || 0
+  const rang = (code) => c.modeles.findIndex((m) => m.code === code)
+  const conseille = [...c.modeles].reverse().find((m) => ramGo >= m.ram_min || vramGo >= m.vram_min) || c.modeles[0]
+  const moyen = c.modeles.find((m) => m.code === 'moyen')
+  const ia = !moyen || rang(conseille.code) >= rang('moyen')
+  return {
+    ia,
+    ramGo,
+    carte: carte ? `${carte.nom} (${carte.memoireGo} Go)` : null,
+    modeleConseille: conseille.code,
+    raison: ia ? '' : `Ce poste ne peut pas faire tourner l’IA « moyen » : il faut ${moyen.ram_min} Go de mémoire, ou une carte graphique de ${moyen.vram_min} Go. Ici : ${ramGo} Go de mémoire${carte ? `, ${carte.nom} avec ${carte.memoireGo} Go` : ', pas de carte graphique utilisable'}.`,
+  }
+}
+
 export function choisirCarte(appareils) {
   return appareils.filter((a) => !a.integree && a.memoireGo >= 3).sort((a, b) => b.memoireGo - a.memoireGo)[0] || null
 }

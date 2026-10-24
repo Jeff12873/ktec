@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.4.7",
+      "date": "2026-10-24",
+      "points": [
+        "BiRTEC et AITEC ne s'installent que sur les postes assez puissants pour leur IA",
+        "Carte graphique reconnue dès la page d'installation"
+      ]
+    },
+    {
       "version": "0.4.6",
       "date": "2026-10-24",
       "points": [
