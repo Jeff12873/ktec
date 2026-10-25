@@ -2,7 +2,7 @@
 // ajout ou désinstallation d'applications. Ouverte par « Installer KTEC » (kit hors ligne ou zip téléchargé),
 // ou depuis le portail (Réglages › Installation et mises à jour).
 
-import { h, vider, ic, notifier, confirmer, fenetre, tailleFr, dateHeureFr } from '/socle/ui.js'
+import { h, vider, ic, notifier, confirmer, fenetre, tailleFr, dateHeureFr, nomAppli } from '/socle/ui.js'
 import { api, flux } from '/socle/api.js'
 import { explorateur } from '/socle/fichier.js'
 import { pointsNouveaux } from '/socle/nouveautes.js'
@@ -25,7 +25,7 @@ async function charger() {
 function entete() {
   return h('div', { class: 'portail-entete' },
     h('img', { src: '/icone.svg', alt: '' }),
-    h('div', {}, h('h1', {}, 'KTEC'), h('p', { class: 'sous-titre' }, etat?.installe && !etat.modeInstallation ? 'Installation et mises à jour' : 'Installation des applications de l’atelier')),
+    h('div', {}, h('h1', {}, nomAppli('KTEC')), h('p', { class: 'sous-titre' }, etat?.installe && !etat.modeInstallation ? 'Installation et mises à jour' : 'Installation des applications de l’atelier')),
     h('div', { class: 'espace' }),
     etat ? h('span', { class: 'etiquette accent', title: sourceDetail() }, ic(etat.source === 'kit' ? 'dossier' : 'nuage', 15), etat.source === 'kit' ? 'Kit hors ligne' : 'En ligne (GitHub)') : null,
     etat && !etat.modeInstallation ? h('a', { class: 'bouton petit discret', href: '/' }, ic('retour', 14), 'Portail') : null,
@@ -68,7 +68,7 @@ function carteInstallee() {
     // Les nouveautés de la version disponible, en quelques mots, sous le nom de l'application.
     const points = installee && plusRecente(a.disponible, installee) ? pointsNouveaux(a.nouveautes, installee) : []
     return h('tr', {},
-      h('td', {}, h('strong', {}, a.nom), h('div', { class: 'discret', style: { fontSize: '12px' } }, a.sousTitre),
+      h('td', {}, h('strong', {}, nomAppli(a.nom, a.couleur)), h('div', { class: 'discret', style: { fontSize: '12px' } }, a.sousTitre),
         points.length ? h('ul', { class: 'nouveautes-ligne' }, points.map((p) => h('li', {}, p))) : null),
       h('td', { class: 'mono' }, installee ? versionLisible(installee) : '—'),
       h('td', { class: 'mono' }, versionLisible(a.disponible)),
@@ -109,7 +109,7 @@ function formulaireInstallation() {
     vider(tuiles, catalogue.applis.map((a) => h('label', { class: `tuile-appli ${choix.has(a.id) ? '' : 'absente'}${bloquee(a) ? ' bloquee' : ''}`, style: { cursor: bloquee(a) ? 'not-allowed' : 'pointer', ...(a.couleur ? { '--accent': a.couleur } : {}) }, title: bloquee(a) ? etat.capaciteIA.raison : null },
       h('div', { class: 'tete' },
         h('input', { type: 'checkbox', checked: choix.has(a.id), disabled: bloquee(a), style: { width: 'auto' }, onchange: (e) => { e.target.checked ? choix.add(a.id) : choix.delete(a.id); dessinerTuiles() } }),
-        h('div', {}, h('strong', {}, a.nom), h('span', {}, a.sousTitre))),
+        h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre))),
       h('p', {}, a.description),
       bloquee(a) ? h('p', { class: 'raison-bloquee' }, ic('cadenas', 14), ' Pas installable sur ce poste : l’IA demandée y serait trop lente.') : null,
       h('span', { class: 'version' }, `Version ${versionLisible(a.disponible)} · demande : ${(a.besoins || []).map((b) => BESOINS[b] || b).join(', ')}`))))

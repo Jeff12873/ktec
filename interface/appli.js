@@ -5,7 +5,7 @@
 // Chaque écran est un « bloc » (dossier blocs/<nom>/vue.js de l'application) qui exporte :
 //   { chemin, titre, icone, menu, groupe, aide, afficher(zone, { id, query }) }
 
-import { h, vider, ic, fenetreOuverte, notifier } from './socle/ui.js'
+import { h, vider, ic, fenetreOuverte, notifier, nomAppli, COULEUR_KTEC } from './socle/ui.js'
 import { etat, suivreEtat, surChangement } from './socle/etat.js'
 import { appli, api } from './socle/api.js'
 import { etiquetteIA, etiquetteMySQL } from './socle/connexion.js'
@@ -70,10 +70,10 @@ function dessinerMenu() {
   vider(
     menu,
     // Retour au portail, et passage direct aux autres applications installées.
-    h('a', { class: 'menu-ktec', href: '/', title: 'Portail KTEC : toutes les applications' }, ic('retour', 14), 'KTEC'),
+    h('a', { class: 'menu-ktec', href: '/', title: 'Portail KTEC : toutes les applications' }, ic('retour', 14), nomAppli('KTEC', COULEUR_KTEC)),
     h('div', { class: 'menu-titre' },
       h('img', { src: `/apps/${appli}/${description.icone || 'interface/icone.svg'}`, alt: '' }),
-      h('div', {}, h('strong', {}, description.nom), h('span', {}, description.sousTitre || ''))),
+      h('div', {}, h('strong', {}, nomAppli(description.nom)), h('span', {}, description.sousTitre || ''))),
     // Les écrans par groupe (« groupe » de chaque bloc) : un titre discret avant chaque nouveau groupe.
     // Le groupe « Réglages » est poussé en bas du menu.
     // menu: 'admin' → écran visible seulement en mode administrateur.
@@ -84,7 +84,7 @@ function dessinerMenu() {
       h('a', { href: `#/${b.chemin}`, class: b === actuel ? 'actif' : '' }, ic(b.icone, 19), h('span', {}, b.titre)),
     ]),
     autresApplis.length
-      ? h('div', { class: 'menu-autres' }, autresApplis.map((a) => h('a', { href: `/${a.id}/`, title: a.description || '' }, h('img', { src: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, alt: '' }), a.nom)))
+      ? h('div', { class: 'menu-autres' }, autresApplis.map((a) => h('a', { href: `/${a.id}/`, title: a.description || '' }, h('img', { src: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, alt: '' }), nomAppli(a.nom, a.couleur))))
       : null,
     h('div', { class: 'pied' }, `${description.nom} ${description.version} · KTEC ${etat.version}`),
   )

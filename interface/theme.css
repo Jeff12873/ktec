@@ -431,3 +431,13 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 @keyframes rond-tourne { to { transform: rotate(360deg); } }
 .bilan-assistant { margin: 0; padding-left: 18px; color: var(--texte-2); display: grid; gap: 6px; }
 .bilan-assistant b { color: var(--texte); font-weight: 600; }
+
+/* Le nom d'une application : d'un seul tenant, son « TEC » à la couleur de l'application, avec une lueur.
+   (Les règles des sous-titres voisins, en « span », ne doivent pas s'y appliquer.) */
+.nom-appli, .nom-appli .tec { display: inline !important; font-size: inherit !important; max-width: none !important; overflow: visible !important; white-space: nowrap; color: inherit; }
+.nom-appli { letter-spacing: 0.03em; }
+.nom-appli .tec { color: var(--accent) !important; text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 70%, transparent), 0 0 16px color-mix(in srgb, var(--accent) 40%, transparent); }
+.menu-titre strong { font-size: 20px; }
+.menu .menu-autres a { font-size: 15px; font-weight: 600; }
+.menu-ktec .nom-appli { font-size: 13px; }
+.tuile-appli strong { font-size: 22px; }

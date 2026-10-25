@@ -5,7 +5,7 @@ Le portail et le socle commun des applications de l'atelier :
 | Application | Rôle | Dépôt |
 |---|---|---|
 | **BiRTEC** | Rapports BIRT et indicateurs ITM, construits par formulaire sur la base de la GMAO | [birtec](https://github.com/Jeff12873/birtec) |
-| **PDRTec** | Recherche de pièces de rechange (caractéristiques, emplacement, photo), en direct sur la base | [pdrtec](https://github.com/Jeff12873/pdrtec) |
+| **PDRTEC** | Recherche de pièces de rechange (caractéristiques, emplacement, photo), en direct sur la base | [pdrtec](https://github.com/Jeff12873/pdrtec) |
 | **AITEC** | L'assistant IA de l'atelier (ex IASSITEC) : parc et interventions synchronisés avec la GMAO, documents | [aitec](https://github.com/Jeff12873/aitec) |
 
 - **Un seul lanceur** (`Lancer KTEC.bat`, `lancer-ktec.sh`) ouvre le portail dans le navigateur : une tuile par

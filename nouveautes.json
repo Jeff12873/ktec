@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.5.1",
+      "date": "2026-10-25",
+      "points": [
+        "Noms des applications écrits PDRTEC, AITEC, BiRTEC (et KTEC), avec leur « TEC » lumineux à la couleur de chacune"
+      ]
+    },
+    {
       "version": "0.5.0",
       "date": "2026-10-24",
       "points": [

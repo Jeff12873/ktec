@@ -1,7 +1,7 @@
 // Le portail KTEC : les applications installées sur ce poste, en tuiles.
 // Un clic ouvre l'application (/birtec/, /pdrtec/…) ; la connexion MySQL et l'IA sont communes.
 
-import { h, vider, ic, notifier, confirmer, fenetre } from './socle/ui.js'
+import { h, vider, ic, notifier, confirmer, fenetre, nomAppli } from './socle/ui.js'
 import { api } from './socle/api.js'
 import { etat, suivreEtat, surChangement } from './socle/etat.js'
 import { etiquetteIA, etiquetteMySQL, demanderMotDePasse } from './socle/connexion.js'
@@ -15,7 +15,7 @@ import { pointsNouveaux, encartNouveautes } from './socle/nouveautes.js'
 // Les applications de la suite, pour montrer aussi celles qui ne sont pas (encore) installées.
 const SUITE = [
   { id: 'birtec', nom: 'BiRTEC', couleur: '#10b981', sousTitre: 'Rapports BIRT', description: 'Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs ITM, sur la base de la GMAO.' },
-  { id: 'pdrtec', nom: 'PDRTec', couleur: '#a3e635', sousTitre: 'Recherche de pièces', description: 'Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo.' },
+  { id: 'pdrtec', nom: 'PDRTEC', couleur: '#a3e635', sousTitre: 'Recherche de pièces', description: 'Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo.' },
   { id: 'aitec', nom: 'AITEC', couleur: '#2dd4bf', sousTitre: 'Assistant IA', description: 'L’assistant IA de l’atelier : parc, historique, documents, réponses sourcées.' },
 ]
 
@@ -37,11 +37,11 @@ const installees = new Set(applis.map((a) => a.id))
 const tuiles = [
   ...applis.map((a) => h('a', { class: 'tuile-appli', href: `/${a.id}/`, style: a.couleur ? { '--accent': a.couleur } : {} },
     h('div', { class: 'tete' }, h('img', { src: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, alt: '' }),
-      h('div', {}, h('strong', {}, a.nom), h('span', {}, a.sousTitre || ''))),
+      h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre || ''))),
     h('p', {}, a.description || ''),
     h('span', { class: 'version' }, `Version ${a.version}`))),
   ...SUITE.filter((a) => !installees.has(a.id)).map((a) => h('a', { class: 'tuile-appli absente', href: '/installation/', style: { '--accent': a.couleur }, title: 'Pas encore installée sur ce poste : cliquer pour l’installer' },
-    h('div', { class: 'tete' }, h('img', { src: '/icone.svg', alt: '' }), h('div', {}, h('strong', {}, a.nom), h('span', {}, a.sousTitre))),
+    h('div', { class: 'tete' }, h('img', { src: '/icone.svg', alt: '' }), h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre))),
     h('p', {}, a.description),
     h('span', { class: 'version' }, 'Pas encore installée — l’installer'))),
 ]
@@ -112,7 +112,7 @@ vider(
   h('div', { class: 'portail' },
     h('div', { class: 'portail-entete' },
       h('img', { src: '/icone.svg', alt: '' }),
-      h('div', {}, h('h1', {}, 'KTEC'), h('p', { class: 'sous-titre' }, 'Les applications de l’atelier')),
+      h('div', {}, h('h1', {}, nomAppli('KTEC')), h('p', { class: 'sous-titre' }, 'Les applications de l’atelier')),
       h('div', { class: 'espace' }),
       barre,
     ),

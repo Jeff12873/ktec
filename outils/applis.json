@@ -14,7 +14,7 @@
     {
       "id": "pdrtec",
       "couleur": "#a3e635",
-      "nom": "PDRTec",
+      "nom": "PDRTEC",
       "sousTitre": "Recherche de pièces",
       "description": "Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo — en direct sur la base de la GMAO.",
       "depot": "Jeff12873/pdrtec",

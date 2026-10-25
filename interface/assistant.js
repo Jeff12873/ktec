@@ -47,7 +47,7 @@ export function lancerAssistant({ seulementCle = false } = {}) {
     function bienvenue() {
       ecran({
         titre: 'Bienvenue dans KTEC',
-        description: 'Les applications de l’atelier : rapports et indicateurs (BiRTEC), recherche de pièces (PDRTec), assistant IA (AITEC). Tout reste chez vous : un fichier de connaissances local, une IA sur ce poste, aucun envoi sur Internet. Trois questions pour commencer.',
+        description: 'Les applications de l’atelier : rapports et indicateurs (BiRTEC), recherche de pièces (PDRTEC), assistant IA (AITEC). Tout reste chez vous : un fichier de connaissances local, une IA sur ce poste, aucun envoi sur Internet. Trois questions pour commencer.',
         boutons: [bouton('Commencer', () => fichier(), 'principal')],
       })
     }
