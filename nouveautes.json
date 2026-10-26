@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.5.2",
+      "date": "2026-10-26",
+      "points": [
+        "Le moteur peut créer des fiches dans la GMAO à la demande d'une application : instructions SELECT, SET et INSERT seulement, simulées d'abord, validées ensuite"
+      ]
+    },
+    {
       "version": "0.5.1",
       "date": "2026-10-25",
       "points": [

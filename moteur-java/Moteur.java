@@ -7,6 +7,7 @@
 //   java -cp "classes:lib/*" Moteur tester  --url jdbc:mysql://serveur:3306/base --utilisateur u
 //   java -cp "classes:lib/*" Moteur schema  --url … --utilisateur u
 //   java -cp "classes:lib/*" Moteur requete --url … --utilisateur u --limite 200     (SQL après le mot de passe)
+//   java -cp "classes:lib/*" Moteur ecrire  --url … --utilisateur u [--valider oui]               (instructions après le mot de passe)
 //   java -cp "classes:lib/*" Moteur rendu   --url … --utilisateur u --rapport r.rptdesign --format pdf --sortie r.pdf
 //                                            [--ressources dossier] [--param nom=valeur]…
 //
@@ -19,6 +20,11 @@
 // Sécurité : la connexion est ouverte en lecture seule, seules les requêtes de lecture sont acceptées
 // (SELECT, WITH, SHOW, DESCRIBE, EXPLAIN), une seule à la fois, avec un nombre de lignes et une durée limités.
 // Le compte MySQL utilisé devrait de toute façon n'avoir que le droit de lecture.
+//
+// Exception, la commande « ecrire » (création de fiches dans la GMAO, à la demande expresse de l'administrateur) :
+// une suite d'instructions SELECT, INSERT ou SET (jamais UPDATE, DELETE, DROP…), une par ligne, chacune
+// « base64(sql) base64(valeur1) base64(valeur2)… » (« ~ » pour une valeur nulle), valeurs passées en paramètres
+// préparés. Le tout dans une transaction : annulée à la fin (simulation), validée seulement avec --valider oui.
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -57,6 +63,7 @@ public class Moteur {
                 case "tester" -> tester(options, motDePasse);
                 case "schema" -> schema(options, motDePasse);
                 case "requete" -> requete(options, motDePasse, reste.toString());
+                case "ecrire" -> ecrire(options, motDePasse, reste.toString());
                 case "rendu" -> rendu(options, motDePasse);
                 case "verifier" -> verifier(options);
                 default -> erreur("Commande inconnue : " + commande);
@@ -244,6 +251,76 @@ public class Moteur {
             else if (c == ';') return true;
         }
         return false;
+    }
+
+    // ---------------------------------------------------------------- écriture (simulée ou validée)
+
+    static void ecrire(Map<String, String> options, String motDePasse, String texte) throws SQLException {
+        boolean valider = "oui".equals(options.get("valider"));
+        List<String[]> instructions = new ArrayList<>();
+        java.util.Base64.Decoder b64 = java.util.Base64.getDecoder();
+        for (String ligne : texte.split("\n")) {
+            if (ligne.isBlank()) continue;
+            String[] morceaux = ligne.trim().split(" ");
+            String[] decode = new String[morceaux.length];
+            for (int i = 0; i < morceaux.length; i++) decode[i] = "~".equals(morceaux[i]) ? null : new String(b64.decode(morceaux[i]), StandardCharsets.UTF_8);
+            String debut = decode[0].replaceAll("^(\\s|/\\*.*?\\*/|--[^\\n]*\\n)+", "").toUpperCase();
+            if (!(debut.startsWith("SELECT") || debut.startsWith("INSERT") || debut.startsWith("SET "))) {
+                erreur("Écriture refusée : seules les instructions SELECT, INSERT et SET sont permises.");
+                return;
+            }
+            if (pointVirguleHorsTexte(decode[0].trim().replaceAll(";+$", ""))) {
+                erreur("Une seule instruction par ligne.");
+                return;
+            }
+            instructions.add(decode);
+        }
+        try (Connection c = connecter(options, motDePasse)) {
+            c.setReadOnly(false);
+            c.setAutoCommit(false);
+            Json r = new Json().ouvrir().champ("valide", valider).nom("resultats").debutListe();
+            try {
+                for (int n = 0; n < instructions.size(); n++) {
+                    String[] instruction = instructions.get(n);
+                    try (java.sql.PreparedStatement ps = c.prepareStatement(instruction[0].trim().replaceAll(";+$", ""))) {
+                        ps.setQueryTimeout(DUREE_MAX_SECONDES);
+                        for (int i = 1; i < instruction.length; i++) ps.setString(i, instruction[i]);
+                        if (n > 0) r.virgule();
+                        if (ps.execute()) {
+                            try (ResultSet resultat = ps.getResultSet()) {
+                                ResultSetMetaData meta = resultat.getMetaData();
+                                int nombre = meta.getColumnCount();
+                                r.ouvrir().nom("colonnes").debutListe();
+                                for (int i = 1; i <= nombre; i++) {
+                                    if (i > 1) r.virgule();
+                                    r.valeur(meta.getColumnLabel(i));
+                                }
+                                r.finListe().virgule().nom("lignes").debutListe();
+                                int lignes = 0;
+                                while (resultat.next() && lignes < 200) {
+                                    if (lignes++ > 0) r.virgule();
+                                    r.debutListe();
+                                    for (int i = 1; i <= nombre; i++) {
+                                        if (i > 1) r.virgule();
+                                        r.valeur(resultat.getString(i));
+                                    }
+                                    r.finListe();
+                                }
+                                r.finListe().fermerSansVirgule();
+                            }
+                        } else {
+                            r.ouvrir().champ("modifiees", ps.getUpdateCount()).fermerSansVirgule();
+                        }
+                    }
+                }
+                if (valider) c.commit();
+                else c.rollback();
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            }
+            System.out.println(r.finListe().fermer());
+        }
     }
 
     // ---------------------------------------------------------------- rendu d'un rapport par le moteur BIRT

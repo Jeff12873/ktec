@@ -47,6 +47,16 @@ export function executerRequete(sql, limite = 200) {
   return moteurJava('requete', { limite }, { motDePasse, texte: sql })
 }
 
+// Écriture dans la base (création de fiches dans la GMAO, à la demande expresse d'un administrateur) :
+// instructions = [{ sql, valeurs }] (SELECT, INSERT ou SET seulement ; « ? » pour chaque valeur), exécutées dans
+// une transaction annulée à la fin (simulation), ou validée si valider = true. Renvoie { valide, resultats }.
+export function ecrireDansLaBase(instructions, { valider = false } = {}) {
+  exigerSession()
+  const b64 = (t) => Buffer.from(String(t), 'utf8').toString('base64')
+  const texte = instructions.map(({ sql, valeurs = [] }) => [b64(sql), ...valeurs.map((v) => (v === null || v === undefined ? '~' : b64(v)))].join(' ')).join('\n')
+  return moteurJava('ecrire', valider ? { valider: 'oui' } : {}, { motDePasse, texte })
+}
+
 // Fait tourner un rapport dans le moteur BIRT (aperçu HTML ou export). Renvoie { erreurs }.
 // images : adresse où KTEC sert les images d'un aperçu HTML (graphiques), rangées dans <sortie>_images.
 export function rendreRapport(fichier, format, sortie, parametres = {}, ressources = null, images = null) {
