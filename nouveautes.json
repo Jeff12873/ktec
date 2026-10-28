@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.6.1",
+      "date": "2026-10-28",
+      "points": [
+        "Assistant de requêtes pour l'administrateur : table de départ, une colonne par champ attendu (jointures trouvées d'après les liens connus), conditions ; blocs à emboîter (Blockly, embarqué hors ligne) ; SQL en mode expert ; aperçu des 20 premières lignes ; proposition des colonnes par l'IA"
+      ]
+    },
+    {
       "version": "0.6.0",
       "date": "2026-10-28",
       "points": [

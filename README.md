@@ -70,3 +70,5 @@ Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) et [docs/AJOUTER-UNE-APPLICATI
 llama.cpp (MIT), modèles Qwen (Apache 2.0), Eclipse Temurin (GPLv2 + exception Classpath), Eclipse BIRT (EPL 2.0),
 MySQL Connector/J (GPLv2 + exception FOSS) : installés sur le poste, jamais inclus dans ce dépôt.
 Tracés d'icônes Lucide (ISC).
+
+Blockly 12.5.1 (Apache 2.0), embarqué dans interface/vendor/blockly pour les blocs de l’assistant de requêtes.

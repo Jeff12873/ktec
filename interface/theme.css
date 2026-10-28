@@ -441,3 +441,14 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 .menu .menu-autres a { font-size: 15px; font-weight: 600; }
 .menu-ktec .nom-appli { font-size: 13px; }
 .tuile-appli strong { font-size: 22px; }
+
+/* Assistant de requêtes (socle/requeteur.js) */
+.tete-requeteur { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tete-requeteur .segments { margin-bottom: 0 !important; }
+.corps-requeteur { margin-bottom: 10px; }
+.champs-requeteur { display: grid; gap: 6px; }
+.ligne-requeteur { display: grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap: 12px; align-items: center; padding: 6px 8px; border-radius: 8px; background: var(--carte-2); }
+.condition-requeteur { display: grid; grid-template-columns: 2fr 1.2fr 1.5fr auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+.blockly-requeteur { height: 430px; border-radius: var(--rayon); overflow: hidden; border: 1px solid var(--bord); }
+.apercu-requeteur .tableau td { white-space: nowrap; }
+.blocklyDropDownDiv, .blocklyWidgetDiv, .blocklyTooltipDiv { z-index: 10000 !important; }

@@ -1,0 +1,3 @@
+Blockly 12.5.1 (https://github.com/google/blockly), licence Apache 2.0.
+Fichiers repris tels quels du paquet npm « blockly » : blockly_compressed.js, msg/fr.js (ici fr.js), media/.
+Chargé seulement quand on ouvre les blocs de l'assistant de requêtes (interface/socle/requeteur.js), sans Internet.
