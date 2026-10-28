@@ -1,5 +1,5 @@
 // Les routes communes à toutes les applications, sous /api/ktec/… :
-// état général, applications installées, connexion MySQL (une seule pour tout KTEC),
+// état général, applications installées, connexion à la GMAO (une seule pour tout KTEC, rangée dans le fichier),
 // fichier de connaissances .ktec (ouverture, création, mode administrateur, mot de passe, sauvegardes),
 // dossier de travail, réglages du poste.
 
@@ -7,12 +7,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { ErreurHttp } from './socle/http.js'
-import { cheminKtec, changerKtec, ecrireInfo, etatCle, chiffrerConfiguration, importerCle } from './socle/ktec.js'
+import { cheminKtec, changerKtec, etatCle, chiffrerConfiguration, importerCle, enregistrerConnexion } from './socle/ktec.js'
 import { fichierCle, cleDuPoste } from './socle/cle.js'
 import { etatPartage, entrerAdmin, quitterAdmin, cookieAdmin, verifierMotDePasse, motDePasseDefini, changerMotDePasse, listerSauvegardes, creerFichier, publierMaintenant } from './socle/partage.js'
 import { etatIA, arreterIA } from './socle/ia.js'
 import { version, reglagesPoste, modifierReglagesPoste, dossierTravail, journal, WINDOWS } from './socle/installation.js'
-import { etatConnexion, ouvrirSession, fermerSession, javaInstalle } from './socle/mysql.js'
+import { etatConnexion, testerCompte, oublierEssai, javaInstalle } from './socle/mysql.js'
 import { applisPubliques } from './socle/applis.js'
 
 export function routes(r) {
@@ -21,6 +21,7 @@ export function routes(r) {
     version: version(),
     partage: etatPartage(ctx.cookie),
     admin: ctx.admin,
+    modeAdmin: ctx.modeAdmin,
     ia: etatIA(),
     java: javaInstalle(),
     connexion: etatConnexion(),
@@ -31,20 +32,39 @@ export function routes(r) {
 
   r.get('/api/ktec/applis', () => applisPubliques())
 
-  // ---- connexion MySQL (partagée : le mot de passe n'est demandé qu'une fois pour toutes les applications)
+  // ---- connexion à la GMAO : rangée dans le fichier de connaissances (chiffrée), réservée à l'administrateur.
+  // Deux comptes : lecture (tout le monde, automatique) et écriture (FI, mode administrateur). Un mot de passe
+  // laissé vide garde celui déjà enregistré ; aucun n'est jamais renvoyé à l'interface.
 
   r.post('/api/ktec/configuration/mysql', async (ctx) => {
-    const { serveur, port, base, utilisateur } = await ctx.json()
-    if (!serveur?.trim() || !base?.trim() || !utilisateur?.trim()) throw new ErreurHttp(400, 'Serveur, base et utilisateur sont obligatoires.')
-    const mysql = { serveur: serveur.trim(), port: Number(port) || 3306, base: base.trim(), utilisateur: utilisateur.trim() }
-    // Rangée aussi dans le fichier de connaissances (chiffrée si la configuration l'est) : commune à tous les postes.
+    ctx.exigerModeAdmin()
+    const corps = await ctx.json()
+    const texte = (v) => String(v ?? '').trim()
+    const c = { serveur: texte(corps.serveur), port: Number(corps.port) || 3306, base: texte(corps.base), utilisateur: texte(corps.utilisateur), motDePasse: String(corps.motDePasse || '') }
+    const ecriture = { utilisateur: texte(corps.ecritureUtilisateur), motDePasse: String(corps.ecritureMotDePasse || '') }
+    if (!c.serveur || !c.base || !c.utilisateur) throw new ErreurHttp(400, 'Serveur, base et compte de lecture sont obligatoires.')
+    const enregistree = enregistrerConnexion({ ...c, ecriture })
+    if (!enregistree.motDePasse) throw new ErreurHttp(400, 'Saisissez le mot de passe du compte de lecture.')
+    if (ecriture.utilisateur && !enregistree.ecriture?.motDePasse) throw new ErreurHttp(400, 'Saisissez le mot de passe du compte d’écriture.')
+    // On essaie chaque compte : une erreur est signalée, mais la connexion reste enregistrée (serveur absent…).
+    const bilan = { lecture: null, ecriture: null }
     try {
-      ecrireInfo('ktec.connexion', mysql)
-    } catch (erreur) {
-      journal(`Connexion MySQL gardée sur ce poste seulement : ${erreur.message}`)
+      bilan.lecture = { ok: true, ...(await testerCompte({ ...enregistree })) }
+    } catch (e) {
+      bilan.lecture = { ok: false, erreur: e.message }
     }
-    modifierReglagesPoste({ mysql })
-    fermerSession() // nouvelle connexion : le mot de passe sera redemandé
+    if (enregistree.ecriture) {
+      try {
+        bilan.ecriture = { ok: true, ...(await testerCompte({ ...enregistree, ...enregistree.ecriture })) }
+      } catch (e) {
+        bilan.ecriture = { ok: false, erreur: e.message }
+      }
+    }
+    // Le poste garde seulement l'adresse (pour l'afficher avant l'ouverture du fichier), jamais les comptes.
+    modifierReglagesPoste({ mysql: { serveur: c.serveur, port: c.port, base: c.base, utilisateur: c.utilisateur } })
+    oublierEssai()
+    journal(`Connexion à la GMAO enregistrée dans le fichier de connaissances (${c.base} sur ${c.serveur}${enregistree.ecriture ? ', avec un compte d’écriture' : ''})`)
+    return bilan
   })
 
   // ---- assistant du premier lancement (fichier de connaissances, clé du site, connexion à la GMAO)
@@ -60,30 +80,24 @@ export function routes(r) {
       fichier = etatPartage(ctx.cookie)
       cle = etatCle()
     } catch {}
-    return { aFaire: !poste.assistantTermine, cleManquante: Boolean(cle?.chiffree && !cle?.bonneCle), fichier, cle, mysql: poste.mysql }
+    return { aFaire: !poste.assistantTermine, cleManquante: Boolean(cle?.chiffree && !cle?.bonneCle), fichier, cle, mysql: poste.mysql, connexion: etatConnexion(), modeAdmin: ctx.modeAdmin }
   })
   r.post('/api/ktec/assistant/fini', () => modifierReglagesPoste({ assistantTermine: true }) && { ok: true })
 
   // ---- clé du site : configuration chiffrée dans le fichier de connaissances
 
   r.get('/api/ktec/cle', () => etatCle())
-  r.post('/api/ktec/cle/chiffrer', () => chiffrerConfiguration())
+  r.post('/api/ktec/cle/chiffrer', (ctx) => {
+    ctx.exigerModeAdmin()
+    return chiffrerConfiguration()
+  })
   // Le fichier de la clé, à garder en lieu sûr (demande POST : aucune autre page ne peut le récupérer).
-  r.post('/api/ktec/cle/exporter', () => {
+  r.post('/api/ktec/cle/exporter', (ctx) => {
+    ctx.exigerModeAdmin() // la clé ouvre la configuration, mots de passe compris
     if (!cleDuPoste()) throw new ErreurHttp(404, 'Pas de clé du site sur ce poste.')
     return { nom: 'cle-du-site.ktecclef', contenu: fichierCle() }
   })
   r.post('/api/ktec/cle/importer', async (ctx) => importerCle((await ctx.octets()).toString('utf8')))
-
-  r.post('/api/ktec/session', async (ctx) => {
-    const { motDePasse } = await ctx.json()
-    if (!motDePasse) throw new ErreurHttp(400, 'Saisissez le mot de passe MySQL.')
-    return ouvrirSession(motDePasse)
-  })
-
-  r.delete('/api/ktec/session', () => {
-    fermerSession()
-  })
 
   // ---- dossier de travail
 

@@ -12,8 +12,12 @@ Le portail et le socle commun des applications de l'atelier :
   application installée. On passe d'une application à l'autre par le bas du menu.
 - **Rien en double** : le moteur d'IA et son modèle, Java, le moteur BIRT et le pilote MySQL sont installés une fois
   et partagés par toutes les applications.
-- **Une seule connexion MySQL**, en lecture seule : le mot de passe est demandé une fois pour toutes les applications,
-  gardé en mémoire, jamais enregistré.
+- **Une seule connexion à la GMAO**, réglée une fois par l'administrateur et rangée chiffrée (clé du site) dans le
+  fichier de connaissances : un compte de lecture pour tout le monde, automatique, sans mot de passe à taper, et un
+  compte d'écriture réservé au mode administrateur (création de FI). Les mots de passe ne reviennent jamais à l'écran.
+- **Consultation et administration** : avec un mot de passe administrateur sur le fichier, les réglages, le SQL et
+  l'écriture dans la GMAO sont réservés à l'administrateur ; les autres consultent, interrogent l'IA, impriment,
+  lancent les analyses, cherchent des pièces et génèrent des rapports.
 - **Un seul fichier de connaissances `.ktec`** : la structure de la base, le dictionnaire, les liens, les conventions,
   les données et réglages de chaque application. Placé sur un lecteur réseau, il est **partagé** : chaque poste
   travaille sur une copie, un seul modifie à la fois (verrou, pris tout seul si le fichier n'a pas de mot de passe,

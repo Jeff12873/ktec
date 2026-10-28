@@ -11,6 +11,8 @@
 //   ctx.admin    → true si ce navigateur est en mode administrateur sur le fichier .ktec
 //   ctx.exigerAdmin() → avant une modification du fichier .ktec : refuse si ce n'est pas permis
 //                  (voir exigerEcriture dans partage.js)
+//   ctx.modeAdmin, ctx.exigerModeAdmin() → réglages, SQL, comptes : réservés à l'administrateur
+//                  (ou à tous quand le fichier n'a pas de mot de passe)
 // Elle renvoie un objet (envoyé en JSON) ou utilise ctx.res directement (fichiers, flux).
 
 import http from 'node:http'
@@ -18,7 +20,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { chemins, journal } from './installation.js'
 import { applis } from './applis.js'
-import { requeteEnCours, estAdmin, exigerEcriture, noterActiviteAdmin } from './partage.js'
+import { requeteEnCours, estAdmin, modeAdmin, exigerEcriture, noterActiviteAdmin } from './partage.js'
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -106,9 +108,15 @@ async function traiterApi(routes, req, res, url) {
       json: async () => JSON.parse((await lireCorps(req)).toString('utf8') || '{}'),
       cookie,
       admin: estAdmin(cookie),
+      // Mode administrateur au sens large : ce navigateur est administrateur, ou le fichier n'a pas de mot de
+      // passe (personne n'est alors distingué). Les réglages, le SQL et les comptes MySQL lui sont réservés.
+      modeAdmin: modeAdmin(cookie),
       exigerAdmin() {
         exigerEcriture()
         noterActiviteAdmin()
+      },
+      exigerModeAdmin() {
+        if (!modeAdmin(cookie)) throw new ErreurHttp(403, 'Réservé à l’administrateur : passez en mode administrateur (en haut de l’écran).')
       },
     }
     // Le cookie suit la requête jusqu'aux écritures (même après des await).

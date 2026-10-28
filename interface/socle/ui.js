@@ -184,7 +184,7 @@ export function formulaire(champs, valeurs = {}) {
       const resultat = {}
       for (const champ of champs) {
         const brut = elements[champ.nom].value
-        resultat[champ.nom] = champ.type === 'nombre' ? (brut === '' ? null : Number(brut)) : brut.trim()
+        resultat[champ.nom] = champ.type === 'nombre' ? (brut === '' ? null : Number(brut)) : champ.type === 'mot-de-passe' ? brut : brut.trim()
         if (champ.obligatoire && (resultat[champ.nom] === '' || resultat[champ.nom] === null)) throw new Error(`« ${champ.libelle} » est obligatoire.`)
       }
       return resultat

@@ -62,8 +62,8 @@ Au premier lancement, KTEC pose trois questions, une par écran, avec un chargem
 1. **Le fichier de connaissances** : en choisir un existant (lecteur réseau, clé USB…) ou en créer un.
 2. **La clé du site** : si la configuration du fichier est chiffrée, importer la clé (fichier `.ktecclef`) ; sinon,
    proposer de la chiffrer (la clé est alors créée sur ce poste et exportée aussitôt).
-3. **La connexion à la base de la GMAO** : déjà remplie si elle est dans le fichier ; le mot de passe est essayé,
-   jamais enregistré.
+3. **La connexion à la base de la GMAO** : rien à faire si l'administrateur l'a déjà rangée dans le fichier ; sinon,
+   serveur, base, compte de lecture et mot de passe, chiffrés dans le fichier (plus personne n'a à le taper).
 
 Les postes réglés avant l'assistant ne le voient pas. Un poste qui ouvre un fichier chiffré sans en avoir la clé ne
 voit que l'écran de la clé.

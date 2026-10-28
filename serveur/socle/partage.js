@@ -238,7 +238,7 @@ const nouveauJeton = () => crypto.randomBytes(24).toString('hex')
 export function entrerAdmin(nom, { forcer = false, auto = false } = {}) {
   db()
   if (etat.admin) {
-    if (!auto) etat.admin.auto = false
+    if (!auto) Object.assign(etat.admin, { auto: false, pourTous: false })
     return { ok: true }
   }
   if (!fs.existsSync(etat.fichier)) throw erreur(409, `Le fichier de connaissances est introuvable (${etat.fichier}) : modification impossible. Vérifiez le lecteur réseau, ou ouvrez un autre fichier (Réglages).`)
@@ -294,6 +294,15 @@ export function estAdmin(cookie) {
   return Boolean(etat.admin && cookie && etat.admin.cookie === cookie)
 }
 
+// Réglages, SQL et comptes MySQL : réservés à ce mode (navigateur administrateur, ou fichier sans mot de passe).
+export function modeAdmin(cookie) {
+  try {
+    return !motDePasseDefini() || estAdmin(cookie)
+  } catch {
+    return true // pas de fichier ouvert : il faut pouvoir en choisir un
+  }
+}
+
 export function cookieAdmin() {
   return etat.admin?.cookie
 }
@@ -301,15 +310,19 @@ export function cookieAdmin() {
 // Avant toute écriture. Fichier avec mot de passe : il faut le mode administrateur (cookie de ce navigateur).
 // Sans mot de passe : le verrou est pris tout seul, sauf si un autre poste modifie déjà.
 // Hors requête (tâche de fond lancée par ce poste) : il suffit d'avoir le verrou.
-export function exigerEcriture() {
+// pourTous : écriture permise aussi en consultation (résultats d'analyse IA, historique des conversations),
+// jamais pour les réglages : le verrou est alors pris tout seul, comme sans mot de passe.
+export function exigerEcriture({ pourTous = false } = {}) {
   db()
   const requete = requeteEnCours.getStore()
-  if (motDePasseDefini()) {
+  if (motDePasseDefini() && !pourTous) {
     if (etat.admin && (!requete || requete.cookie === etat.admin.cookie)) return
     throw erreur(403, 'Modification réservée au mode administrateur : cliquez sur « Consultation » en haut de l’écran.')
   }
   if (etat.admin) return
   const resultat = entrerAdmin(reglagesPoste().nomAgent || os.userInfo().username, { auto: true })
+  // Main prise pour un utilisateur sur un fichier protégé : rendue peu après la publication (voir publier).
+  if (!resultat.occupe && motDePasseDefini()) etat.admin.pourTous = true
   if (resultat.occupe) {
     const depuis = new Date(resultat.occupe.depuis).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     throw erreur(423, `${resultat.occupe.nom} (poste ${resultat.occupe.poste}) modifie le fichier de connaissances depuis ${depuis} : réessayez plus tard.`)
@@ -385,6 +398,10 @@ function publier() {
   etat.signature = `${infos.size}-${infos.mtimeMs}`
   etat.aPublier = false
   etat.publication = { derniere: new Date().toISOString(), erreur: null }
+  // Main prise pour un utilisateur : rendue après 2 minutes sans écriture (une analyse en cours écrit souvent).
+  if (etat.admin.pourTous) setTimeout(() => {
+    if (etat.admin?.pourTous && !etat.aPublier && Date.now() - etat.admin.derniereAction >= 110_000) quitterAdmin()
+  }, 120_000).unref()
 }
 
 // Publie tout de suite (avant l'arrêt de KTEC).

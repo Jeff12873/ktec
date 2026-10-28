@@ -20,6 +20,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { reglagesPoste, modifierReglagesPoste, dossierTravail, journal, lireJson, dossierInstallationParDefaut, definirConnexionPartagee } from './installation.js'
+import { definirIdentifiants } from './mysql.js'
 import { cleDuPoste, chiffrer, dechiffrer, estChiffre, empreinteCle, nouvelleCle, enregistrerCle, lireFichierCle } from './cle.js'
 import { db, ajouterStructure, definirCheminParDefaut, ouvrirFichier, creerFichier, exigerEcriture, noterModification, transaction, etatPartage, FORMAT, baseOuverte } from './partage.js'
 
@@ -89,7 +90,7 @@ function reprendreAncienBirtec(destination) {
     fs.cpSync(rapportsAnciens, rapports, { recursive: true })
     journal(`Rapports repris de BiRTEC : ${rapportsAnciens} → ${rapports}`)
   }
-  // La connexion MySQL (sans mot de passe, il n'est jamais enregistré), si KTEC n'en a pas encore.
+  // L'adresse de la connexion MySQL (sans mot de passe), si KTEC n'en a pas encore.
   const mysql = anciensReglages.find((r) => r.mysql?.serveur)?.mysql
   if (mysql && !reglagesPoste().mysql.serveur) modifierReglagesPoste({ mysql })
 }
@@ -220,7 +221,28 @@ export function importerCle(texte) {
 
 // La connexion MySQL commune à tous les postes, rangée (chiffrée) dans le fichier.
 // (seulement une fois le fichier ouvert : la lire ne doit jamais l'ouvrir, les applications déclarent d'abord leurs tables)
-definirConnexionPartagee(() => (baseOuverte() ? lireInfo('ktec.connexion', null) : null))
+const connexionDuFichier = () => (baseOuverte() ? lireInfo('ktec.connexion', null) : null)
+definirConnexionPartagee(connexionDuFichier)
+definirIdentifiants(connexionDuFichier)
+
+// Enregistre la connexion à la GMAO dans le fichier (réservé à l'administrateur : à vérifier par l'appelant).
+// Les mots de passe ne sont jamais écrits en clair : la configuration est chiffrée d'abord (clé du site créée
+// sur ce poste au besoin). Un mot de passe laissé vide garde celui déjà enregistré.
+export function enregistrerConnexion({ serveur, port, base, utilisateur, motDePasse, ecriture = {} }) {
+  const cle = etatCle()
+  if (cle.chiffree && !cle.bonneCle) throw Object.assign(new Error('La configuration est chiffrée avec une clé absente de ce poste : importez d’abord la clé du site.'), { statut: 423 })
+  if (!cle.chiffree) chiffrerConfiguration()
+  const avant = lireInfo('ktec.connexion', {}) || {}
+  const memeServeur = avant.serveur === serveur && Number(avant.port) === Number(port) && avant.base === base
+  const garder = (nouveau, ancien, memeCompte) => nouveau || (memeServeur && memeCompte ? ancien || '' : '')
+  const connexion = {
+    serveur, port, base, utilisateur,
+    motDePasse: garder(motDePasse, avant.motDePasse, avant.utilisateur === utilisateur),
+    ecriture: ecriture.utilisateur ? { utilisateur: ecriture.utilisateur, motDePasse: garder(ecriture.motDePasse, avant.ecriture?.motDePasse, avant.ecriture?.utilisateur === ecriture.utilisateur) } : null,
+  }
+  ecrireInfo('ktec.connexion', connexion)
+  return connexion
+}
 
 // ---------------------------------------------------------------- indicateurs
 

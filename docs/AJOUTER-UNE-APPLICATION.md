@@ -43,7 +43,7 @@ import reglages from '../blocs/reglages/vue.js'
 export const blocs = [accueil, reglages]   // ordre du menu
 export { accueil }                          // écran par défaut
 export const styles = 'interface/app.css'   // facultatif
-export function auDemarrage(etat) {}        // facultatif : ex. demander le mot de passe MySQL
+export function auDemarrage(etat) {}        // facultatif : ex. vérifier la connexion à la GMAO
 ```
 
 ## Côté serveur
@@ -61,6 +61,13 @@ import { discuter } from 'ktec/ia.js'
 Ses propres tables : `ajouterStructure((db) => db.exec('CREATE TABLE IF NOT EXISTS …'))`. Toute écriture directe
 commence par `ctx.exigerAdmin()` (verrou du fichier partagé) et se termine par `noterModification()` (publication) ;
 `ecrireInfo` et les autres fonctions de `ktec.js` le font d'elles-mêmes.
+
+Droits (KTEC 0.6) : les réglages, le SQL et l'écriture dans la GMAO sont réservés à l'administrateur
+(`ctx.exigerModeAdmin()`, `ctx.modeAdmin` ; à l'écran `etat.modeAdmin`). Un écran de réglages se déclare
+`menu: 'admin'` (au menu en mode administrateur seulement) ou `admin: true` (hors menu, mais réservé). Une écriture
+permise aussi en consultation (résultat d'une analyse lancée par un utilisateur) appelle
+`exigerEcriture({ pourTous: true })`. Les requêtes passent par le compte de lecture (`executerRequete`), les
+écritures dans la GMAO par le compte d'écriture (`ecrireDansLaBase`, en mode administrateur seulement).
 
 ## Côté écran
 

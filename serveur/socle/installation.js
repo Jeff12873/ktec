@@ -78,7 +78,7 @@ export function installation() {
 
 const REGLAGES_DEFAUT = {
   // Connexion MySQL, commune à toutes les applications.
-  // Le mot de passe n'est jamais enregistré : il est demandé à chaque ouverture.
+  // Les comptes et mots de passe sont dans le fichier de connaissances (chiffrés), jamais ici.
   mysql: { serveur: '', port: 3306, base: '', utilisateur: '' },
   dossierTravail: '',   // rapports créés et fichier .ktec par défaut (vide = Documents/KTEC)
   fichierKtec: '',      // fichier de connaissances du site (vide = <dossier de travail>/connaissances.ktec)
@@ -107,7 +107,8 @@ export function reglagesPoste() {
       dansConnexion = false
     }
   }
-  const mysql = partagee?.serveur ? partagee : lus.mysql
+  // (sans les comptes ni les mots de passe : ils ne sortent du fichier que pour le moteur Java, voir mysql.js)
+  const mysql = partagee?.serveur ? { serveur: partagee.serveur, port: partagee.port, base: partagee.base, utilisateur: partagee.utilisateur } : lus.mysql
   return { ...REGLAGES_DEFAUT, ...lus, mysql: { ...REGLAGES_DEFAUT.mysql, ...(mysql || {}) } }
 }
 

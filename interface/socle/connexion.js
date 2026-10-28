@@ -1,46 +1,26 @@
-// La connexion MySQL, commune à toutes les applications : le mot de passe est demandé une fois,
-// gardé en mémoire par le serveur KTEC jusqu'à sa fermeture, jamais enregistré.
+// La connexion à la GMAO, commune à toutes les applications : réglée une fois par l'administrateur et rangée
+// (chiffrée) dans le fichier de connaissances. Aucun mot de passe n'est jamais demandé aux utilisateurs.
 
-import { h, ic, fenetre, notifier } from './ui.js'
-import { api } from './api.js'
-import { etat, actualiserEtat } from './etat.js'
+import { h, ic, notifier } from './ui.js'
+import { etat } from './etat.js'
 
-// automatique : demande faite d'office à l'ouverture d'une page. Si l'utilisateur a déjà répondu
-// « Plus tard » pendant cette session du navigateur, on ne la refait pas à chaque application.
+// Pour les applications d'avant KTEC 0.6, qui proposaient de saisir le mot de passe : il n'y a plus rien à saisir,
+// on dit seulement pourquoi la connexion n'est pas ouverte.
 export async function demanderMotDePasse({ automatique = false } = {}) {
-  if (automatique && sessionStorage.getItem('ktec-mysql-plus-tard')) return
-  const c = etat.connexion
-  const champ = h('input', { type: 'password', autocomplete: 'current-password' })
-  await fenetre({
-    titre: 'Connexion à MySQL',
-    contenu: h(
-      'div',
-      {},
-      h('p', { class: 'texte-2' }, `Base « ${c.base} » sur ${c.serveur}:${c.port}, utilisateur « ${c.utilisateur} ».`),
-      h('label', { class: 'champ' }, h('span', {}, 'Mot de passe'), champ, h('small', { class: 'aide' }, 'Gardé en mémoire jusqu’à la fermeture de KTEC, jamais enregistré. Valable pour toutes les applications.')),
-    ),
-    boutons: [
-      { texte: 'Plus tard', classe: 'discret', action: () => sessionStorage.setItem('ktec-mysql-plus-tard', '1') },
-      {
-        texte: 'Se connecter',
-        classe: 'principal',
-        action: async () => {
-          const infos = await api('/api/ktec/session', { methode: 'POST', corps: { motDePasse: champ.value } })
-          await actualiserEtat()
-          notifier(`Connecté : ${infos.serveur}`)
-          if (infos.compteEnEcriture) notifier('Attention : ce compte MySQL peut modifier la base. KTEC ne fait que lire, mais un compte en lecture seule est plus sûr.', 'erreur')
-        },
-      },
-    ],
-  })
+  if (automatique || etat.connexion?.ouverte) return
+  notifier(messageConnexion(etat.connexion), 'erreur')
 }
 
-// Les étiquettes de la barre du haut, communes au portail et aux applications.
+export function messageConnexion(c = {}) {
+  if (!c.configuree || !c.motDePasse) return 'La connexion à la GMAO n’est pas réglée : l’administrateur doit la renseigner (Réglages du lanceur KTEC).'
+  return `Connexion à la GMAO impossible : ${c.erreur || 'serveur injoignable'}.`
+}
+
+// L'étiquette de la barre du haut, commune au portail et aux applications.
 export function etiquetteMySQL(c, lienConfiguration) {
-  if (!c.configuree) return h('a', { class: 'etiquette orange', href: lienConfiguration }, ic('base', 15), 'MySQL à configurer')
-  if (!c.ouverte) return h('button', { class: 'etiquette orange', onclick: demanderMotDePasse, title: 'Saisir le mot de passe MySQL' }, ic('cadenas', 15), `${c.base} : connexion fermée`)
-  const avertissement = c.infos?.compteEnEcriture ? ' — attention : ce compte peut modifier la base' : ''
-  return h('span', { class: `etiquette ${avertissement ? 'orange' : 'accent'}`, title: `${c.utilisateur}@${c.serveur}:${c.port} — ${c.infos?.serveur || ''}${avertissement}` }, ic('base', 15), `${c.base} sur ${c.serveur}`)
+  if (!c.configuree || !c.motDePasse) return h('a', { class: 'etiquette orange', href: lienConfiguration, title: 'L’administrateur doit régler la connexion à la GMAO (Réglages)' }, ic('base', 15), 'GMAO non réglée')
+  if (!c.ouverte) return h('a', { class: 'etiquette rouge', href: lienConfiguration, title: c.erreur || 'Connexion impossible' }, ic('cadenas', 15), `${c.base} : connexion impossible`)
+  return h('span', { class: 'etiquette accent', title: `${c.base} sur ${c.serveur}:${c.port}${c.infos?.serveur ? ` — ${c.infos.serveur}` : ''}` }, ic('base', 15), `${c.base} sur ${c.serveur}`)
 }
 
 export function etiquetteIA(ia = {}) {

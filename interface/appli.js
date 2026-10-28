@@ -3,10 +3,11 @@
 // La page /birtec/ charge /apps/birtec/interface/menu.js, qui exporte :
 //   { nom, sousTitre, blocs: [...], accueil, configuration, auDemarrage(etat) }
 // Chaque écran est un « bloc » (dossier blocs/<nom>/vue.js de l'application) qui exporte :
-//   { chemin, titre, icone, menu, groupe, aide, afficher(zone, { id, query }) }
+//   { chemin, titre, icone, menu, groupe, aide, admin, afficher(zone, { id, query }) }
+// (menu: 'admin' → dans le menu en mode administrateur seulement ; admin: true → écran réservé, hors menu)
 
 import { h, vider, ic, fenetreOuverte, notifier, nomAppli, COULEUR_KTEC } from './socle/ui.js'
-import { etat, suivreEtat, surChangement } from './socle/etat.js'
+import { etat, suivreEtat, surChangement, modeAdmin } from './socle/etat.js'
 import { appli, api } from './socle/api.js'
 import { etiquetteIA, etiquetteMySQL } from './socle/connexion.js'
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
@@ -59,6 +60,7 @@ async function afficherBloc() {
   dessinerMenu()
   vider(zone)
   try {
+    if ((bloc.menu === 'admin' || bloc.admin) && !modeAdmin()) throw new Error('Écran réservé à l’administrateur : passez en mode administrateur (en haut de l’écran).')
     await bloc.afficher(zone, { id, query })
   } catch (erreur) {
     vider(zone, h('div', { class: 'bandeau' }, ic('alerte'), erreur.message))
@@ -76,8 +78,8 @@ function dessinerMenu() {
       h('div', {}, h('strong', {}, nomAppli(description.nom)), h('span', {}, description.sousTitre || ''))),
     // Les écrans par groupe (« groupe » de chaque bloc) : un titre discret avant chaque nouveau groupe.
     // Le groupe « Réglages » est poussé en bas du menu.
-    // menu: 'admin' → écran visible seulement en mode administrateur.
-    BLOCS.filter((b) => b.menu === true || (b.menu === 'admin' && etat.admin)).map((b, i, liste) => [
+    // menu: 'admin' → écran visible seulement en mode administrateur (ou fichier sans mot de passe).
+    BLOCS.filter((b) => b.menu === true || (b.menu === 'admin' && modeAdmin())).map((b, i, liste) => [
       b.groupe && b.groupe !== liste[i - 1]?.groupe
         ? h('div', { class: `menu-groupe ${b.groupe === 'Réglages' ? 'en-bas' : ''}` }, b.groupe)
         : null,
@@ -116,7 +118,7 @@ function quandEtatChange(nouveau, ancien) {
   dessinerBarre()
   if (nouveau.partage?.avertissement && nouveau.partage.avertissement !== ancien.partage?.avertissement) notifier(nouveau.partage.avertissement)
   // Mode administrateur pris ou rendu : les écrans montrent ou cachent leurs boutons de modification.
-  if (Boolean(nouveau.admin) !== Boolean(ancien.admin)) {
+  if (Boolean(nouveau.admin) !== Boolean(ancien.admin) || Boolean(nouveau.modeAdmin) !== Boolean(ancien.modeAdmin)) {
     dessinerMenu()
     if (!fenetreOuverte()) afficherBloc()
     return
@@ -132,5 +134,6 @@ function saisieEnCours() {
 }
 
 // Les blocs redessinent l'écran avec window.ktec.recharger() (window.birtec : ancien nom, gardé).
-window.ktec = { recharger: afficherBloc }
+// window.ktec.modeAdmin() : réglages, SQL et rouages de prompts, réservés à l'administrateur.
+window.ktec = { recharger: afficherBloc, modeAdmin }
 window.birtec = window.ktec

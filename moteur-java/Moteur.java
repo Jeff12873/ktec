@@ -21,8 +21,9 @@
 // (SELECT, WITH, SHOW, DESCRIBE, EXPLAIN), une seule à la fois, avec un nombre de lignes et une durée limités.
 // Le compte MySQL utilisé devrait de toute façon n'avoir que le droit de lecture.
 //
-// Exception, la commande « ecrire » (création de fiches dans la GMAO, à la demande expresse de l'administrateur) :
-// une suite d'instructions SELECT, INSERT ou SET (jamais UPDATE, DELETE, DROP…), une par ligne, chacune
+// Exception, la commande « ecrire » (création, remplacement ou suspension de FI dans la GMAO, à la demande expresse
+// de l'administrateur, avec le compte d'écriture) : une suite d'instructions SELECT, INSERT, UPDATE ou SET (jamais
+// DELETE, DROP, ALTER…), une par ligne ; un UPDATE doit avoir un WHERE. Chacune
 // « base64(sql) base64(valeur1) base64(valeur2)… » (« ~ » pour une valeur nulle), valeurs passées en paramètres
 // préparés. Le tout dans une transaction : annulée à la fin (simulation), validée seulement avec --valider oui.
 
@@ -265,8 +266,12 @@ public class Moteur {
             String[] decode = new String[morceaux.length];
             for (int i = 0; i < morceaux.length; i++) decode[i] = "~".equals(morceaux[i]) ? null : new String(b64.decode(morceaux[i]), StandardCharsets.UTF_8);
             String debut = decode[0].replaceAll("^(\\s|/\\*.*?\\*/|--[^\\n]*\\n)+", "").toUpperCase();
-            if (!(debut.startsWith("SELECT") || debut.startsWith("INSERT") || debut.startsWith("SET "))) {
-                erreur("Écriture refusée : seules les instructions SELECT, INSERT et SET sont permises.");
+            if (!(debut.startsWith("SELECT") || debut.startsWith("INSERT") || debut.startsWith("UPDATE") || debut.startsWith("SET "))) {
+                erreur("Écriture refusée : seules les instructions SELECT, INSERT, UPDATE et SET sont permises.");
+                return;
+            }
+            if (debut.startsWith("UPDATE") && !debut.matches("(?s).*\\bWHERE\\b.*")) {
+                erreur("Écriture refusée : un UPDATE sans WHERE modifierait toute la table.");
                 return;
             }
             if (pointVirguleHorsTexte(decode[0].trim().replaceAll(";+$", ""))) {

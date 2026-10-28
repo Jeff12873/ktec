@@ -36,3 +36,6 @@ export const estAdmin = () => Boolean(etat.admin)
 // Ce poste peut-il modifier le fichier .ktec ? En mode administrateur, ou quand le fichier n'a pas de mot de passe
 // (la main est alors prise toute seule) et que personne d'autre ne le modifie.
 export const peutModifier = () => Boolean(etat.admin) || (!etat.partage?.motDePasse && !etat.partage?.autreAdmin)
+
+// Réglages, SQL et comptes de la GMAO : en mode administrateur, ou quand le fichier n'a pas de mot de passe.
+export const modeAdmin = () => Boolean(etat.modeAdmin)

@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.6.0",
+      "date": "2026-10-28",
+      "points": [
+        "Connexion à la GMAO rangée chiffrée dans le fichier de connaissances : plus aucun mot de passe à taper, KTEC se connecte tout seul",
+        "Deux comptes : lecture pour tout le monde, écriture (création de FI) réservée au mode administrateur ; les mots de passe ne reviennent jamais à l'écran",
+        "Mode utilisateur : consultation, IA, impression, analyses, recherche et rapports ; réglages, SQL et écriture dans la GMAO réservés à l'administrateur",
+        "Le moteur accepte aussi les UPDATE (avec un WHERE) pour remplacer ou suspendre une FI"
+      ]
+    },
+    {
       "version": "0.5.2",
       "date": "2026-10-26",
       "points": [

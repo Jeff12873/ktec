@@ -3,8 +3,8 @@
 
 import { h, vider, ic, notifier, confirmer, fenetre, nomAppli } from './socle/ui.js'
 import { api } from './socle/api.js'
-import { etat, suivreEtat, surChangement } from './socle/etat.js'
-import { etiquetteIA, etiquetteMySQL, demanderMotDePasse } from './socle/connexion.js'
+import { etat, suivreEtat, surChangement, modeAdmin } from './socle/etat.js'
+import { etiquetteIA, etiquetteMySQL } from './socle/connexion.js'
 import { carteMySQL, cartePoste, carteFichier, carteCle } from './socle/reglages.js'
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
 import { constellation } from './fond.js'
@@ -29,9 +29,6 @@ await suivreEtat()
 const assistant = await api('/api/ktec/assistant').catch(() => ({}))
 const avecAssistant = Boolean(assistant.aFaire || assistant.cleManquante)
 
-// Connexion MySQL configurée mais fermée : on propose le mot de passe une fois pour toutes les applications.
-// Pas encore configurée : on ouvre les réglages.
-if (!avecAssistant && location.hash !== '#reglages' && etat.connexion.configuree && !etat.connexion.ouverte && applis.length) demanderMotDePasse({ automatique: true })
 
 const installees = new Set(applis.map((a) => a.id))
 const tuiles = [
@@ -46,7 +43,7 @@ const tuiles = [
     h('span', { class: 'version' }, 'Pas encore installée — l’installer'))),
 ]
 
-// Réglages communs (connexion MySQL, ce poste) : bouton « Réglages » ou adresse /#reglages.
+// Réglages communs (connexion à la GMAO, ce poste) : bouton « Réglages » ou adresse /#reglages.
 function ouvrirReglages() {
   const recharger = () => location.reload()
   fenetre({ titre: 'Réglages de KTEC', large: true, contenu: h('div', { class: 'grille grille-2' }, carteMySQL(recharger), cartePoste(recharger), carteFichier(recharger), carteCle(recharger)), boutons: [{ texte: 'Fermer', classe: 'discret' }] })
@@ -171,4 +168,4 @@ async function verifierMisesAJour() {
 verifierMisesAJour()
 
 if (avecAssistant) lancerAssistant({ seulementCle: !assistant.aFaire }).then(() => location.reload())
-else if (location.hash === '#reglages' || !etat.connexion.configuree) ouvrirReglages()
+else if (location.hash === '#reglages' || (!etat.connexion.motDePasse && modeAdmin())) ouvrirReglages()

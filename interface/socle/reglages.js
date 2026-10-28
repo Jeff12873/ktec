@@ -1,51 +1,68 @@
-// Réglages communs à tout KTEC : connexion MySQL (une seule pour toutes les applications) et ce poste.
+// Réglages communs à tout KTEC : connexion à la GMAO (une seule pour toutes les applications) et ce poste.
 // Montrés par le portail (bouton « Réglages ») et par l'écran de configuration des applications.
 
 import { h, ic, vider, notifier, formulaire, essayer, confirmer, fenetre, tailleFr, dateHeureFr } from './ui.js'
 import { api } from './api.js'
-import { etat, actualiserEtat } from './etat.js'
-import { demanderMotDePasse } from './connexion.js'
+import { etat, actualiserEtat, modeAdmin } from './etat.js'
 import { ouvrirAutreFichier, creerNouveauFichier } from './fichier.js'
 
-// ---------------------------------------------------------------- connexion MySQL
+// ---------------------------------------------------------------- connexion à la GMAO
+//
+// Rangée chiffrée dans le fichier de connaissances, commune à tous les postes. Deux comptes : lecture (tout le monde,
+// automatique) et écriture (FI dans la GMAO, mode administrateur). Les mots de passe ne reviennent jamais à
+// l'écran : un champ laissé vide garde celui qui est enregistré.
 
 export function carteMySQL(apres = () => {}) {
   const c = etat.connexion
+  const entete = h('div', { class: 'carte-entete' }, h('h2', {}, ic('base', 18), 'Connexion à la GMAO'))
+  if (!modeAdmin()) {
+    return h('div', { class: 'carte' }, entete,
+      c.ouverte ? h('div', { class: 'bandeau info' }, ic('coche'), `Connecté à « ${c.base} » sur ${c.serveur}.`)
+        : h('div', { class: 'bandeau' }, ic('cadenas'), c.motDePasse ? `Connexion impossible : ${c.erreur || 'serveur injoignable'}.` : 'La connexion n’est pas encore réglée.'),
+      h('p', { class: 'texte-2' }, 'Seul l’administrateur règle la connexion : passez en mode administrateur (en haut de l’écran).'))
+  }
+  const dejaLecture = c.motDePasse ? 'enregistré — laisser vide pour le garder' : ''
+  const dejaEcriture = c.ecriture?.configuree ? 'enregistré — laisser vide pour le garder' : ''
   const form = formulaire(
     [
       { nom: 'serveur', libelle: 'Serveur', obligatoire: true, aide: 'Nom ou adresse IP du serveur MySQL' },
       { nom: 'port', libelle: 'Port', type: 'nombre', defaut: 3306 },
       { nom: 'base', libelle: 'Base de données', obligatoire: true },
-      { nom: 'utilisateur', libelle: 'Utilisateur', obligatoire: true, aide: 'De préférence un compte en lecture seule' },
+      { nom: 'utilisateur', libelle: 'Compte de lecture', obligatoire: true, aide: 'Utilisé par tout le monde, automatiquement : un compte qui ne peut que lire' },
+      { nom: 'motDePasse', libelle: 'Mot de passe du compte de lecture', type: 'mot-de-passe', aide: dejaLecture },
+      { nom: 'ecritureUtilisateur', libelle: 'Compte d’écriture (facultatif)', aide: 'Seulement pour créer ou modifier des FI depuis AITEC, en mode administrateur' },
+      { nom: 'ecritureMotDePasse', libelle: 'Mot de passe du compte d’écriture', type: 'mot-de-passe', aide: dejaEcriture },
     ],
-    c,
+    { serveur: c.serveur, port: c.port, base: c.base, utilisateur: c.utilisateur, ecritureUtilisateur: c.ecriture?.utilisateur || '' }, // jamais de mot de passe
   )
   const statut = c.ouverte
-    ? h('div', { class: `bandeau ${c.infos?.compteEnEcriture ? '' : 'info'}` }, ic(c.infos?.compteEnEcriture ? 'alerte' : 'coche'),
-        `Connecté à ${c.infos?.serveur || 'MySQL'}${c.infos?.compteEnEcriture ? ' — attention : ce compte peut modifier la base' : ' — compte en lecture seule'}.`)
-    : c.configuree
-      ? h('div', { class: 'bandeau' }, ic('cadenas'), 'Connexion fermée : le mot de passe est demandé à chaque ouverture.')
-      : h('div', { class: 'bandeau info' }, ic('base'), 'Renseignez la connexion à la base MySQL de la GMAO.')
+    ? h('div', { class: 'bandeau info' }, ic('coche'), `Connecté à ${c.infos?.serveur || 'MySQL'}${c.infos?.compteEnEcriture ? ' — attention : le compte de lecture peut modifier la base' : ''}.`)
+    : c.motDePasse
+      ? h('div', { class: 'bandeau' }, ic('alerte'), `Connexion impossible : ${c.erreur || 'serveur injoignable'}.`)
+      : h('div', { class: 'bandeau info' }, ic('base'), 'Renseignez la connexion à la base MySQL de la GMAO. Les mots de passe sont chiffrés dans le fichier de connaissances : personne n’aura à les taper.')
+  const bilan = h('div')
+  const ligneBilan = (nom, b) => b && h('div', { class: `bandeau ${b.ok ? 'info' : ''}`, style: { marginTop: '8px' } }, ic(b.ok ? 'coche' : 'alerte'),
+    b.ok ? `${nom} : connexion réussie${nom === 'Compte de lecture' && b.compteEnEcriture ? ' — attention, ce compte peut modifier la base' : ''}.` : `${nom} : ${b.erreur}`)
 
   return h(
     'div',
     { class: 'carte' },
-    h('div', { class: 'carte-entete' }, h('h2', {}, ic('base', 18), 'Connexion MySQL')),
+    entete,
     statut,
+    etat.partage?.motDePasse ? null : h('div', { class: 'bandeau', style: { marginTop: '8px' } }, ic('cadenas'), 'Le fichier n’a pas de mot de passe administrateur : n’importe qui peut changer ces réglages. Protégez-le (carte « Fichier de connaissances »).'),
     form.element,
+    bilan,
     h('div', { class: 'actions', style: { marginTop: '14px' } },
       h('button', {
         class: 'principal',
         onclick: async () => {
-          const ok = await essayer(() => api('/api/ktec/configuration/mysql', { methode: 'POST', corps: form.lire() }), 'Connexion enregistrée')
-          if (ok !== undefined) {
-            await actualiserEtat()
-            demanderMotDePasse().then(() => apres())
-          }
+          const r = await essayer(() => api('/api/ktec/configuration/mysql', { methode: 'POST', corps: form.lire() }), 'Connexion enregistrée dans le fichier de connaissances')
+          if (r === undefined) return
+          vider(bilan, ligneBilan('Compte de lecture', r.lecture), ligneBilan('Compte d’écriture', r.ecriture))
+          await actualiserEtat()
+          apres()
         },
-      }, 'Enregistrer et se connecter'),
-      c.configuree && !c.ouverte ? h('button', { onclick: () => demanderMotDePasse().then(() => apres()) }, ic('cadenas', 16), 'Saisir le mot de passe') : null,
-      c.ouverte ? h('button', { class: 'discret', onclick: async () => { await api('/api/ktec/session', { methode: 'DELETE' }); await actualiserEtat(); apres() } }, 'Fermer la connexion') : null,
+      }, 'Enregistrer et essayer'),
     ),
   )
 }
@@ -164,11 +181,11 @@ export function carteCle(apres = () => {}) {
     vider(corps,
       h('p', { class: 'texte-2', style: { marginTop: 0 } }, e.chiffree
         ? (e.bonneCle ? 'La configuration est chiffrée, et ce poste a la clé : tout est lisible.' : 'La configuration est chiffrée, mais ce poste n’a pas la bonne clé : importez la clé du site.')
-        : 'La configuration (connexion MySQL, adresses, requêtes, réglages des applications) est en clair dans le fichier de connaissances. La chiffrer la rend illisible sans la clé du site, sans mot de passe à taper.'),
+        : 'La configuration (connexion à la GMAO, adresses, requêtes, réglages des applications) est en clair dans le fichier de connaissances. La chiffrer la rend illisible sans la clé du site, sans mot de passe à taper. Elle est chiffrée d’office dès que les comptes de la GMAO sont enregistrés.'),
       e.chiffree && !e.bonneCle ? h('div', { class: 'bandeau' }, ic('cadenas'), 'Sans la clé, les applications ne voient pas leurs réglages.') : null,
       h('div', { class: 'actions', style: { marginTop: '10px' } },
-        e.chiffree ? null : h('button', { class: 'principal', onclick: chiffrer }, ic('cadenas', 16), 'Chiffrer la configuration'),
-        e.cleSurLePoste && e.bonneCle ? h('button', { onclick: telechargerCle }, ic('telecharger', 16), 'Exporter la clé') : null,
+        e.chiffree || !modeAdmin() ? null : h('button', { class: 'principal', onclick: chiffrer }, ic('cadenas', 16), 'Chiffrer la configuration'),
+        e.cleSurLePoste && e.bonneCle && modeAdmin() ? h('button', { onclick: telechargerCle }, ic('telecharger', 16), 'Exporter la clé') : null,
         e.chiffree && !e.bonneCle ? h('button', { class: 'principal', onclick: importer }, ic('dossier', 16), 'Importer la clé du site') : null,
         e.chiffree && e.bonneCle ? null : null))
   }

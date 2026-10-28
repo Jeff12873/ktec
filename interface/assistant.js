@@ -3,7 +3,7 @@
 //   1. Bienvenue
 //   2. Le fichier de connaissances (en choisir un existant, ou en créer un)
 //   3. La clé du site (l'importer si la configuration est chiffrée ; sinon proposer de la chiffrer)
-//   4. La connexion à la base de la GMAO (essayée avec le mot de passe, jamais enregistré)
+//   4. La connexion à la base de la GMAO (déjà dans le fichier, ou réglée ici : chiffrée dans le fichier)
 //   5. Récapitulatif
 // lancerAssistant({ seulementCle: true }) : seulement l'écran de la clé (poste sans la clé d'un fichier chiffré).
 
@@ -164,7 +164,29 @@ export function lancerAssistant({ seulementCle = false } = {}) {
     }
 
     // ---- 4. La connexion à la base de la GMAO
+    // Déjà réglée dans le fichier (par l'administrateur) : rien à saisir. Sinon, on la règle ici : le mot de passe
+    // est chiffré dans le fichier de connaissances, personne n'aura plus à le taper.
     function connexion(message = null) {
+      const c = etat?.connexion || {}
+      if (c.motDePasse) {
+        bilan.connexion = `${c.base} sur ${c.serveur}${c.ouverte ? '' : ' (connexion impossible pour l’instant)'}`
+        return ecran({
+          numero: 3,
+          titre: 'La connexion à la base de la GMAO',
+          description: 'Elle est déjà réglée dans le fichier de connaissances : les applications s’y connectent toutes seules, sans mot de passe à taper.',
+          contenu: c.erreur ? erreur(`Pour l’instant : ${c.erreur}`) : null,
+          boutons: [bouton('Continuer', () => fin(), 'principal'), bouton('Retour', () => cle(), 'discret')],
+        })
+      }
+      if (etat && !etat.modeAdmin) {
+        bilan.connexion = 'à régler par l’administrateur'
+        return ecran({
+          numero: 3,
+          titre: 'La connexion à la base de la GMAO',
+          description: 'Elle n’est pas encore réglée. C’est l’administrateur qui la renseigne, une fois pour tous les postes.',
+          boutons: [bouton('Continuer', () => fin(), 'principal'), bouton('Retour', () => cle(), 'discret')],
+        })
+      }
       const m = etat?.mysql || {}
       const champ = (libelle, valeur, attributs = {}) => {
         const e = h('input', { type: 'text', value: valeur ?? '', ...attributs })
@@ -173,21 +195,19 @@ export function lancerAssistant({ seulementCle = false } = {}) {
       const serveur = champ('Serveur', m.serveur, { placeholder: 'adresse du serveur MySQL' })
       const port = champ('Port', m.port || 3306, { inputmode: 'numeric' })
       const base = champ('Base', m.base)
-      const utilisateur = champ('Utilisateur', m.utilisateur)
+      const utilisateur = champ('Compte de lecture', m.utilisateur)
       const mdp = champ('Mot de passe', '', { type: 'password', autocomplete: 'off' })
       ecran({
         numero: 3,
         titre: 'La connexion à la base de la GMAO',
-        description: m.serveur ? 'Les applications lisent la base de la GMAO en lecture seule. La connexion est déjà réglée : il ne reste que le mot de passe, demandé à chaque démarrage et jamais enregistré.' : 'Les applications lisent la base de la GMAO en lecture seule. Le mot de passe est demandé à chaque démarrage de KTEC, et jamais enregistré.',
+        description: 'Les applications lisent la base de la GMAO avec un compte de lecture. Son mot de passe est chiffré dans le fichier de connaissances : il n’est saisi qu’une fois, ici, et personne n’aura plus à le taper. Le compte d’écriture (création de FI) se règle ensuite dans « Réglages ».',
         contenu: h('div', {}, message ? erreur(message) : null, h('div', { class: 'grille grille-2' }, serveur.element, port.element, base.element, utilisateur.element), mdp.element),
         boutons: [
           bouton('Essayer et continuer', async () => {
             try {
-              await chargement('Connexion à la base…', async () => {
-                await api('/api/ktec/configuration/mysql', { methode: 'POST', corps: { serveur: serveur.e.value, port: port.e.value, base: base.e.value, utilisateur: utilisateur.e.value } })
-                if (mdp.e.value) await api('/api/ktec/session', { methode: 'POST', corps: { motDePasse: mdp.e.value } })
-              })
-              bilan.connexion = `${utilisateur.e.value}@${serveur.e.value}/${base.e.value}${mdp.e.value ? ' (connecté)' : ''}`
+              const r = await chargement('Connexion à la base…', () => api('/api/ktec/configuration/mysql', { methode: 'POST', corps: { serveur: serveur.e.value, port: port.e.value, base: base.e.value, utilisateur: utilisateur.e.value, motDePasse: mdp.e.value } }))
+              if (!r.lecture?.ok) return connexion(`Connexion enregistrée, mais impossible pour l’instant : ${r.lecture?.erreur}`)
+              bilan.connexion = `${utilisateur.e.value}@${serveur.e.value}/${base.e.value} (connecté)`
               fin()
             } catch (e) {
               connexion(e.message)
