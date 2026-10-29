@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.6.2",
+      "date": "2026-10-29",
+      "points": [
+        "Assistant de requêtes : l'IA reconnaît mieux les colonnes proposées et préfère les libellés des tables liées aux identifiants"
+      ]
+    },
+    {
       "version": "0.6.1",
       "date": "2026-10-28",
       "points": [

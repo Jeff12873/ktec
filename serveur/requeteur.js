@@ -24,7 +24,7 @@ function structure() {
 }
 
 const CONSIGNES = `Tu aides un administrateur de GMAO à écrire une requête de lecture. On te donne les champs attendus par une application (nom, libellé, aide) et des tables de la base avec leurs colonnes.
-Choisis la table de départ (une ligne de résultat par ligne de cette table) et, pour chaque champ, la colonne qui lui correspond (« table.colonne »), dans la table de départ ou dans une table liée. Laisse vide un champ sans colonne évidente : n'invente rien.
+Choisis la table de départ (une ligne de résultat par ligne de cette table) et, pour chaque champ, la colonne qui lui correspond (« table.colonne »), dans la table de départ ou dans une table liée. Quand la colonne de la table de départ n'est qu'un identifiant (ID_…), prends plutôt la colonne lisible (code, libellé, nom) de la table liée par cet identifiant. Laisse vide un champ sans colonne évidente : n'invente rien.
 Réponds seulement avec un objet JSON, sans texte autour :
 {"depart":"table","champs":{"champ":"table.colonne"},"remarque":"une phrase au plus"}`
 
