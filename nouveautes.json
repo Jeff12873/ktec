@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.7.0",
+      "date": "2026-10-30",
+      "points": [
+        "La clé du site est rangée dans le fichier de connaissances : plus rien à importer sur les postes",
+        "KTEC ne lance plus jamais PowerShell (clé, carte graphique, raccourcis) : fini les alertes de l'antivirus",
+        "Réglages › Clé du site : exporter la configuration en clair (.ktecconf) et la reprendre réglage par réglage ; nouvelle clé si l'ancienne est perdue"
+      ]
+    },
+    {
       "version": "0.6.2",
       "date": "2026-10-29",
       "points": [

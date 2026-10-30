@@ -7,8 +7,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { ErreurHttp } from './socle/http.js'
-import { cheminKtec, changerKtec, etatCle, chiffrerConfiguration, importerCle, enregistrerConnexion } from './socle/ktec.js'
-import { fichierCle, cleDuPoste } from './socle/cle.js'
+import { cheminKtec, changerKtec, etatCle, chiffrerConfiguration, importerCle, enregistrerConnexion, exporterConfiguration, reprendreConfiguration } from './socle/ktec.js'
+import { fichierCle } from './socle/cle.js'
 import { etatPartage, entrerAdmin, quitterAdmin, cookieAdmin, verifierMotDePasse, motDePasseDefini, changerMotDePasse, listerSauvegardes, creerFichier, publierMaintenant } from './socle/partage.js'
 import { etatIA, arreterIA } from './socle/ia.js'
 import { version, reglagesPoste, modifierReglagesPoste, dossierTravail, journal, WINDOWS } from './socle/installation.js'
@@ -94,10 +94,29 @@ export function routes(r) {
   // Le fichier de la clé, à garder en lieu sûr (demande POST : aucune autre page ne peut le récupérer).
   r.post('/api/ktec/cle/exporter', (ctx) => {
     ctx.exigerModeAdmin() // la clé ouvre la configuration, mots de passe compris
-    if (!cleDuPoste()) throw new ErreurHttp(404, 'Pas de clé du site sur ce poste.')
+    if (!etatCle().bonneCle) throw new ErreurHttp(404, 'La clé du site n’est pas dans ce fichier.')
     return { nom: 'cle-du-site.ktecclef', contenu: fichierCle() }
   })
-  r.post('/api/ktec/cle/importer', async (ctx) => importerCle((await ctx.octets()).toString('utf8')))
+  r.post('/api/ktec/cle/importer', async (ctx) => {
+    ctx.exigerModeAdmin()
+    return importerCle((await ctx.octets()).toString('utf8'))
+  })
+  // Clé perdue (fichier chiffré avant KTEC 0.7) : nouvelle clé ; la configuration est à reprendre.
+  r.post('/api/ktec/cle/nouvelle', (ctx) => {
+    ctx.exigerModeAdmin()
+    return chiffrerConfiguration({ nouvelle: true })
+  })
+
+  // ---- configuration en clair (.ktecconf), à garder en lieu sûr : export, et reprise de réglages choisis
+
+  r.post('/api/ktec/configuration/exporter', (ctx) => {
+    ctx.exigerModeAdmin()
+    return { nom: 'configuration-du-site.ktecconf', contenu: JSON.stringify(exporterConfiguration(), null, 1) + '\n' }
+  })
+  r.post('/api/ktec/configuration/reprendre', async (ctx) => {
+    ctx.exigerModeAdmin()
+    return reprendreConfiguration(await ctx.json())
+  })
 
   // ---- dossier de travail
 

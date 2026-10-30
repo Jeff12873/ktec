@@ -150,44 +150,87 @@ async function changerMotDePasse(existe) {
 }
 
 // La clé du site : la configuration (connexion, adresses, requêtes, réglages) chiffrée dans le fichier de
-// connaissances, lisible seulement par KTEC sur un poste qui a la clé. Sans mot de passe à taper.
+// connaissances, avec la clé rangée dans le fichier lui-même. Sans mot de passe à taper, sans rien sur les postes.
+// L'administrateur peut aussi exporter la configuration en clair (.ktecconf) et la reprendre, réglage par réglage.
 export function carteCle(apres = () => {}) {
   const corps = h('div', {}, h('p', { class: 'discret curseur' }, 'Lecture'))
-  const telechargerCle = async () => {
-    const r = await api('/api/ktec/cle/exporter', { methode: 'POST' })
+  const telecharger = (r) => {
     const lien = h('a', { href: URL.createObjectURL(new Blob([r.contenu], { type: 'application/json' })), download: r.nom })
     document.body.append(lien); lien.click(); lien.remove()
+  }
+  const telechargerCle = async () => {
+    telecharger(await api('/api/ktec/cle/exporter', { methode: 'POST' }))
     notifier('Clé du site exportée : gardez ce fichier en lieu sûr (clé USB, coffre).')
   }
-  const importer = () => {
-    const choix = h('input', { type: 'file', accept: '.ktecclef,application/json', style: { display: 'none' } })
-    choix.onchange = async () => {
-      const fichier = choix.files[0]
-      if (!fichier) return
-      await essayer(() => api('/api/ktec/cle/importer', { methode: 'POST', fichier }), 'Clé du site importée : la configuration est lisible sur ce poste')
-      dessiner(); apres()
-    }
+  const exporterConfiguration = async () => {
+    const r = await essayer(() => api('/api/ktec/configuration/exporter', { methode: 'POST' }))
+    if (r) telecharger(r)
+  }
+  const choisirFichier = (accept, suite) => {
+    const choix = h('input', { type: 'file', accept, style: { display: 'none' } })
+    choix.onchange = () => choix.files[0] && suite(choix.files[0])
     document.body.append(choix); choix.click(); choix.remove()
   }
+  const importer = () => choisirFichier('.ktecclef,application/json', async (fichier) => {
+    await essayer(() => api('/api/ktec/cle/importer', { methode: 'POST', fichier }), 'Clé du site rangée dans le fichier : la configuration est lisible')
+    dessiner(); apres()
+  })
+  const nouvelle = async () => {
+    if (!(await confirmer('Repartir d’une nouvelle clé ? Les réglages chiffrés avec l’ancienne clé restent illisibles : reprenez-les ensuite depuis un fichier de configuration (.ktecconf), et ressaisissez la connexion à la GMAO.', { texte: 'Nouvelle clé', danger: true }))) return
+    await essayer(() => api('/api/ktec/cle/nouvelle', { methode: 'POST' }), 'Nouvelle clé du site')
+    dessiner(); apres()
+  }
+  // Reprendre une configuration : on choisit les réglages à reprendre (tout est coché d'office).
+  const reprendre = () => choisirFichier('.ktecconf,.txt,application/json', async (fichier) => {
+    let contenu
+    try {
+      contenu = JSON.parse(await fichier.text())
+    } catch {
+      return notifier('Ce fichier n’est pas lisible.', 'erreur')
+    }
+    if (contenu?.format !== 'ktec-configuration' || !Array.isArray(contenu.elements)) return notifier('Ce n’est pas une configuration de KTEC (.ktecconf).', 'erreur')
+    const cases = contenu.elements.map((e) => ({ e, boite: h('input', { type: 'checkbox', checked: true }) }))
+    await fenetre({
+      titre: 'Reprendre une configuration',
+      contenu: h('div', {},
+        h('p', { class: 'texte-2', style: { marginTop: 0 } }, `Exportée le ${dateHeureFr(contenu.exportee)}. Chaque réglage coché remplace celui de ce fichier de connaissances.`),
+        h('div', { class: 'liste-reprise' }, cases.map(({ e, boite }) => h('label', { class: 'ligne-reprise' }, boite, h('span', { class: 'mono' }, e.cle), h('span', { class: 'discret' }, `${e.table === 'reglages' ? 'AITEC' : 'KTEC'} · ${tailleFr(e.valeur.length)}`))))),
+      boutons: [
+        { texte: 'Annuler' },
+        {
+          texte: 'Reprendre', classe: 'principal', action: async () => {
+            const choisis = cases.filter((x) => x.boite.checked).map((x) => `${x.e.table}/${x.e.cle}`)
+            const r = await essayer(() => api('/api/ktec/configuration/reprendre', { methode: 'POST', corps: { elements: contenu.elements, choisis } }))
+            if (!r) return false
+            notifier(`${r.repris} réglage${r.repris > 1 ? 's' : ''} repris : relancez KTEC pour que les applications les relisent.`)
+            dessiner(); apres()
+            return true
+          },
+        },
+      ],
+    })
+  })
   const chiffrer = async () => {
-    if (!(await confirmer('Chiffrer la configuration ? Une clé du site est créée sur ce poste. Les autres postes qui partagent ce fichier devront importer cette clé pour lire la configuration : exportez-la juste après.', { texte: 'Chiffrer' }))) return
+    if (!(await confirmer('Chiffrer la configuration ? La clé du site est créée et rangée dans le fichier de connaissances : tous les postes qui l’ouvrent pourront la lire, sans rien installer.', { texte: 'Chiffrer' }))) return
     await essayer(() => api('/api/ktec/cle/chiffrer', { methode: 'POST' }), 'Configuration chiffrée')
     dessiner()
-    telechargerCle()
   }
   async function dessiner() {
     const e = await api('/api/ktec/cle').catch(() => null)
     if (!e) return vider(corps, h('p', { class: 'discret' }, 'État de la clé indisponible.'))
+    const admin = modeAdmin()
     vider(corps,
       h('p', { class: 'texte-2', style: { marginTop: 0 } }, e.chiffree
-        ? (e.bonneCle ? 'La configuration est chiffrée, et ce poste a la clé : tout est lisible.' : 'La configuration est chiffrée, mais ce poste n’a pas la bonne clé : importez la clé du site.')
-        : 'La configuration (connexion à la GMAO, adresses, requêtes, réglages des applications) est en clair dans le fichier de connaissances. La chiffrer la rend illisible sans la clé du site, sans mot de passe à taper. Elle est chiffrée d’office dès que les comptes de la GMAO sont enregistrés.'),
-      e.chiffree && !e.bonneCle ? h('div', { class: 'bandeau' }, ic('cadenas'), 'Sans la clé, les applications ne voient pas leurs réglages.') : null,
-      h('div', { class: 'actions', style: { marginTop: '10px' } },
-        e.chiffree || !modeAdmin() ? null : h('button', { class: 'principal', onclick: chiffrer }, ic('cadenas', 16), 'Chiffrer la configuration'),
-        e.cleSurLePoste && e.bonneCle && modeAdmin() ? h('button', { onclick: telechargerCle }, ic('telecharger', 16), 'Exporter la clé') : null,
-        e.chiffree && !e.bonneCle ? h('button', { class: 'principal', onclick: importer }, ic('dossier', 16), 'Importer la clé du site') : null,
-        e.chiffree && e.bonneCle ? null : null))
+        ? (e.bonneCle ? 'La configuration est chiffrée ; sa clé est rangée dans le fichier de connaissances : tous les postes la lisent.' : 'La configuration a été chiffrée avec une clé qui n’est pas dans ce fichier (version d’avant de KTEC).')
+        : 'La configuration (connexion à la GMAO, adresses, requêtes, réglages des applications) est en clair dans le fichier de connaissances. Elle est chiffrée d’office dès que les comptes de la GMAO sont enregistrés.'),
+      e.chiffree && !e.bonneCle ? h('div', { class: 'bandeau' }, ic('cadenas'), admin ? 'Rangez la clé du site (.ktecclef) si vous l’avez ; sinon repartez d’une nouvelle clé, puis reprenez la configuration (.ktecconf) et ressaisissez la connexion.' : 'Sans la clé, les applications ne voient pas leurs réglages : voyez l’administrateur.') : null,
+      admin ? h('div', { class: 'actions', style: { marginTop: '10px', flexWrap: 'wrap' } },
+        e.chiffree ? null : h('button', { class: 'principal', onclick: chiffrer }, ic('cadenas', 16), 'Chiffrer la configuration'),
+        e.chiffree && !e.bonneCle ? h('button', { onclick: importer }, ic('dossier', 16), 'Ranger la clé (.ktecclef)') : null,
+        e.chiffree && !e.bonneCle ? h('button', { class: 'danger', onclick: nouvelle }, ic('cle', 16), 'Nouvelle clé') : null,
+        h('button', { onclick: reprendre }, ic('dossier', 16), 'Reprendre une configuration'),
+        !e.chiffree || e.bonneCle ? h('button', { class: 'discret', onclick: exporterConfiguration }, ic('telecharger', 16), 'Exporter la configuration') : null,
+        e.bonneCle ? h('button', { class: 'discret', onclick: telechargerCle }, ic('telecharger', 16), 'Exporter la clé') : null) : null)
   }
   dessiner()
   return h('div', { class: 'carte' }, h('div', { class: 'carte-entete' }, h('h2', {}, ic('cadenas', 18), 'Clé du site')), corps)

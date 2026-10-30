@@ -452,3 +452,7 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 .blockly-requeteur { height: 430px; border-radius: var(--rayon); overflow: hidden; border: 1px solid var(--bord); }
 .apercu-requeteur .tableau td { white-space: nowrap; }
 .blocklyDropDownDiv, .blocklyWidgetDiv, .blocklyTooltipDiv { z-index: 10000 !important; }
+.liste-reprise { display: grid; gap: 4px; max-height: 50vh; overflow: auto; }
+.ligne-reprise { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 4px 6px; border-radius: 6px; }
+.ligne-reprise:hover { background: var(--carte-2); }
+.ligne-reprise input { width: auto; }

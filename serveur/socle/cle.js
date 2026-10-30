@@ -1,52 +1,56 @@
 // La clé du site : elle chiffre la configuration rangée dans le fichier de connaissances (connexion MySQL,
-// adresses, requêtes, réglages des applications). Sans mot de passe à taper : seul KTEC, sur un poste qui a la
-// clé, lit la configuration. La clé n'est jamais sur GitHub.
+// adresses, requêtes, réglages des applications). Sans mot de passe à taper : seul KTEC lit la configuration.
+// La clé n'est jamais sur GitHub.
 //
-//   - créée une fois (Réglages › « Chiffrer la configuration », ou au premier lancement d'un nouveau site) ;
-//   - gardée sur chaque poste dans le dossier de KTEC (cle-site.dat), protégée sous Windows par la session
-//     de l'utilisateur (DPAPI) : copiée sur un autre PC, elle ne sert à rien ;
-//   - exportée en un petit fichier (.ktecclef) à garder en lieu sûr, et importée sur les autres postes.
+//   - créée une fois (Réglages › « Chiffrer la configuration », ou à la première connexion enregistrée) ;
+//   - rangée dans le fichier de connaissances lui-même, emballée par une clé propre à KTEC : tous les postes qui
+//     ouvrent le fichier la trouvent, sans rien installer ni importer, et sans appel au système (pas de DPAPI,
+//     pas de PowerShell) ;
+//   - exportable en un petit fichier (.ktecclef), à garder en lieu sûr.
 //
 // Chiffrement : AES-256-GCM. Une valeur chiffrée s'écrit « ENC1: » + base64(iv 12 octets | étiquette 16 | données).
+// La clé emballée s'écrit « CLE1: » + la même chose, avec la clé de KTEC.
 
-import fs from 'node:fs'
-import path from 'node:path'
 import crypto from 'node:crypto'
-import { execFileSync } from 'node:child_process'
-import { RACINE, WINDOWS, journal } from './installation.js'
 
-const FICHIER = path.join(RACINE, 'cle-site.dat')
 const PREFIXE = 'ENC1:'
-let cle // Buffer, null (pas de clé sur ce poste) ou undefined (pas encore lue)
+const EMBALLAGE = 'CLE1:'
+const CLE_KTEC = crypto.createHash('sha256').update('KTEC · clé du site · emballage 1').digest()
 
-// L'empreinte d'une clé : notée dans le fichier de connaissances, pour reconnaître la bonne clé sans la révéler.
+// Où la clé est rangée : la marque « ktec.cle » du fichier de connaissances (fournie par ktec.js, qui l'écrit).
+let lireMarque = () => null
+export function definirMarque(lecteur) {
+  lireMarque = lecteur
+}
+
+// L'empreinte d'une clé : notée dans le fichier, pour reconnaître la bonne clé sans la révéler.
 export const empreinteCle = (c) => crypto.createHash('sha256').update(c).digest('hex').slice(0, 16)
-
-export function cleDuPoste() {
-  if (cle !== undefined) return cle
-  cle = null
-  try {
-    if (!fs.existsSync(FICHIER)) return cle
-    const contenu = fs.readFileSync(FICHIER, 'utf8').trim()
-    cle = Buffer.from(WINDOWS ? dpapi('Unprotect', contenu) : contenu, 'base64')
-    if (cle.length !== 32) throw new Error('clé de longueur inattendue')
-  } catch (erreur) {
-    journal(`Clé du site illisible sur ce poste : ${erreur.message}`)
-    cle = null
-  }
-  return cle
-}
-
-export function enregistrerCle(nouvelle) {
-  const texte = nouvelle.toString('base64')
-  fs.writeFileSync(FICHIER, WINDOWS ? dpapi('Protect', texte) : texte, { mode: 0o600 })
-  cle = nouvelle
-}
 
 export const nouvelleCle = () => crypto.randomBytes(32)
 
-// Le fichier à exporter (et à importer sur un autre poste).
-export function fichierCle(c = cleDuPoste()) {
+export function emballerCle(c) {
+  return EMBALLAGE + sceller(c, CLE_KTEC).toString('base64')
+}
+
+// La clé du site, lue dans le fichier ouvert (null : configuration en clair, ou clé absente du fichier).
+let memo = { emballee: null, cle: null }
+export function cleDuSite() {
+  const emballee = lireMarque()?.cle || null
+  if (emballee !== memo.emballee) {
+    let cle = null
+    try {
+      if (emballee?.startsWith(EMBALLAGE)) cle = ouvrir(Buffer.from(emballee.slice(EMBALLAGE.length), 'base64'), CLE_KTEC)
+      if (cle && cle.length !== 32) cle = null
+    } catch {
+      cle = null
+    }
+    memo = { emballee, cle }
+  }
+  return memo.cle
+}
+
+// Le fichier à exporter (et à importer dans un autre fichier de connaissances du même site).
+export function fichierCle(c = cleDuSite()) {
   return JSON.stringify({ format: 'ktec-cle-du-site', version: 1, empreinte: empreinteCle(c), cle: c.toString('base64'), exportee: new Date().toISOString() }, null, 2) + '\n'
 }
 export function lireFichierCle(texte) {
@@ -64,31 +68,31 @@ export function lireFichierCle(texte) {
 
 export const estChiffre = (valeur) => typeof valeur === 'string' && valeur.startsWith(PREFIXE)
 
-export function chiffrer(texte, c = cleDuPoste()) {
-  if (!c) throw Object.assign(new Error('La clé du site n’est pas sur ce poste : importez-la (Réglages › Clé du site).'), { statut: 423 })
-  const iv = crypto.randomBytes(12)
-  const chiffreur = crypto.createCipheriv('aes-256-gcm', c, iv)
-  const donnees = Buffer.concat([chiffreur.update(String(texte), 'utf8'), chiffreur.final()])
-  return PREFIXE + Buffer.concat([iv, chiffreur.getAuthTag(), donnees]).toString('base64')
+export function chiffrer(texte, c = cleDuSite()) {
+  if (!c) throw Object.assign(new Error('La clé du site manque dans ce fichier de connaissances (Réglages › Clé du site).'), { statut: 423 })
+  return PREFIXE + sceller(Buffer.from(String(texte), 'utf8'), c).toString('base64')
 }
 
 // Renvoie le texte en clair, ou null si la clé manque ou n'est pas la bonne.
-export function dechiffrer(valeur, c = cleDuPoste()) {
+export function dechiffrer(valeur, c = cleDuSite()) {
   if (!estChiffre(valeur)) return valeur
   if (!c) return null
   try {
-    const brut = Buffer.from(valeur.slice(PREFIXE.length), 'base64')
-    const dechiffreur = crypto.createDecipheriv('aes-256-gcm', c, brut.subarray(0, 12))
-    dechiffreur.setAuthTag(brut.subarray(12, 28))
-    return Buffer.concat([dechiffreur.update(brut.subarray(28)), dechiffreur.final()]).toString('utf8')
+    return ouvrir(Buffer.from(valeur.slice(PREFIXE.length), 'base64'), c).toString('utf8')
   } catch {
     return null
   }
 }
 
-// Windows : protection par la session de l'utilisateur (DPAPI), sans rien installer.
-function dpapi(sens, texte) {
-  const script = `Add-Type -AssemblyName System.Security; [Convert]::ToBase64String([Security.Cryptography.ProtectedData]::${sens}([Convert]::FromBase64String($env:KTEC_DONNEES), $null, 'CurrentUser'))`
-  return execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', env: { ...process.env, KTEC_DONNEES: sens === 'Protect' ? Buffer.from(texte).toString('base64') : texte }, timeout: 20_000, windowsHide: true }).trim()
-    .replace(/^(.*)$/s, (b64) => (sens === 'Unprotect' ? Buffer.from(b64, 'base64').toString('utf8') : b64))
+function sceller(donnees, c) {
+  const iv = crypto.randomBytes(12)
+  const chiffreur = crypto.createCipheriv('aes-256-gcm', c, iv)
+  const sortie = Buffer.concat([chiffreur.update(donnees), chiffreur.final()])
+  return Buffer.concat([iv, chiffreur.getAuthTag(), sortie])
+}
+
+function ouvrir(brut, c) {
+  const dechiffreur = crypto.createDecipheriv('aes-256-gcm', c, brut.subarray(0, 12))
+  dechiffreur.setAuthTag(brut.subarray(12, 28))
+  return Buffer.concat([dechiffreur.update(brut.subarray(28)), dechiffreur.final()])
 }

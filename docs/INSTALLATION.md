@@ -73,9 +73,15 @@ voit que l'écran de la clé.
 La configuration rangée dans le fichier de connaissances (connexion MySQL, adresses, requêtes, réglages des
 applications) peut être chiffrée (AES-256-GCM) : Réglages › « Clé du site » › « Chiffrer la configuration ».
 
-- La clé est créée sur le poste, dans le dossier de KTEC (`cle-site.dat`), protégée sous Windows par la session de
-  l'utilisateur (DPAPI). Elle n'est jamais publiée.
-- « Exporter la clé » donne un petit fichier `.ktecclef` : à garder en lieu sûr ; les autres postes l'importent une
-  fois (assistant, ou Réglages › « Importer la clé du site »). Une clé qui n'ouvre pas ce fichier est refusée.
+- La clé est créée une fois et rangée dans le fichier de connaissances lui-même, emballée par une clé propre à
+  KTEC : tous les postes qui ouvrent le fichier lisent la configuration, sans rien importer. KTEC n'appelle jamais
+  le système pour la protéger (ni DPAPI, ni PowerShell : rien qui ressemble à un vol de mots de passe pour
+  l'antivirus de l'entreprise). Les utilisateurs ne voient jamais la configuration chiffrée, mots de passe compris.
+- « Exporter la clé » donne un petit fichier `.ktecclef`, à garder en lieu sûr.
+- « Exporter la configuration » donne les réglages en clair (`.ktecconf`, sans la connexion MySQL ni ses mots de
+  passe) ; « Reprendre une configuration » les remet, réglage par réglage, dans un fichier de connaissances.
+- Fichier chiffré avant KTEC 0.7 (clé sur le poste, protégée par Windows) : sa clé n'est pas dans le fichier.
+  L'administrateur range le `.ktecclef` s'il l'a ; sinon « Nouvelle clé », puis « Reprendre une configuration »
+  et la connexion à ressaisir. L'ancien `cle-site.dat` n'est plus jamais lu (il peut être supprimé).
 - Sans la clé, les applications ne voient pas leurs réglages, et ne peuvent pas les écraser.
 - Restent lisibles : les données du site (structure de la base, dictionnaire, interventions, documents).

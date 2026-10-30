@@ -21,7 +21,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { reglagesPoste, modifierReglagesPoste, dossierTravail, journal, lireJson, dossierInstallationParDefaut, definirConnexionPartagee } from './installation.js'
 import { definirIdentifiants } from './mysql.js'
-import { cleDuPoste, chiffrer, dechiffrer, estChiffre, empreinteCle, nouvelleCle, enregistrerCle, lireFichierCle } from './cle.js'
+import { cleDuSite, chiffrer, dechiffrer, estChiffre, empreinteCle, nouvelleCle, emballerCle, lireFichierCle, definirMarque } from './cle.js'
 import { db, ajouterStructure, definirCheminParDefaut, ouvrirFichier, creerFichier, exigerEcriture, noterModification, transaction, etatPartage, FORMAT, baseOuverte } from './partage.js'
 
 // Le fichier partagé lui-même (verrou, publication, mode administrateur) : voir partage.js.
@@ -151,10 +151,12 @@ function ecrireInfoBrut(cle, valeur) {
 
 // ---------------------------------------------------------------- configuration chiffrée (clé du site)
 //
-// Une fois la configuration chiffrée, la marque « ktec.cle » (en clair : l'empreinte de la clé, jamais la clé)
-// dit qu'il faut la clé du site pour la lire. Restent en clair : le format et la date de création du fichier.
+// Une fois la configuration chiffrée, la marque « ktec.cle » (en clair) porte l'empreinte de la clé et la clé
+// elle-même, emballée (voir cle.js). Restent en clair : le format et la date de création du fichier.
+// (Avant KTEC 0.7, la clé était sur chaque poste, protégée par Windows : un fichier chiffré ainsi n'a pas la clé
+// dans sa marque. L'administrateur repart alors d'une nouvelle clé et reprend la configuration exportée.)
 
-const EN_CLAIR = new Set(['format', 'cree', 'ktec.cle'])
+const EN_CLAIR = new Set(['format', 'cree', 'ktec.cle', 'mot_de_passe'])
 function marqueCle() {
   const ligne = ktec().prepare("SELECT valeur FROM infos WHERE cle = 'ktec.cle'").get()
   try {
@@ -163,6 +165,7 @@ function marqueCle() {
     return null
   }
 }
+definirMarque(() => (baseOuverte() ? marqueCle() : null))
 
 // Pour les applications qui ont leurs propres réglages (AITEC) : chiffrer en écrivant, déchiffrer en lisant.
 export function protegerTexte(texte, cle = '') {
@@ -172,24 +175,26 @@ export const lireTexteProtege = (texte) => (estChiffre(texte) ? dechiffrer(texte
 
 export function etatCle() {
   const marque = marqueCle()
-  const c = cleDuPoste()
-  return { chiffree: Boolean(marque), cleSurLePoste: Boolean(c), bonneCle: Boolean(marque && c && empreinteCle(c) === marque.empreinte), empreinte: marque?.empreinte || null }
+  const c = cleDuSite()
+  const bonneCle = Boolean(marque && c && empreinteCle(c) === marque.empreinte)
+  // cleSurLePoste : gardé pour les écrans d'avant (la clé est désormais dans le fichier).
+  return { chiffree: Boolean(marque), cleDansLeFichier: bonneCle, cleSurLePoste: bonneCle, bonneCle, empreinte: marque?.empreinte || null }
 }
 
-// Chiffre toute la configuration du fichier (crée la clé du site si ce poste n'en a pas).
-export function chiffrerConfiguration() {
+// Chiffre toute la configuration du fichier, avec sa clé (créée au besoin). Un fichier chiffré dont la clé est
+// perdue repart d'une nouvelle clé : ce qui était chiffré avec l'ancienne reste illisible, à reprendre.
+export function chiffrerConfiguration({ nouvelle = false } = {}) {
   return ecrire((db) => {
     const marque = marqueCle()
-    let c = cleDuPoste()
-    if (marque && (!c || empreinteCle(c) !== marque.empreinte)) throw Object.assign(new Error('La configuration est déjà chiffrée avec une autre clé : importez la clé du site.'), { statut: 409 })
+    let c = etatCle().bonneCle ? cleDuSite() : null
+    if (marque && !c && !nouvelle) throw Object.assign(new Error('La clé de ce fichier est introuvable : repartez d’une nouvelle clé, puis reprenez la configuration.'), { statut: 409 })
     if (!c) {
       c = nouvelleCle()
-      enregistrerCle(c)
-      journal('Clé du site créée sur ce poste')
+      journal(marque ? 'Nouvelle clé du site (l’ancienne est introuvable)' : 'Clé du site créée')
     }
     db.exec('BEGIN')
     try {
-      db.prepare("INSERT OR REPLACE INTO infos VALUES ('ktec.cle', ?)").run(JSON.stringify({ empreinte: empreinteCle(c), depuis: new Date().toISOString() }))
+      db.prepare("INSERT OR REPLACE INTO infos VALUES ('ktec.cle', ?)").run(JSON.stringify({ empreinte: empreinteCle(c), depuis: new Date().toISOString(), cle: emballerCle(c) }))
       for (const { cle, valeur } of db.prepare('SELECT cle, valeur FROM infos').all()) {
         if (!EN_CLAIR.has(cle) && !estChiffre(valeur)) db.prepare('UPDATE infos SET valeur = ? WHERE cle = ?').run(chiffrer(valeur, c), cle)
       }
@@ -209,14 +214,64 @@ export function chiffrerConfiguration() {
   })
 }
 
-// Importe la clé du site sur ce poste (fichier .ktecclef) ; refuse une clé qui n'ouvre pas ce fichier.
+// Range une clé exportée (.ktecclef) dans ce fichier ; refuse une clé qui n'est pas la sienne.
 export function importerCle(texte) {
   const c = lireFichierCle(texte)
   const marque = marqueCle()
   if (marque && empreinteCle(c) !== marque.empreinte) throw Object.assign(new Error('Cette clé n’ouvre pas ce fichier de connaissances : ce n’est pas celle de ce site.'), { statut: 400 })
-  enregistrerCle(c)
-  journal('Clé du site importée sur ce poste')
-  return etatCle()
+  ecrire((db) => db.prepare("INSERT OR REPLACE INTO infos VALUES ('ktec.cle', ?)").run(JSON.stringify({ empreinte: empreinteCle(c), depuis: marque?.depuis || new Date().toISOString(), cle: emballerCle(c) })))
+  journal('Clé du site rangée dans le fichier de connaissances')
+  return marque ? etatCle() : chiffrerConfiguration()
+}
+
+// ---------------------------------------------------------------- configuration exportée (.ktecconf)
+//
+// Les réglages du site en clair, dans un fichier à garder en lieu sûr : pour reprendre la configuration dans un
+// fichier dont la clé est perdue, ou dans un autre fichier. Ni la connexion MySQL (mots de passe), ni le mot de
+// passe administrateur, ni les traces de synchronisation n'y vont.
+
+const HORS_EXPORT = new Set(['format', 'cree', 'ktec.cle', 'mot_de_passe', 'ktec.connexion', 'cree_le', 'cree_par', 'synchronisation', 'synchronisation_empreintes'])
+
+export function exporterConfiguration() {
+  const db = ktec()
+  const elements = []
+  const tables = ['infos', ...(db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'reglages'").get() ? ['reglages'] : [])]
+  for (const table of tables) {
+    for (const { cle, valeur } of db.prepare(`SELECT cle, valeur FROM ${table} ORDER BY cle`).all()) {
+      if (HORS_EXPORT.has(cle) || typeof valeur !== 'string') continue
+      const texte = dechiffrer(valeur)
+      if (texte !== null) elements.push({ table, cle, valeur: texte })
+    }
+  }
+  return { format: 'ktec-configuration', version: 1, exportee: new Date().toISOString(), elements }
+}
+
+// { elements: [{ table, cle, valeur }], choisis: [« table/cle »] } : chaque réglage choisi remplace celui du fichier
+// (chiffré avec la clé du fichier, créée au besoin).
+export function reprendreConfiguration({ elements = [], choisis = null } = {}) {
+  const garder = (e) => ['infos', 'reglages'].includes(e?.table) && typeof e.cle === 'string' && typeof e.valeur === 'string' && !HORS_EXPORT.has(e.cle) && (!choisis || choisis.includes(`${e.table}/${e.cle}`))
+  const aReprendre = elements.filter(garder)
+  if (!aReprendre.length) throw Object.assign(new Error('Aucun réglage à reprendre dans ce fichier.'), { statut: 400 })
+  if (!etatCle().bonneCle) chiffrerConfiguration({ nouvelle: true })
+  const c = cleDuSite()
+  return ecrire((db) => {
+    const tableReglages = Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'reglages'").get())
+    let repris = 0
+    db.exec('BEGIN')
+    try {
+      for (const e of aReprendre) {
+        if (e.table === 'reglages' && !tableReglages) continue
+        db.prepare(`INSERT OR REPLACE INTO ${e.table} (cle, valeur) VALUES (?, ?)`).run(e.cle, chiffrer(e.valeur, c))
+        repris++
+      }
+      db.exec('COMMIT')
+    } catch (erreur) {
+      db.exec('ROLLBACK')
+      throw erreur
+    }
+    journal(`Configuration reprise : ${repris} réglage(s)`)
+    return { repris, cle: etatCle() }
+  })
 }
 
 // La connexion MySQL commune à tous les postes, rangée (chiffrée) dans le fichier.
@@ -227,11 +282,10 @@ definirIdentifiants(connexionDuFichier)
 
 // Enregistre la connexion à la GMAO dans le fichier (réservé à l'administrateur : à vérifier par l'appelant).
 // Les mots de passe ne sont jamais écrits en clair : la configuration est chiffrée d'abord (clé du site créée
-// sur ce poste au besoin). Un mot de passe laissé vide garde celui déjà enregistré.
+// au besoin). Un mot de passe laissé vide garde celui déjà enregistré.
 export function enregistrerConnexion({ serveur, port, base, utilisateur, motDePasse, ecriture = {} }) {
-  const cle = etatCle()
-  if (cle.chiffree && !cle.bonneCle) throw Object.assign(new Error('La configuration est chiffrée avec une clé absente de ce poste : importez d’abord la clé du site.'), { statut: 423 })
-  if (!cle.chiffree) chiffrerConfiguration()
+  // Clé introuvable (fichier chiffré avant KTEC 0.7) : nouvelle clé, la connexion est de toute façon ressaisie.
+  if (!etatCle().bonneCle) chiffrerConfiguration({ nouvelle: true })
   const avant = lireInfo('ktec.connexion', {}) || {}
   const memeServeur = avant.serveur === serveur && Number(avant.port) === Number(port) && avant.base === base
   const garder = (nouveau, ancien, memeCompte) => nouveau || (memeServeur && memeCompte ? ancien || '' : '')

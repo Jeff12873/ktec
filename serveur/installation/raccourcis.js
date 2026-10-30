@@ -20,10 +20,9 @@ export function creerRaccourcis(dossier, suivi = () => {}) {
     const lanceur = path.join(dossier, 'Lancer KTEC.bat')
     for (const dossierRaccourci of dossiersWindows()) {
       const raccourci = path.join(dossierRaccourci, 'KTEC.lnk')
-      // WindowStyle 7 = fenêtre réduite : on ne voit que le navigateur.
-      const script = `$r = (New-Object -ComObject WScript.Shell).CreateShortcut('${raccourci.replace(/'/g, "''")}'); $r.TargetPath = '${lanceur.replace(/'/g, "''")}'; $r.WorkingDirectory = '${dossier.replace(/'/g, "''")}'; $r.IconLocation = '${ico.replace(/'/g, "''")}'; $r.WindowStyle = 7; $r.Save()`
       try {
-        execFileSync('powershell.exe', ['-NoProfile', '-Command', script], { stdio: 'ignore', windowsHide: true })
+        fs.mkdirSync(dossierRaccourci, { recursive: true })
+        fs.writeFileSync(raccourci, fichierLnk({ cible: lanceur, dossier, icone: ico }))
         suivi('message', `Raccourci créé : ${raccourci}`)
       } catch {
         suivi('message', `Raccourci impossible dans ${dossierRaccourci} : lancez « Lancer KTEC.bat » dans ${dossier}`)
@@ -47,12 +46,56 @@ export function supprimerRaccourcis() {
   for (const f of fichiers) fs.rmSync(f, { force: true })
 }
 
+// Le Bureau (peut être redirigé, vers OneDrive par exemple : on le lit dans le registre) et le menu Démarrer.
 function dossiersWindows() {
   const dossiers = [path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs')]
+  let bureau = path.join(process.env.USERPROFILE || os.homedir(), 'Desktop')
   try {
-    dossiers.unshift(execFileSync('powershell.exe', ['-NoProfile', '-Command', "[Environment]::GetFolderPath('Desktop')"], { encoding: 'utf8', windowsHide: true }).trim())
+    const sortie = execFileSync('reg', ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders', '/v', 'Desktop'], { encoding: 'utf8', windowsHide: true })
+    const lu = sortie.match(/Desktop\s+REG_(?:EXPAND_)?SZ\s+(.+)$/m)?.[1]?.trim()
+    if (lu) bureau = lu.replace(/%([^%]+)%/g, (tout, nom) => process.env[nom] ?? tout)
   } catch {}
+  if (fs.existsSync(bureau)) dossiers.unshift(bureau)
   return dossiers.filter(Boolean)
+}
+
+// Un raccourci Windows (.lnk, format MS-SHLLINK) écrit à la main : chemin de la cible, dossier de travail, icône,
+// fenêtre réduite (on ne voit que le navigateur).
+function fichierLnk({ cible, dossier, icone }) {
+  const u32 = (n) => { const b = Buffer.alloc(4); b.writeUInt32LE(n); return b }
+  const u16 = (n) => { const b = Buffer.alloc(2); b.writeUInt16LE(n); return b }
+  const unicode = (t) => Buffer.from(t, 'utf16le')
+  const chaine = (t) => Buffer.concat([u16(t.length), unicode(t)])
+
+  const entete = Buffer.concat([
+    u32(0x4c), Buffer.from('0114020000000000c000000000000046', 'hex'),
+    u32(0x02 | 0x10 | 0x40 | 0x80), // LinkInfo, dossier de travail, icône, textes en Unicode
+    u32(0x20), Buffer.alloc(24), u32(0), u32(0),
+    u32(7), // fenêtre réduite
+    u16(0), u16(0), u32(0), u32(0),
+  ])
+
+  // Le chemin de la cible : en ANSI ; s'il a des accents, aussi en Unicode (en-tête de LinkInfo plus long).
+  const volume = Buffer.concat([u32(17), u32(3), u32(0), u32(0x10), Buffer.from([0])]) // disque fixe, sans nom
+  const ascii = /^[\x20-\x7e]*$/.test(cible)
+  const tailleEnteteInfo = ascii ? 0x1c : 0x24
+  const cheminAnsi = Buffer.concat([Buffer.from(cible.replace(/[^\x20-\x7e]/g, '?'), 'latin1'), Buffer.from([0])])
+  const offVolume = tailleEnteteInfo
+  const offChemin = offVolume + volume.length
+  const offSuffixe = offChemin + cheminAnsi.length
+  let corps = [volume, cheminAnsi, Buffer.from([0])]
+  let offsetsUnicode = []
+  if (!ascii) {
+    const bourrage = Buffer.alloc((offSuffixe + 1) % 2) // textes Unicode sur une adresse paire
+    const cheminUnicode = Buffer.concat([unicode(cible), Buffer.alloc(2)])
+    const offCheminU = offSuffixe + 1 + bourrage.length
+    offsetsUnicode = [u32(offCheminU), u32(offCheminU + cheminUnicode.length)]
+    corps = [...corps, bourrage, cheminUnicode, Buffer.alloc(2)]
+  }
+  const tailleInfo = tailleEnteteInfo + corps.reduce((n, b) => n + b.length, 0)
+  const linkInfo = Buffer.concat([u32(tailleInfo), u32(tailleEnteteInfo), u32(1), u32(offVolume), u32(offChemin), u32(0), u32(offSuffixe), ...offsetsUnicode, ...corps])
+
+  return Buffer.concat([entete, linkInfo, chaine(dossier), chaine(icone), u32(0)])
 }
 
 function dossiersLinux() {

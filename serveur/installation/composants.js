@@ -106,31 +106,42 @@ function estIntegree(nom) {
 }
 
 // La carte graphique, détectée sans le moteur d'IA (donc avant l'installation) : { nom, memoireGo } ou null.
-// Windows : la mémoire exacte est dans le registre (qwMemorySize) — celle de WMI plafonne à 4 Go.
+// D'abord nvidia-smi (livré avec le pilote NVIDIA, Windows comme Linux) ; sinon, sous Windows, la mémoire exacte
+// lue dans le registre par reg.exe (qwMemorySize) — celle de WMI plafonne à 4 Go. Jamais de PowerShell.
 let carteDetectee
 export function detecterCarte() {
   if (carteDetectee !== undefined) return carteDetectee
-  const cartes = []
+  let cartes = []
   try {
-    if (WINDOWS) {
-      const script = "Get-ChildItem 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}' -ErrorAction SilentlyContinue | ForEach-Object { $p = Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue; $m = $p.'HardwareInformation.qwMemorySize'; if (-not $m) { $m = $p.'HardwareInformation.MemorySize' }; if ($m -is [byte[]]) { $m = if ($m.Length -ge 8) { [BitConverter]::ToUInt64($m, 0) } else { [BitConverter]::ToUInt32($m, 0) } }; if ($m) { '{0}|{1}' -f $p.DriverDesc, $m } }"
-      const sortie = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', timeout: 20_000, windowsHide: true })
-      for (const ligne of sortie.split(/\r?\n/)) {
-        const [nom, octets] = ligne.split('|')
-        if (nom && Number(octets) > 0) cartes.push({ nom: nom.trim(), memoireGo: Math.round(Number(octets) / 1024 ** 3) })
-      }
-    } else {
-      const sortie = execFileSync('nvidia-smi', ['--query-gpu=name,memory.total', '--format=csv,noheader,nounits'], { encoding: 'utf8', timeout: 10_000 })
-      for (const ligne of sortie.split('\n')) {
-        const [nom, mo] = ligne.split(',')
-        if (nom && Number(mo) > 0) cartes.push({ nom: nom.trim(), memoireGo: Math.round(Number(mo) / 1024) })
-      }
+    const sortie = execFileSync('nvidia-smi', ['--query-gpu=name,memory.total', '--format=csv,noheader,nounits'], { encoding: 'utf8', timeout: 10_000, windowsHide: true })
+    for (const ligne of sortie.split(/\r?\n/)) {
+      const [nom, mo] = ligne.split(',')
+      if (nom && Number(mo) > 0) cartes.push({ nom: nom.trim(), memoireGo: Math.round(Number(mo) / 1024) })
     }
   } catch {
-    // Pas de carte reconnue (ou pas d'outil pour la lire) : seule la mémoire vive compte.
+    // Pas de carte NVIDIA (ou pas de nvidia-smi)
   }
+  if (!cartes.length && WINDOWS) cartes = cartesDuRegistre()
   carteDetectee = choisirCarte(cartes.map((c) => ({ ...c, integree: estIntegree(c.nom) })))
   return carteDetectee
+}
+
+// reg query sur la classe des cartes d'affichage : un bloc par carte (DriverDesc, mémoire en QWORD ou en binaire).
+function cartesDuRegistre() {
+  const cartes = []
+  try {
+    const sortie = execFileSync('reg', ['query', 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}', '/s'], { encoding: 'utf8', timeout: 20_000, windowsHide: true })
+    for (const bloc of sortie.split(/\r?\n(?=HKEY_)/)) {
+      const nom = bloc.match(/^\s+DriverDesc\s+REG_SZ\s+(.+)$/m)?.[1]?.trim()
+      const qword = bloc.match(/^\s+HardwareInformation\.qwMemorySize\s+REG_QWORD\s+0x([0-9a-f]+)/im)?.[1]
+      const binaire = bloc.match(/^\s+HardwareInformation\.MemorySize\s+REG_BINARY\s+([0-9a-f]+)/im)?.[1]
+      const octets = qword ? Number(BigInt(`0x${qword}`)) : binaire ? (Buffer.from(binaire, 'hex').length >= 4 ? Buffer.from(binaire, 'hex').readUInt32LE(0) : 0) : 0
+      if (nom && octets > 0) cartes.push({ nom, memoireGo: Math.round(octets / 1024 ** 3) })
+    }
+  } catch {
+    // Registre illisible : seule la mémoire vive compte.
+  }
+  return cartes
 }
 
 // Les applications qui ont besoin de l'IA (BiRTEC, AITEC) ne s'installent que si le modèle « moyen » est
