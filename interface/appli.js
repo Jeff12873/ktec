@@ -1,7 +1,7 @@
 // La coquille commune des applications KTEC : le menu, la barre du haut, et l'écran du bloc choisi.
 //
 // La page /birtec/ charge /apps/birtec/interface/menu.js, qui exporte :
-//   { nom, sousTitre, blocs: [...], accueil, configuration, auDemarrage(etat) }
+//   { nom, sousTitre, blocs: [...], accueil, configuration, auDemarrage(etat), apresAffichage(zone, bloc) }
 // Chaque écran est un « bloc » (dossier blocs/<nom>/vue.js de l'application) qui exporte :
 //   { chemin, titre, icone, menu, groupe, aide, admin, afficher(zone, { id, query }) }
 // (menu: 'admin' → dans le menu en mode administrateur seulement ; admin: true → écran réservé, hors menu)
@@ -62,6 +62,7 @@ async function afficherBloc() {
   try {
     if ((bloc.menu === 'admin' || bloc.admin) && !modeAdmin()) throw new Error('Écran réservé à l’administrateur : passez en mode administrateur (en haut de l’écran).')
     await bloc.afficher(zone, { id, query })
+    app.apresAffichage?.(zone, bloc) // l'application peut compléter l'écran (AITEC : le choix du parc sous le titre)
   } catch (erreur) {
     vider(zone, h('div', { class: 'bandeau' }, ic('alerte'), erreur.message))
   }

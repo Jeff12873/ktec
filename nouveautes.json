@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.8.1",
+      "date": "2026-10-31",
+      "points": [
+        "Gravité du fond : les étoiles spiralent vers la boule au lieu d'en faire le tour, et disparaissent dès qu'elles la touchent",
+        "Les applications peuvent compléter un écran après son affichage (AITEC : les boutons de parc sous le titre)"
+      ]
+    },
+    {
       "version": "0.8.0",
       "date": "2026-10-31",
       "points": [

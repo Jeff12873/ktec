@@ -116,8 +116,13 @@ export function constellation({ surBigBang = null } = {}) {
         continue
       }
       const a = force * (300 / (d + 150))
-      p.vx += (dx / d) * a
-      p.vy += (dy / d) * a
+      const [ux, uy] = [dx / d, dy / d]
+      // La vitesse « de côté » est freinée : sans ça, les étoiles se mettraient en orbite autour de la boule
+      // au lieu d'y tomber ; freinées, elles spiralent vers elle.
+      const laterale = p.vx * -uy + p.vy * ux
+      const freinLateral = laterale * 0.05
+      p.vx += ux * a + uy * freinLateral
+      p.vy += uy * a - ux * freinLateral
       const max = 0.5 + poids * 0.05
       const vitesse = Math.hypot(p.vx, p.vy)
       if (vitesse > max) {
@@ -125,7 +130,7 @@ export function constellation({ surBigBang = null } = {}) {
         p.vy *= max / vitesse
       }
     }
-    if (masse >= total * 0.9) bigBang()
+    if (masse >= total * 0.85) bigBang()
   }
 
   // Le big bang, c'est le logo qui le fait (le portail rejoue son intro sous la souris) : les étoiles avalées
