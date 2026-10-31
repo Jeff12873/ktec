@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.3",
+      "date": "2026-10-31",
+      "points": [
+        "Rapports BIRT : l'aperçu et l'export remarchent (un reste d'une ancienne version les bloquait depuis la 0.6)"
+      ]
+    },
+    {
       "version": "0.8.2",
       "date": "2026-10-31",
       "points": [
