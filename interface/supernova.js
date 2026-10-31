@@ -156,7 +156,8 @@ export function jouerIntro({ bloc, logo, nom, aCacher, origine = null }) {
       o.astre.style.opacity = ''
     }
     logo.classList.remove('en-intro')
-    // 4. Le logo monte à sa place, puis le menu apparaît, élément après élément.
+    // 4. Le logo monte à sa place, puis le menu apparaît, élément après élément (et le nom, après un big bang).
+    if (origine && !vite) nom.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: 800, fill: 'backwards' })
     nom.style.opacity = ''
     bloc.animate([{ transform: decalage }, { transform: 'none' }], { duration: vite ? 250 : 900, easing: 'cubic-bezier(.6,0,.25,1)' })
     bloc.style.transform = ''
@@ -169,8 +170,9 @@ export function jouerIntro({ bloc, logo, nom, aCacher, origine = null }) {
   return terminer.then(() => {
     if (fini) return
     toile.remove()
-    // Le nom apparaît sous le soleil, puis on laisse les orbites finir de se tracer avant de monter.
-    anime(nom, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 600 })
+    // Le nom apparaît sous le soleil (pas après un big bang : il revient seulement une fois le logo à sa place),
+    // puis on laisse les orbites finir de se tracer avant de monter.
+    if (!origine) anime(nom, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 600 })
     return new Promise((resoudre) => setTimeout(resoudre, 1100))
   }).then(() => finir())
 }

@@ -2,7 +2,7 @@
 // Purement décorative : estompée, elle se fige si le poste demande moins d'animations,
 // et s'arrête d'elle-même quand l'onglet n'est pas affiché.
 //
-// La gravité : les étoiles dérivent lentement vers la souris. Celles qui l'atteignent grossissent une petite
+// La gravité : après 10 secondes de souris immobile, les étoiles dérivent lentement vers elle. Celles qui l'atteignent grossissent une petite
 // boule ; plus elle grossit, plus elle attire. Quand presque toutes y sont : surBigBang(x, y) est appelé
 // (le logo du portail explose et rejoue son intro à cet endroit) et les étoiles reprennent leur place.
 
@@ -18,10 +18,16 @@ export function constellation({ surBigBang = null } = {}) {
   let largeur = 0
   let hauteur = 0
   let points = []
-  const souris = { x: 0, y: 0, la: false, vue: 0 }
+  const souris = { x: 0, y: 0, la: false, depuis: 0 }
   let masse = 0 // étoiles avalées par la boule
   let total = 0
-  window.addEventListener('pointermove', (e) => Object.assign(souris, { x: e.clientX, y: e.clientY, la: true, vue: performance.now() }))
+  // souris.depuis : depuis quand la souris n'a pas bougé (quelques pixels près). La gravité n'agit qu'au bout de
+  // 10 secondes d'immobilité, pour ne pas gêner la navigation ; dès qu'elle bouge, la boule relâche ses étoiles.
+  window.addEventListener('pointermove', (e) => {
+    const bouge = Math.hypot(e.clientX - souris.x, e.clientY - souris.y) > 3
+    Object.assign(souris, { x: e.clientX, y: e.clientY, la: true })
+    if (bouge || !souris.depuis) souris.depuis = performance.now()
+  })
   document.documentElement.addEventListener('pointerleave', () => (souris.la = false))
 
   function dimensionner() {
@@ -86,7 +92,7 @@ export function constellation({ surBigBang = null } = {}) {
   }
 
   const rayonBoule = () => 2 + Math.sqrt(masse) * 2.2
-  const attire = () => souris.la && performance.now() - souris.vue < 6000 && !document.body.classList.contains('intro-en-cours')
+  const attire = () => souris.la && souris.depuis && performance.now() - souris.depuis >= 10_000 && !document.body.classList.contains('intro-en-cours')
 
   // Attire les étoiles vers la souris, de plus en plus fort à mesure que la boule grossit.
   function graviter(temps) {

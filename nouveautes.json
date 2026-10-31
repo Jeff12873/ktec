@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.8.2",
+      "date": "2026-10-31",
+      "points": [
+        "La gravité du fond ne démarre qu'après 10 secondes de souris immobile : elle ne gêne plus la navigation",
+        "Big bang : le titre K.NOVA ne réapparaît qu'une fois le logo revenu à sa place"
+      ]
+    },
+    {
       "version": "0.8.1",
       "date": "2026-10-31",
       "points": [
