@@ -246,7 +246,7 @@ export function compilerMoteurJava(dossier, { javac }, birt, connecteur, suivi) 
   const chemin = [connecteur, path.join(birt, 'lib', '*')].join(path.delimiter)
   const resultat = spawnSync(javac, ['-encoding', 'UTF-8', '-d', classes, '-cp', chemin, path.join(dossier, 'moteur-java', 'Moteur.java')], { encoding: 'utf8', windowsHide: true })
   if (resultat.status !== 0) throw new Error(`Compilation du moteur Java impossible : ${(resultat.stderr || resultat.error?.message || '').slice(0, 500)}`)
-  suivi('message', 'Moteur Java de KTEC compilé.')
+  suivi('message', 'Moteur Java de K.NOVA compilé.')
   return classes
 }
 

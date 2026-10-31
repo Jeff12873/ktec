@@ -1,11 +1,5 @@
 @echo off
-rem Lance KTEC sous Windows : demarre le serveur local, qui ouvre ensuite le navigateur.
-rem Fermer cette fenetre arrete KTEC.
-chcp 65001 >nul
+rem Lance K.NOVA sous Windows, sans fenetre de console : le lanceur demarre le serveur en arriere-plan,
+rem qui ouvre ensuite la fenetre de K.NOVA. Pour l arreter : bouton "Arreter K.NOVA".
 cd /d "%~dp0"
-title KTEC
-
-:demarrer
-"moteur\node\node.exe" serveur\demarrer.js %*
-rem 42 = redemarrage demande (apres une mise a jour)
-if %errorlevel%==42 goto demarrer
+start "" /min "moteur\node\node.exe" serveur\lanceur.js %*

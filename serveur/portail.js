@@ -6,19 +6,25 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { ErreurHttp } from './socle/http.js'
+import { ErreurHttp, ouvrirFlux, envoyerOctets } from './socle/http.js'
 import { cheminKtec, changerKtec, etatCle, chiffrerConfiguration, importerCle, enregistrerConnexion, exporterConfiguration, reprendreConfiguration } from './socle/ktec.js'
 import { fichierCle } from './socle/cle.js'
 import { etatPartage, entrerAdmin, quitterAdmin, cookieAdmin, verifierMotDePasse, motDePasseDefini, changerMotDePasse, listerSauvegardes, creerFichier, publierMaintenant } from './socle/partage.js'
 import { etatIA, arreterIA } from './socle/ia.js'
-import { version, reglagesPoste, modifierReglagesPoste, dossierTravail, journal, WINDOWS } from './socle/installation.js'
+import { version, reglagesPoste, modifierReglagesPoste, dossierTravail, journal, WINDOWS, chemins, lignesJournal, suivreJournal } from './socle/installation.js'
 import { etatConnexion, testerCompte, oublierEssai, javaInstalle } from './socle/mysql.js'
 import { applisPubliques } from './socle/applis.js'
 
+const DEMARRE_LE = new Date().toISOString()
+// La dernière fois qu'une page de K.NOVA a donné signe de vie (chaque page demande l'état toutes les 4 s) :
+// sans fenêtre ouverte depuis quelques minutes, K.NOVA s'arrête tout seul (demarrer.js).
+export const presence = { derniere: Date.now() }
+
 export function routes(r) {
   // Interrogé régulièrement par l'interface.
-  r.get('/api/ktec/etat', (ctx) => ({
+  r.get('/api/ktec/etat', (ctx) => (presence.derniere = Date.now(), {
     version: version(),
+    demarreLe: DEMARRE_LE, // l'intro animée du portail se joue une fois par lancement
     partage: etatPartage(ctx.cookie),
     admin: ctx.admin,
     modeAdmin: ctx.modeAdmin,
@@ -31,6 +37,24 @@ export function routes(r) {
   }))
 
   r.get('/api/ktec/applis', () => applisPubliques())
+
+  // ---- console de debug (administrateur) : les dernières lignes du journal, puis les nouvelles en direct.
+  r.get('/api/ktec/journal/flux', (ctx) => {
+    ctx.exigerModeAdmin()
+    const flux = ouvrirFlux(ctx.res)
+    flux.envoyer('lignes', lignesJournal())
+    const arreter = suivreJournal((ligne) => flux.envoyer('ligne', ligne))
+    const battement = setInterval(() => ctx.res.write(': \n\n'), 25_000)
+    ctx.res.on('close', () => {
+      arreter()
+      clearInterval(battement)
+    })
+  })
+  r.get('/api/ktec/journal.txt', (ctx) => {
+    ctx.exigerModeAdmin()
+    const octets = fs.existsSync(chemins.journal) ? fs.readFileSync(chemins.journal) : Buffer.from('(journal vide)\n')
+    envoyerOctets(ctx.res, octets, { type: 'text/plain; charset=utf-8', nom: 'journal.txt' })
+  })
 
   // ---- connexion à la GMAO : rangée dans le fichier de connaissances (chiffrée), réservée à l'administrateur.
   // Deux comptes : lecture (tout le monde, automatique) et écriture (FI, mode administrateur). Un mot de passe

@@ -341,10 +341,26 @@ td.nombre, th.nombre { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* ------------------------------------------------------------ KTEC : portail */
 .portail { max-width: 1100px; margin: 0 auto; padding: 40px 24px 60px; }
-.portail-entete { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 30px; }
-.portail-entete img { width: 64px; height: 64px; }
-.portail-entete h1 { font-size: 32px; letter-spacing: 0.06em; }
-.portail-entete .espace { flex: 1; }
+.portail-entete { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 6px 0 30px; text-align: center; transform-origin: center; will-change: transform; }
+.portail-entete h1 { font-size: 34px; letter-spacing: 0.08em; }
+.nom-portail .sous-titre { margin-top: 2px; }
+.portail-coin { display: flex; justify-content: flex-end; margin: -20px 0 6px; transition: opacity .6s; }
+.portail-coin .portail-etat { gap: 6px; }
+.portail-coin .etiquette, .portail-coin button { font-size: 12px; }
+
+/* La supernova du portail (interface/supernova.js) */
+.supernova { width: 150px; height: 150px; overflow: visible; }
+.supernova .orbite { transform-origin: 0 0; }
+.supernova:not(.en-intro) .orbite { animation: orbite-tourne linear infinite; }
+.supernova:not(.en-intro) .soleil { animation: soleil-respire 3.6s ease-in-out infinite; }
+.supernova .soleil, .supernova .flash, .supernova .onde, .supernova .planete { transform-box: fill-box; transform-origin: center; }
+@keyframes orbite-tourne { to { transform: rotate(360deg); } }
+@keyframes soleil-respire { 50% { transform: scale(1.14); } }
+.toile-intro { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 50; pointer-events: none; }
+.intro-cache { opacity: 0 !important; pointer-events: none; }
+.portail > *, .fond-constellation { transition: opacity .6s ease; }
+body.intro-en-cours { overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { .supernova .orbite, .supernova .soleil { animation: none !important; } }
 .tuiles-applis { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
 .tuile-appli {
   display: flex; flex-direction: column; gap: 12px; padding: 22px; text-decoration: none; color: var(--texte);
@@ -456,3 +472,20 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 .ligne-reprise { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 4px 6px; border-radius: 6px; }
 .ligne-reprise:hover { background: var(--carte-2); }
 .ligne-reprise input { width: auto; }
+
+/* Bouton du mode administrateur : un liseré qui tourne aux couleurs du thème, puis rouge pastel une fois admin */
+@property --tour-admin { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.bouton-admin:not(.actif) {
+  border: 1.5px solid transparent;
+  background: linear-gradient(var(--carte), var(--carte)) padding-box,
+    conic-gradient(from var(--tour-admin), transparent 0 55%, var(--accent) 75%, color-mix(in srgb, var(--accent) 40%, #fff) 85%, transparent 100%) border-box;
+  animation: tour-admin 3s linear infinite;
+}
+@keyframes tour-admin { to { --tour-admin: 360deg; } }
+.bouton-admin.actif { background: #fca5a5; border-color: #f87171; color: #450a0a; }
+.bouton-admin.actif:hover { background: #fecaca; }
+@media (prefers-reduced-motion: reduce) { .bouton-admin:not(.actif) { animation: none; border-color: var(--accent); background: var(--carte); } }
+
+/* Console de debug (Réglages, administrateur) */
+.console-debug { height: 55vh; overflow: auto; margin: 0; padding: 10px 12px; border-radius: 10px; background: #05080a; border: 1px solid var(--bord); font: 12px/1.5 ui-monospace, Consolas, monospace; color: #c7d2cc; white-space: pre-wrap; word-break: break-word; }
+.console-debug .ligne-erreur { color: #fca5a5; }

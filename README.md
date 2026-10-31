@@ -1,15 +1,16 @@
-# KTEC
+# K.NOVA
 
-Le portail et le socle commun des applications de l'atelier :
+K.NOVA (dépôt « ktec ») : le portail et le socle commun des applications de l'atelier :
 
 | Application | Rôle | Dépôt |
 |---|---|---|
-| **BiRTEC** | Rapports BIRT et indicateurs ITM, construits par formulaire sur la base de la GMAO | [birtec](https://github.com/Jeff12873/birtec) |
+| **BiRTEC** | Rapports BIRT et indicateurs, construits par formulaire sur la base de la GMAO | [birtec](https://github.com/Jeff12873/birtec) |
 | **PDRTEC** | Recherche de pièces de rechange (caractéristiques, emplacement, photo), en direct sur la base | [pdrtec](https://github.com/Jeff12873/pdrtec) |
 | **AITEC** | L'assistant IA de l'atelier (ex IASSITEC) : parc et interventions synchronisés avec la GMAO, documents | [aitec](https://github.com/Jeff12873/aitec) |
 
-- **Un seul lanceur** (`Lancer KTEC.bat`, `lancer-ktec.sh`) ouvre le portail dans le navigateur : une tuile par
-  application installée. On passe d'une application à l'autre par le bas du menu.
+- **Un seul lanceur** (le raccourci « KTEC », ou `lancer-ktec.sh`) ouvre le portail dans sa propre fenêtre, comme
+  une application, sans console : une tuile par application installée. On passe d'une application à l'autre par le
+  bas du menu. Fermer la fenêtre arrête K.NOVA (au bout de 3 minutes) ; la console de debug est dans les Réglages.
 - **Rien en double** : le moteur d'IA et son modèle, Java, le moteur BIRT et le pilote MySQL sont installés une fois
   et partagés par toutes les applications.
 - **Une seule connexion à la GMAO**, réglée une fois par l'administrateur et rangée chiffrée (clé du site) dans le

@@ -1,6 +1,20 @@
 {
   "versions": [
     {
+      "version": "0.8.0",
+      "date": "2026-10-31",
+      "points": [
+        "KTEC devient K.NOVA, avec une nouvelle icône : une supernova aux couleurs des applications",
+        "Le portail s'ouvre sur une intro animée : le soleil explose, les planètes arrivent en spirale, puis le menu apparaît (un clic la passe)",
+        "Les étoiles du fond sont attirées par la souris ; quand elles sont toutes rassemblées, le logo fait son big bang",
+        "K.NOVA s'ouvre dans sa propre fenêtre, sans onglets ni console ; il s'arrête tout seul quand on la ferme",
+        "Console de debug dans les Réglages (administrateur) : le journal en direct",
+        "Bouton « Passer en admin » (liseré tournant) / « Passer en consultation » (rouge pastel)",
+        "En consultation, les Réglages ne montrent que le fichier de connaissances",
+        "Messages au développeur : envoi par Outlook, réservé aux personnes qui ont le mot de passe"
+      ]
+    },
+    {
       "version": "0.7.0",
       "date": "2026-10-30",
       "points": [

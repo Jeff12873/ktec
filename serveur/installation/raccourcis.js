@@ -1,5 +1,6 @@
 // Les raccourcis « KTEC » : Bureau et menu Démarrer (Windows), menu des applications et Bureau (Linux).
-// Ils lancent le portail (Lancer KTEC.bat / lancer-ktec.sh), avec l'icône de KTEC.
+// Sous Windows, ils lancent directement le Node de K.NOVA sur serveur/lanceur.js (K.NOVA tourne sans fenêtre
+// de console) ; sous Linux, lancer-ktec.sh. Avec l'icône de K.NOVA.
 
 import fs from 'node:fs'
 import os from 'node:os'
@@ -17,12 +18,11 @@ export function creerRaccourcis(dossier, suivi = () => {}) {
   ecrireIco(fs.readFileSync(png), ico)
 
   if (WINDOWS) {
-    const lanceur = path.join(dossier, 'Lancer KTEC.bat')
     for (const dossierRaccourci of dossiersWindows()) {
       const raccourci = path.join(dossierRaccourci, 'KTEC.lnk')
       try {
         fs.mkdirSync(dossierRaccourci, { recursive: true })
-        fs.writeFileSync(raccourci, fichierLnk({ cible: lanceur, dossier, icone: ico }))
+        fs.writeFileSync(raccourci, lnkKnova(dossier, ico))
         suivi('message', `Raccourci créé : ${raccourci}`)
       } catch {
         suivi('message', `Raccourci impossible dans ${dossierRaccourci} : lancez « Lancer KTEC.bat » dans ${dossier}`)
@@ -33,11 +33,31 @@ export function creerRaccourcis(dossier, suivi = () => {}) {
 
   const lanceur = path.join(dossier, 'lancer-ktec.sh')
   fs.chmodSync(lanceur, 0o755)
-  const fiche = `[Desktop Entry]\nType=Application\nName=KTEC\nComment=Les applications de l'atelier (BiRTEC, PDRTec, AITEC)\nExec=sh "${lanceur}"\nIcon=${png}\nTerminal=false\nCategories=Office;Utility;\n`
+  const fiche = `[Desktop Entry]\nType=Application\nName=K.NOVA\nComment=Les applications de l'atelier (BiRTEC, PDRTec, AITEC)\nExec=sh "${lanceur}"\nIcon=${png}\nTerminal=false\nCategories=Office;Utility;\n`
   for (const dossierFiche of dossiersLinux()) {
     fs.mkdirSync(dossierFiche, { recursive: true })
     fs.writeFileSync(path.join(dossierFiche, 'ktec.desktop'), fiche, { mode: 0o755 })
     suivi('message', `Raccourci créé : ${path.join(dossierFiche, 'ktec.desktop')}`)
+  }
+}
+
+const lnkKnova = (dossier, icone) => fichierLnk({ cible: path.join(dossier, 'moteur', 'node', 'node.exe'), argumentsCible: 'serveur\\lanceur.js', dossier, icone })
+
+// Après une mise à jour : les raccourcis déjà présents sont réécrits (ancien lanceur .bat → lancement sans console).
+export function mettreAJourRaccourcis(dossier) {
+  if (!WINDOWS) return
+  const ico = path.join(dossier, 'cache', 'icone.ico')
+  try {
+    fs.mkdirSync(path.dirname(ico), { recursive: true })
+    ecrireIco(fs.readFileSync(path.join(dossier, 'interface', 'icone.png')), ico)
+  } catch {}
+  for (const d of dossiersWindows()) {
+    const raccourci = path.join(d, 'KTEC.lnk')
+    if (fs.existsSync(raccourci)) {
+      try {
+        fs.writeFileSync(raccourci, lnkKnova(dossier, ico))
+      } catch {}
+    }
   }
 }
 
@@ -59,9 +79,9 @@ function dossiersWindows() {
   return dossiers.filter(Boolean)
 }
 
-// Un raccourci Windows (.lnk, format MS-SHLLINK) écrit à la main : chemin de la cible, dossier de travail, icône,
-// fenêtre réduite (on ne voit que le navigateur).
-function fichierLnk({ cible, dossier, icone }) {
+// Un raccourci Windows (.lnk, format MS-SHLLINK) écrit à la main : chemin de la cible, ses arguments, dossier de
+// travail, icône, fenêtre réduite (on ne voit que la fenêtre de K.NOVA).
+export function fichierLnk({ cible, argumentsCible = '', dossier, icone }) {
   const u32 = (n) => { const b = Buffer.alloc(4); b.writeUInt32LE(n); return b }
   const u16 = (n) => { const b = Buffer.alloc(2); b.writeUInt16LE(n); return b }
   const unicode = (t) => Buffer.from(t, 'utf16le')
@@ -69,7 +89,7 @@ function fichierLnk({ cible, dossier, icone }) {
 
   const entete = Buffer.concat([
     u32(0x4c), Buffer.from('0114020000000000c000000000000046', 'hex'),
-    u32(0x02 | 0x10 | 0x40 | 0x80), // LinkInfo, dossier de travail, icône, textes en Unicode
+    u32(0x02 | 0x10 | (argumentsCible ? 0x20 : 0) | 0x40 | 0x80), // LinkInfo, dossier de travail, arguments, icône, Unicode
     u32(0x20), Buffer.alloc(24), u32(0), u32(0),
     u32(7), // fenêtre réduite
     u16(0), u16(0), u32(0), u32(0),
@@ -95,7 +115,7 @@ function fichierLnk({ cible, dossier, icone }) {
   const tailleInfo = tailleEnteteInfo + corps.reduce((n, b) => n + b.length, 0)
   const linkInfo = Buffer.concat([u32(tailleInfo), u32(tailleEnteteInfo), u32(1), u32(offVolume), u32(offChemin), u32(0), u32(offSuffixe), ...offsetsUnicode, ...corps])
 
-  return Buffer.concat([entete, linkInfo, chaine(dossier), chaine(icone), u32(0)])
+  return Buffer.concat([entete, linkInfo, chaine(dossier), ...(argumentsCible ? [chaine(argumentsCible)] : []), chaine(icone), u32(0)])
 }
 
 function dossiersLinux() {

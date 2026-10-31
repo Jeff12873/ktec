@@ -1,20 +1,21 @@
 // Le portail KTEC : les applications installées sur ce poste, en tuiles.
 // Un clic ouvre l'application (/birtec/, /pdrtec/…) ; la connexion MySQL et l'IA sont communes.
 
-import { h, vider, ic, notifier, confirmer, fenetre, nomAppli } from './socle/ui.js'
+import { h, vider, ic, notifier, confirmer, fenetre, nomAppli, NOM_KNOVA } from './socle/ui.js'
 import { api } from './socle/api.js'
 import { etat, suivreEtat, surChangement, modeAdmin } from './socle/etat.js'
 import { etiquetteIA, etiquetteMySQL } from './socle/connexion.js'
 import { carteMySQL, cartePoste, carteFichier, carteCle } from './socle/reglages.js'
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
 import { constellation } from './fond.js'
+import { logoSupernova, jouerIntro } from './supernova.js'
 import { lancerAssistant } from './assistant.js'
-import { ouvrirMessage } from './socle/message.js'
+import { ouvrirMessage, envoyerParOutlook } from './socle/message.js'
 import { pointsNouveaux, encartNouveautes } from './socle/nouveautes.js'
 
 // Les applications de la suite, pour montrer aussi celles qui ne sont pas (encore) installées.
 const SUITE = [
-  { id: 'birtec', nom: 'BiRTEC', couleur: '#10b981', sousTitre: 'Rapports BIRT', description: 'Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs ITM, sur la base de la GMAO.' },
+  { id: 'birtec', nom: 'BiRTEC', couleur: '#10b981', sousTitre: 'Rapports BIRT', description: 'Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs de la GMAO.' },
   { id: 'pdrtec', nom: 'PDRTEC', couleur: '#a3e635', sousTitre: 'Recherche de pièces', description: 'Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo.' },
   { id: 'aitec', nom: 'AITEC', couleur: '#2dd4bf', sousTitre: 'Assistant IA', description: 'L’assistant IA de l’atelier : parc, historique, documents, réponses sourcées.' },
 ]
@@ -46,7 +47,11 @@ const tuiles = [
 // Réglages communs (connexion à la GMAO, ce poste) : bouton « Réglages » ou adresse /#reglages.
 function ouvrirReglages() {
   const recharger = () => location.reload()
-  fenetre({ titre: 'Réglages de KTEC', large: true, contenu: h('div', { class: 'grille grille-2' }, carteMySQL(recharger), cartePoste(recharger), carteFichier(recharger), carteCle(recharger)), boutons: [{ texte: 'Fermer', classe: 'discret' }] })
+  // En consultation : seulement le fichier de connaissances ; tout le reste est réservé à l'administrateur.
+  const contenu = modeAdmin()
+    ? h('div', { class: 'grille grille-2' }, carteMySQL(recharger), cartePoste(recharger), carteFichier(recharger), carteCle(recharger))
+    : h('div', {}, carteFichier(recharger))
+  fenetre({ titre: 'Réglages de K.NOVA', large: modeAdmin(), contenu, boutons: [{ texte: 'Fermer', classe: 'discret' }] })
     .then(() => history.replaceState(null, '', '/'))
 }
 window.addEventListener('hashchange', () => location.hash === '#reglages' && ouvrirReglages())
@@ -55,7 +60,7 @@ function dessinerEtat() {
   vider(barre, etiquetteIA(etat.ia), etiquetteMySQL(etat.connexion, lienConfiguration), etiquetteFichier(etat.partage), boutonAdmin(etat.partage))
 }
 dessinerEtat()
-surChangement((e) => (e.injoignable ? notifier('KTEC ne répond plus : relancez-le avec son raccourci.', 'erreur') : dessinerEtat()))
+surChangement((e) => (e.injoignable ? notifier('K.NOVA ne répond plus : relancez-le avec son raccourci.', 'erreur') : dessinerEtat()))
 
 // « Messages » : les messages au développeur rangés dans le fichier de connaissances, avec leur état,
 // et l'export en zip (texte + images) à transmettre.
@@ -88,10 +93,11 @@ async function listeMessages() {
     titre: 'Messages au développeur',
     large: true,
     contenu: h('div', {},
-      h('p', { class: 'texte-2' }, 'Les propositions d’amélioration envoyées depuis les applications. Elles restent dans le fichier de connaissances ; l’export en zip (textes et images) sert à les transmettre.'),
+      h('p', { class: 'texte-2' }, 'Les propositions d’amélioration écrites depuis les applications, gardées dans le fichier de connaissances. « Envoyer par Outlook » (avec le mot de passe) envoie au développeur celles qui ne sont pas faites.'),
       liste),
     boutons: [
-      { texte: 'Exporter (zip)', classe: '', action: () => { location.href = '/api/ktec/messages/export.zip'; return false } },
+      { texte: 'Exporter (zip)', classe: 'discret', action: () => { location.href = '/api/ktec/messages/export.zip'; return false } },
+      { texte: 'Envoyer par Outlook…', classe: '', action: async () => { if (await envoyerParOutlook()) { await dessiner(); compterMessages() } return false } },
       { texte: 'Fermer', classe: 'principal', valeur: true },
     ],
   })
@@ -99,44 +105,58 @@ async function listeMessages() {
 compterMessages()
 
 async function quitter() {
-  if (!(await confirmer('Arrêter KTEC ? Les applications ouvertes ne répondront plus.', { texte: 'Arrêter' }))) return
+  if (!(await confirmer('Arrêter K.NOVA ? Les applications ouvertes ne répondront plus.', { texte: 'Arrêter' }))) return
   await api('/api/ktec/quitter', { methode: 'POST' })
-  vider(racine, h('div', { class: 'portail' }, h('h1', {}, 'KTEC est arrêté'), h('p', { class: 'texte-2' }, 'Relancez-le avec son raccourci.')))
+  vider(racine, h('div', { class: 'portail' }, h('h1', {}, 'K.NOVA est arrêté'), h('p', { class: 'texte-2' }, 'Relancez-le avec son raccourci.')))
 }
 
-vider(
-  racine,
-  h('div', { class: 'portail' },
-    h('div', { class: 'portail-entete' },
-      h('img', { src: '/icone.svg', alt: '' }),
-      h('div', {}, h('h1', {}, nomAppli('KTEC')), h('p', { class: 'sous-titre' }, 'Les applications de l’atelier')),
-      h('div', { class: 'espace' }),
-      barre,
-    ),
-    applis.length ? null : h('div', { class: 'bandeau' }, ic('alerte'), 'Aucune application installée sur ce poste.'),
-    h('div', { class: 'tuiles-applis' }, tuiles),
-    // La confidentialité, dite simplement : c'est la première question qu'on pose sur ces outils.
-    h('div', { class: 'portail-confiance' },
-      h('h2', {}, ic('bouclier', 18), 'Vos informations restent chez vous'),
-      h('p', {}, 'Ces outils ont été développés dans le respect de la propriété des informations : aucune donnée sensible ou d’entreprise n’est stockée dans les applications.'),
-      h('div', { class: 'points-confiance' },
-        h('div', {}, ic('livre', 16), h('span', {}, h('b', {}, 'Un fichier local unique. '), 'Tout ce qui concerne le site passe par un seul fichier de connaissances (.ktec), rangé chez vous.')),
-        h('div', {}, ic('etincelle', 16), h('span', {}, h('b', {}, 'Une IA locale. '), 'L’intelligence artificielle tourne sur ce poste : rien n’est envoyé à l’extérieur.')),
-        h('div', {}, ic('nuage', 16), h('span', {}, h('b', {}, 'Hors ligne. '), 'Le système fonctionne sans connexion à Internet.')))),
-    h('div', { class: 'portail-pied' },
-      h('span', { title: 'Les connaissances du site, communes à toutes les applications' }, ic('livre', 14), ' ', etat.partage?.fichier || etat.fichierKtec),
-      h('span', {}, `KTEC ${etat.version}`),
-      h('div', { style: { flex: 1 } }),
-      h('a', { class: 'bouton petit discret', href: '/installation/', title: 'Mettre à jour, ajouter ou désinstaller des applications' }, ic('telecharger', 14), 'Installation et mises à jour'),
-      h('button', { class: 'petit discret', onclick: () => ouvrirMessage({ appli: 'ktec', ecran: 'Lanceur' }) }, ic('envoyer', 14), 'Message au développeur'),
-      boutonMessages,
-      h('button', { class: 'petit discret', onclick: ouvrirReglages }, ic('reglages', 14), 'Réglages'),
-      h('button', { class: 'petit discret', onclick: quitter }, ic('sortie', 14), 'Arrêter KTEC'),
-    ),
+// L'en-tête : la supernova et le nom au centre ; les pastilles d'état en haut à droite.
+const logo = logoSupernova()
+const nom = h('div', { class: 'nom-portail' }, h('h1', {}, nomAppli(NOM_KNOVA)), h('p', { class: 'sous-titre' }, 'Les applications de l’atelier'))
+const entete = h('div', { class: 'portail-entete' }, logo, nom)
+logo.addEventListener('click', () => intro(true))
+logo.style.cursor = 'pointer'
+const zoneEtat = h('div', { class: 'portail-coin' }, barre)
+const corps = [
+  applis.length ? null : h('div', { class: 'bandeau' }, ic('alerte'), 'Aucune application installée sur ce poste.'),
+  h('div', { class: 'tuiles-applis' }, tuiles),
+  // La confidentialité, dite simplement : c'est la première question qu'on pose sur ces outils.
+  h('div', { class: 'portail-confiance' },
+    h('h2', {}, ic('bouclier', 18), 'Vos informations restent chez vous'),
+    h('p', {}, 'Ces outils ont été développés dans le respect de la propriété des informations : aucune donnée sensible ou d’entreprise n’est stockée dans les applications.'),
+    h('div', { class: 'points-confiance' },
+      h('div', {}, ic('livre', 16), h('span', {}, h('b', {}, 'Un fichier local unique. '), 'Tout ce qui concerne le site passe par un seul fichier de connaissances (.ktec), rangé chez vous.')),
+      h('div', {}, ic('etincelle', 16), h('span', {}, h('b', {}, 'Une IA locale. '), 'L’intelligence artificielle tourne sur ce poste : rien n’est envoyé à l’extérieur.')),
+      h('div', {}, ic('nuage', 16), h('span', {}, h('b', {}, 'Hors ligne. '), 'Le système fonctionne sans connexion à Internet.')))),
+  h('div', { class: 'portail-pied' },
+    h('span', { title: 'Les connaissances du site, communes à toutes les applications' }, ic('livre', 14), ' ', etat.partage?.fichier || etat.fichierKtec),
+    h('span', {}, `K.NOVA ${etat.version}`),
+    h('div', { style: { flex: 1 } }),
+    h('a', { class: 'bouton petit discret', href: '/installation/', title: 'Mettre à jour, ajouter ou désinstaller des applications' }, ic('telecharger', 14), 'Installation et mises à jour'),
+    h('button', { class: 'petit discret', onclick: () => ouvrirMessage({ appli: 'ktec', ecran: 'Lanceur' }) }, ic('envoyer', 14), 'Message au développeur'),
+    boutonMessages,
+    h('button', { class: 'petit discret', onclick: ouvrirReglages }, ic('reglages', 14), 'Réglages'),
+    h('button', { class: 'petit discret', onclick: quitter }, ic('sortie', 14), 'Arrêter K.NOVA'),
   ),
-)
+]
 
-constellation()
+vider(racine, h('div', { class: 'portail' }, zoneEtat, entete, ...corps))
+
+// L'intro : une fois par lancement de K.NOVA (pas en revenant d'une application) ; un clic sur le soleil la rejoue.
+function intro(rejouer = false, origine = null) {
+  let deja = null
+  try {
+    deja = sessionStorage.getItem('knova-intro')
+    sessionStorage.setItem('knova-intro', etat.demarreLe || '')
+  } catch {}
+  if (!rejouer && (deja === etat.demarreLe || avecAssistant)) return Promise.resolve()
+  const aCacher = [zoneEtat, ...racine.querySelectorAll('.portail > :not(.portail-entete):not(.portail-coin)'), document.querySelector('.fond-constellation')].filter(Boolean)
+  return jouerIntro({ bloc: entete, logo, nom, aCacher, origine })
+}
+
+// Les étoiles rassemblées sous la souris : le logo y fait son big bang (l'intro rejouée à cet endroit).
+constellation({ surBigBang: (x, y) => !document.body.classList.contains('intro-en-cours') && intro(true, { x, y }) })
+const introFinie = intro()
 
 // Mises à jour : au lancement, KTEC regarde sur GitHub s'il existe des versions plus récentes que celles installées
 // (programme et applications). Si oui, un bandeau propose de tout mettre à jour d'un clic : seuls les paquets
@@ -151,7 +171,7 @@ async function verifierMisesAJour() {
     // « 0.4.2 » (copié du kit) et « 0.4.2.7 » (numéro de publication sur GitHub) sont la même version.
     const differente = (dispo, installee) => dispo && installee && dispo !== installee && !dispo.startsWith(installee + '.') && !installee.startsWith(dispo + '.')
     const aJour = [
-      ...(differente(cat.socle?.version, e.installe.ktec) ? [{ nom: 'KTEC', version: cat.socle.version, points: pointsNouveaux(cat.socle.nouveautes, e.installe.ktec) }] : []),
+      ...(differente(cat.socle?.version, e.installe.ktec) ? [{ nom: 'K.NOVA', version: cat.socle.version, points: pointsNouveaux(cat.socle.nouveautes, e.installe.ktec) }] : []),
       ...cat.applis.filter((a) => differente(a.disponible, e.installe.applis?.[a.id])).map((a) => ({ nom: a.nom, version: a.disponible, points: pointsNouveaux(a.nouveautes, e.installe.applis[a.id]) })),
     ]
     if (!aJour.length) return
@@ -165,7 +185,7 @@ async function verifierMisesAJour() {
     // Pas d'accès à GitHub (hors ligne) : rien à signaler, la mise à jour par fichier reste possible.
   }
 }
-verifierMisesAJour()
+introFinie.then(verifierMisesAJour)
 
 if (avecAssistant) lancerAssistant({ seulementCle: !assistant.aFaire }).then(() => location.reload())
 else if (location.hash === '#reglages' || (!etat.connexion.motDePasse && modeAdmin())) ouvrirReglages()

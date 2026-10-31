@@ -3,7 +3,7 @@
 // Sert à :
 //   - lire les documents Office et LibreOffice (.docx, .xlsx, .pptx, .odt, .ods), qui sont des ZIP ;
 //   - décompresser llama.cpp sous Windows ;
-//   - appliquer une mise à jour de KTEC ou d'une application ;
+//   - appliquer une mise à jour de K.NOVA ou d'une application ;
 //   - fabriquer l'archive d'une extraction de tables (creerZip).
 //
 // Seules les deux méthodes de compression courantes sont gérées : « stockée » et « deflate ».

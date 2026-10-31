@@ -46,13 +46,14 @@ export function svg(texte) {
   return modele.content.firstElementChild
 }
 
-// La teinte de KTEC lui-même (dans une application, --accent est celle de l'application).
+// La teinte du portail lui-même (dans une application, --accent est celle de l'application).
 export const COULEUR_KTEC = '#4ade80'
+export const NOM_KNOVA = 'K.NOVA'
 
-// Le nom d'une application, avec son « TEC » à la couleur de l'application (la variable --accent de
-// l'élément qui le contient, ou la couleur donnée) : PDRTEC, AITEC, BiRTEC.
+// Le nom d'une application, avec son « TEC » (ou le « .NOVA » du portail) à la couleur de l'application
+// (la variable --accent de l'élément qui le contient, ou la couleur donnée) : PDRTEC, AITEC, BiRTEC, K.NOVA.
 export function nomAppli(nom, couleur = null) {
-  const m = /^(.*?)(TEC)$/.exec(String(nom || ''))
+  const m = /^(.*?)(TEC|\.NOVA)$/.exec(String(nom || ''))
   if (!m) return h('span', { class: 'nom-appli' }, nom || '')
   return h('span', { class: 'nom-appli', style: couleur ? { '--accent': couleur } : {} }, m[1], h('span', { class: 'tec' }, m[2]))
 }

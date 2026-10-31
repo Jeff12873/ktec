@@ -79,7 +79,7 @@ export function cartePoste(apres = () => {}) {
     h('div', { class: 'carte-entete' }, h('h2', {}, ic('puce', 18), 'Ce poste')),
     ligne('Modèle d’IA', ia.installee ? ia.modele : 'non installé'),
     ligne('Calcul sur', ia.appareil),
-    ligne('Java et BIRT', etat.java ? 'installés' : 'non installés : lancez l’installation de KTEC'),
+    ligne('Java et BIRT', etat.java ? 'installés' : 'non installés : lancez l’installation de K.NOVA'),
     ligne('Connaissances', h('span', { class: 'mono' }, etat.fichierKtec)),
     h('label', { class: 'champ', style: { marginTop: '14px' } }, h('span', {}, 'Mettre l’IA en veille après (minutes)'), arret),
     h('div', { class: 'actions', style: { marginTop: '14px' } },
@@ -87,22 +87,50 @@ export function cartePoste(apres = () => {}) {
       h('button', {
         class: 'discret',
         onclick: async () => {
-          if (!(await confirmer('Arrêter KTEC (toutes les applications) ? Relancez-le ensuite avec son raccourci.'))) return
+          if (!(await confirmer('Arrêter K.NOVA (toutes les applications) ? Relancez-le ensuite avec son raccourci.'))) return
           await api('/api/ktec/quitter', { methode: 'POST' })
-          document.body.innerHTML = '<div class="accueil"><div class="accueil-titre"><h1>KTEC est arrêté</h1><p class="sous-titre">Vous pouvez fermer cet onglet.</p></div></div>'
+          document.body.innerHTML = '<div class="accueil"><div class="accueil-titre"><h1>K.NOVA est arrêté</h1><p class="sous-titre">Vous pouvez fermer cet onglet.</p></div></div>'
         },
-      }, ic('sortie', 16), 'Arrêter KTEC'),
+      }, ic('sortie', 16), 'Arrêter K.NOVA'),
+      modeAdmin() ? h('button', { class: 'discret', title: 'Le journal de K.NOVA en direct (démarrage, connexion, moteur Java, IA, erreurs)', onclick: consoleDebug }, ic('console', 16), 'Console (debug)') : null,
     ),
   )
+}
+
+// La console de debug : K.NOVA tourne sans fenêtre ; ce qu'il écrivait dans la console s'affiche ici, en direct.
+function consoleDebug() {
+  const zone = h('pre', { class: 'console-debug' })
+  let suivre = true
+  zone.addEventListener('scroll', () => (suivre = zone.scrollTop + zone.clientHeight >= zone.scrollHeight - 30))
+  const ajouter = (lignes) => {
+    for (const ligne of lignes) zone.append(h('div', { class: /\[(erreur|attention)\]|impossible|échou|erreur/i.test(ligne) ? 'ligne-erreur' : '' }, ligne))
+    while (zone.childElementCount > 1500) zone.firstElementChild.remove()
+    if (suivre) zone.scrollTop = zone.scrollHeight
+  }
+  const source = new EventSource('/api/ktec/journal/flux')
+  source.addEventListener('lignes', (e) => ajouter(JSON.parse(e.data)))
+  source.addEventListener('ligne', (e) => ajouter([JSON.parse(e.data)]))
+  source.onerror = () => ajouter([`${new Date().toISOString()}  — connexion à la console perdue (K.NOVA arrêté ?)`])
+  fenetre({
+    titre: 'Console (debug)',
+    large: true,
+    contenu: h('div', {}, h('p', { class: 'texte-2', style: { marginTop: 0 } }, 'Le journal de K.NOVA, en direct. À copier pour signaler un problème.'), zone),
+    boutons: [
+      { texte: 'Copier', classe: 'discret', action: () => { navigator.clipboard.writeText(zone.innerText).then(() => notifier('Journal copié')); return false } },
+      { texte: 'Ouvrir journal.txt', classe: 'discret', action: () => { window.open('/api/ktec/journal.txt', '_blank', 'noopener'); return false } },
+      { texte: 'Fermer', classe: 'principal' },
+    ],
+  }).finally(() => source.close())
 }
 
 // ---------------------------------------------------------------- fichier de connaissances
 
 export function carteFichier(apres = () => {}) {
   const p = etat.partage || {}
+  const admin = modeAdmin() // en consultation : le fichier et « Ouvrir un autre fichier », rien d'autre
   const ligne = (libelle, valeur) => h('div', { style: { display: 'flex', gap: '12px', padding: '6px 0', borderBottom: '1px solid var(--bord)' } }, h('span', { class: 'discret', style: { minWidth: '140px' } }, libelle), h('span', {}, valeur || '—'))
   const sauvegardes = h('div')
-  api('/api/ktec/sauvegardes').then((liste) => sauvegardes.replaceChildren(
+  if (admin) api('/api/ktec/sauvegardes').then((liste) => sauvegardes.replaceChildren(
     liste.length ? h('ul', { style: { margin: '6px 0 0', paddingLeft: '18px' } }, liste.map((s) => h('li', { class: 'discret', style: { fontSize: '13px' } }, `${dateHeureFr(new Date(s.date).toISOString())} — ${tailleFr(s.taille)}`)))
       : h('p', { class: 'discret', style: { fontSize: '13px' } }, 'Aucune pour l’instant (une à chaque prise de la main, une par heure au plus).'))).catch(() => {})
   return h(
@@ -116,11 +144,11 @@ export function carteFichier(apres = () => {}) {
     p.autreAdmin ? ligne('En ce moment', `${p.autreAdmin.nom} (${p.autreAdmin.poste}) modifie le fichier`) : null,
     h('div', { class: 'actions', style: { marginTop: '14px' } },
       h('button', { onclick: ouvrirAutreFichier }, ic('dossier', 16), 'Ouvrir un autre fichier'),
-      h('button', { class: 'discret', onclick: creerNouveauFichier }, ic('plus', 16), 'Créer un fichier'),
-      h('button', { class: 'discret', onclick: () => changerMotDePasse(p.motDePasse).then(apres) }, ic('cadenas', 16), p.motDePasse ? 'Changer le mot de passe' : 'Protéger par un mot de passe'),
+      admin ? h('button', { class: 'discret', onclick: creerNouveauFichier }, ic('plus', 16), 'Créer un fichier') : null,
+      admin ? h('button', { class: 'discret', onclick: () => changerMotDePasse(p.motDePasse).then(apres) }, ic('cadenas', 16), p.motDePasse ? 'Changer le mot de passe' : 'Protéger par un mot de passe') : null,
     ),
-    h('h3', { style: { margin: '16px 0 0', fontSize: '14px' } }, 'Sauvegardes (dossier KTEC-sauvegardes, à côté du fichier)'),
-    sauvegardes,
+    admin ? h('h3', { style: { margin: '16px 0 0', fontSize: '14px' } }, 'Sauvegardes (dossier KTEC-sauvegardes, à côté du fichier)') : null,
+    admin ? sauvegardes : null,
   )
 }
 
@@ -188,13 +216,13 @@ export function carteCle(apres = () => {}) {
     } catch {
       return notifier('Ce fichier n’est pas lisible.', 'erreur')
     }
-    if (contenu?.format !== 'ktec-configuration' || !Array.isArray(contenu.elements)) return notifier('Ce n’est pas une configuration de KTEC (.ktecconf).', 'erreur')
+    if (contenu?.format !== 'ktec-configuration' || !Array.isArray(contenu.elements)) return notifier('Ce n’est pas une configuration de K.NOVA (.ktecconf).', 'erreur')
     const cases = contenu.elements.map((e) => ({ e, boite: h('input', { type: 'checkbox', checked: true }) }))
     await fenetre({
       titre: 'Reprendre une configuration',
       contenu: h('div', {},
         h('p', { class: 'texte-2', style: { marginTop: 0 } }, `Exportée le ${dateHeureFr(contenu.exportee)}. Chaque réglage coché remplace celui de ce fichier de connaissances.`),
-        h('div', { class: 'liste-reprise' }, cases.map(({ e, boite }) => h('label', { class: 'ligne-reprise' }, boite, h('span', { class: 'mono' }, e.cle), h('span', { class: 'discret' }, `${e.table === 'reglages' ? 'AITEC' : 'KTEC'} · ${tailleFr(e.valeur.length)}`))))),
+        h('div', { class: 'liste-reprise' }, cases.map(({ e, boite }) => h('label', { class: 'ligne-reprise' }, boite, h('span', { class: 'mono' }, e.cle), h('span', { class: 'discret' }, `${e.table === 'reglages' ? 'AITEC' : 'K.NOVA'} · ${tailleFr(e.valeur.length)}`))))),
       boutons: [
         { texte: 'Annuler' },
         {
@@ -202,7 +230,7 @@ export function carteCle(apres = () => {}) {
             const choisis = cases.filter((x) => x.boite.checked).map((x) => `${x.e.table}/${x.e.cle}`)
             const r = await essayer(() => api('/api/ktec/configuration/reprendre', { methode: 'POST', corps: { elements: contenu.elements, choisis } }))
             if (!r) return false
-            notifier(`${r.repris} réglage${r.repris > 1 ? 's' : ''} repris : relancez KTEC pour que les applications les relisent.`)
+            notifier(`${r.repris} réglage${r.repris > 1 ? 's' : ''} repris : relancez K.NOVA pour que les applications les relisent.`)
             dessiner(); apres()
             return true
           },
@@ -221,7 +249,7 @@ export function carteCle(apres = () => {}) {
     const admin = modeAdmin()
     vider(corps,
       h('p', { class: 'texte-2', style: { marginTop: 0 } }, e.chiffree
-        ? (e.bonneCle ? 'La configuration est chiffrée ; sa clé est rangée dans le fichier de connaissances : tous les postes la lisent.' : 'La configuration a été chiffrée avec une clé qui n’est pas dans ce fichier (version d’avant de KTEC).')
+        ? (e.bonneCle ? 'La configuration est chiffrée ; sa clé est rangée dans le fichier de connaissances : tous les postes la lisent.' : 'La configuration a été chiffrée avec une clé qui n’est pas dans ce fichier (version d’avant de K.NOVA).')
         : 'La configuration (connexion à la GMAO, adresses, requêtes, réglages des applications) est en clair dans le fichier de connaissances. Elle est chiffrée d’office dès que les comptes de la GMAO sont enregistrés.'),
       e.chiffree && !e.bonneCle ? h('div', { class: 'bandeau' }, ic('cadenas'), admin ? 'Rangez la clé du site (.ktecclef) si vous l’avez ; sinon repartez d’une nouvelle clé, puis reprenez la configuration (.ktecconf) et ressaisissez la connexion.' : 'Sans la clé, les applications ne voient pas leurs réglages : voyez l’administrateur.') : null,
       admin ? h('div', { class: 'actions', style: { marginTop: '10px', flexWrap: 'wrap' } },

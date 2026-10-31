@@ -12,7 +12,7 @@ export async function demanderMotDePasse({ automatique = false } = {}) {
 }
 
 export function messageConnexion(c = {}) {
-  if (!c.configuree || !c.motDePasse) return 'La connexion à la GMAO n’est pas réglée : l’administrateur doit la renseigner (Réglages du lanceur KTEC).'
+  if (!c.configuree || !c.motDePasse) return 'La connexion à la GMAO n’est pas réglée : l’administrateur doit la renseigner (Réglages du lanceur K.NOVA).'
   return `Connexion à la GMAO impossible : ${c.erreur || 'serveur injoignable'}.`
 }
 

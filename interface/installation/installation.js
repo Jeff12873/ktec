@@ -1,8 +1,8 @@
-// La page d'installation de KTEC : première installation (applications, dossier, modèle d'IA), puis mises à jour,
+// La page d'installation de K.NOVA : première installation (applications, dossier, modèle d'IA), puis mises à jour,
 // ajout ou désinstallation d'applications. Ouverte par « Installer KTEC » (kit hors ligne ou zip téléchargé),
 // ou depuis le portail (Réglages › Installation et mises à jour).
 
-import { h, vider, ic, notifier, confirmer, fenetre, tailleFr, dateHeureFr, nomAppli } from '/socle/ui.js'
+import { h, vider, ic, notifier, confirmer, fenetre, tailleFr, dateHeureFr, nomAppli, NOM_KNOVA } from '/socle/ui.js'
 import { api, flux } from '/socle/api.js'
 import { explorateur } from '/socle/fichier.js'
 import { pointsNouveaux } from '/socle/nouveautes.js'
@@ -25,7 +25,7 @@ async function charger() {
 function entete() {
   return h('div', { class: 'portail-entete' },
     h('img', { src: '/icone.svg', alt: '' }),
-    h('div', {}, h('h1', {}, nomAppli('KTEC')), h('p', { class: 'sous-titre' }, etat?.installe && !etat.modeInstallation ? 'Installation et mises à jour' : 'Installation des applications de l’atelier')),
+    h('div', {}, h('h1', {}, nomAppli(NOM_KNOVA)), h('p', { class: 'sous-titre' }, etat?.installe && !etat.modeInstallation ? 'Installation et mises à jour' : 'Installation des applications de l’atelier')),
     h('div', { class: 'espace' }),
     etat ? h('span', { class: 'etiquette accent', title: sourceDetail() }, ic(etat.source === 'kit' ? 'dossier' : 'nuage', 15), etat.source === 'kit' ? 'Kit hors ligne' : 'En ligne (GitHub)') : null,
     etat && !etat.modeInstallation ? h('a', { class: 'bouton petit discret', href: '/' }, ic('retour', 14), 'Portail') : null,
@@ -76,16 +76,16 @@ function carteInstallee() {
   })
   const socleAJour = !plusRecente(catalogue.socle?.version, inst.ktec)
   return h('div', { class: 'carte', style: { marginBottom: '20px' } },
-    h('div', { class: 'carte-entete' }, h('h2', {}, ic('coche', 18), 'KTEC est installé'),
+    h('div', { class: 'carte-entete' }, h('h2', {}, ic('coche', 18), 'K.NOVA est installé'),
       h('div', { class: 'actions' },
         h('button', { class: 'principal', onclick: () => lancerMiseAJour(null) }, ic('rafraichir', 16), 'Tout mettre à jour'),
         h('button', { title: 'Poste sans accès à GitHub : choisir le zip de mise à jour (fabriqué ailleurs, apporté sur clé USB)', onclick: choisirFichierMaj }, ic('dossier', 16), 'Depuis un fichier…'),
-        etat.modeInstallation ? h('button', { onclick: () => ouvrirKtec(inst.dossier) }, ic('lecture', 16), 'Ouvrir KTEC') : null)),
-    h('p', { class: 'texte-2', style: { marginTop: 0 } }, 'Dans ', h('span', { class: 'mono' }, inst.dossier), `. Programme KTEC ${versionLisible(inst.ktec)}`, socleAJour ? ' (à jour).' : ` — version ${versionLisible(catalogue.socle.version)} disponible.`),
+        etat.modeInstallation ? h('button', { onclick: () => ouvrirKtec(inst.dossier) }, ic('lecture', 16), 'Ouvrir K.NOVA') : null)),
+    h('p', { class: 'texte-2', style: { marginTop: 0 } }, 'Dans ', h('span', { class: 'mono' }, inst.dossier), `. Programme K.NOVA ${versionLisible(inst.ktec)}`, socleAJour ? ' (à jour).' : ` — version ${versionLisible(catalogue.socle.version)} disponible.`),
     socleAJour ? null : (() => { const p = pointsNouveaux(catalogue.socle?.nouveautes, inst.ktec); return p.length ? h('ul', { class: 'nouveautes-ligne' }, p.map((x) => h('li', {}, x))) : null })(),
     h('table', { class: 'tableau' }, h('thead', {}, h('tr', {}, h('th', {}, 'Application'), h('th', {}, 'Installée'), h('th', {}, 'Disponible'), h('th', {}, ''))), h('tbody', {}, lignes)),
     h('p', { class: 'discret', style: { fontSize: '13px', marginTop: '12px' } }, `Composants communs : ${Object.entries(inst.composants || {}).map(([k, v]) => `${k} ${v}`).join(', ') || '—'}. Rien n'est installé deux fois.`),
-    h('div', { class: 'actions', style: { marginTop: '10px' } }, h('button', { class: 'petit discret danger', onclick: toutDesinstaller }, ic('poubelle', 14), 'Désinstaller KTEC')),
+    h('div', { class: 'actions', style: { marginTop: '10px' } }, h('button', { class: 'petit discret danger', onclick: toutDesinstaller }, ic('poubelle', 14), 'Désinstaller K.NOVA')),
   )
 }
 
@@ -129,7 +129,7 @@ function formulaireInstallation() {
     fenetre({
       titre: 'Dossier d’installation',
       large: true,
-      contenu: h('div', {}, h('p', { class: 'texte-2' }, 'Choisissez un dossier de votre profil (les programmes ne peuvent pas tourner ailleurs sur les postes verrouillés). KTEC y sera installé dans un sous-dossier « KTEC ».'), ex.element),
+      contenu: h('div', {}, h('p', { class: 'texte-2' }, 'Choisissez un dossier de votre profil (les programmes ne peuvent pas tourner ailleurs sur les postes verrouillés). K.NOVA y sera installé dans un sous-dossier « KTEC ».'), ex.element),
       boutons: [{ texte: 'Annuler', classe: 'discret' }, { texte: 'Choisir', classe: 'principal', action: () => { if (ex.dossier()) dossier.value = ex.dossier().replace(/[\\/]$/, '') + (ex.dossier().includes('\\') ? '\\KTEC' : '/KTEC') } }],
     })
   }
@@ -143,7 +143,7 @@ function formulaireInstallation() {
     h('div', { class: 'carte' },
       h('div', { class: 'actions' }, dossier, h('button', { onclick: parcourir }, ic('dossier', 16), 'Parcourir')),
       h('p', { class: 'discret', style: { fontSize: '13px' } }, `Dans votre profil, sans droits d’administrateur. ${etat.espaceLibreGo !== null ? `Espace libre : ${etat.espaceLibreGo} Go.` : ''} Vos données (fichier .ktec, Documents/KTEC) ne sont jamais dans ce dossier.`),
-      h('label', { style: { display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' } }, raccourcis, 'Raccourcis « KTEC » sur le Bureau et dans le menu')),
+      h('label', { style: { display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' } }, raccourcis, 'Raccourcis « K.NOVA » sur le Bureau et dans le menu')),
     zoneIA,
     h('div', { class: 'actions', style: { marginTop: '24px' } },
       h('button', { class: 'principal', onclick: () => installerSelection([...choix], dossier.value.trim(), modele.value, raccourcis.checked) }, ic('telecharger', 16), 'Installer')),
@@ -205,9 +205,9 @@ async function installerSelection(applis, dossier, modele = 'auto', raccourcis =
   suivi.detail.textContent = ''
   suivi.terminer('Installation terminée')
   vider(suivi.fin,
-    h('div', { class: 'bandeau info', style: { marginTop: '14px' } }, ic('coche'), `KTEC est installé dans ${resultat.dossier}.`),
+    h('div', { class: 'bandeau info', style: { marginTop: '14px' } }, ic('coche'), `K.NOVA est installé dans ${resultat.dossier}.`),
     h('div', { class: 'actions' },
-      etat.modeInstallation ? h('button', { class: 'principal', onclick: () => ouvrirKtec(resultat.dossier) }, ic('lecture', 16), 'Ouvrir KTEC') : h('button', { class: 'principal', onclick: () => attendreRedemarrage() }, 'Terminer'),
+      etat.modeInstallation ? h('button', { class: 'principal', onclick: () => ouvrirKtec(resultat.dossier) }, ic('lecture', 16), 'Ouvrir K.NOVA') : h('button', { class: 'principal', onclick: () => attendreRedemarrage() }, 'Terminer'),
       h('button', { class: 'discret', onclick: charger }, 'Revenir')))
 }
 
@@ -225,7 +225,7 @@ async function lancerMiseAJour(applis, adresse = '/api/ktec/installation/mettre-
     return
   }
   suivi.terminer('Mise à jour terminée')
-  vider(suivi.fin, h('div', { class: 'bandeau info', style: { marginTop: '14px' } }, ic('coche'), resultat.redemarrer ? 'Mise à jour installée : KTEC redémarre…' : 'Tout est à jour.'))
+  vider(suivi.fin, h('div', { class: 'bandeau info', style: { marginTop: '14px' } }, ic('coche'), resultat.redemarrer ? 'Mise à jour installée : K.NOVA redémarre…' : 'Tout est à jour.'))
   if (resultat.redemarrer) attendreRedemarrage()
   else setTimeout(charger, 1500)
 }
@@ -246,7 +246,7 @@ function choisirFichierMaj() {
     }
     const change = (installee, fournie) => (installee && installee === fournie ? h('span', { class: 'discret' }, 'déjà à jour') : h('strong', {}, `${versionLisible(installee)} → ${fournie}`))
     const lignes = [
-      h('tr', {}, h('td', {}, 'Programme KTEC'), h('td', {}, change(contenu.socle.installee, contenu.socle.fournie))),
+      h('tr', {}, h('td', {}, 'Programme K.NOVA'), h('td', {}, change(contenu.socle.installee, contenu.socle.fournie))),
       ...contenu.applis.map((a) => h('tr', {}, h('td', {}, a.id), h('td', {}, a.installee ? change(a.installee, a.fournie) : h('span', { class: 'discret' }, 'pas installée ici : ignorée')))),
     ]
     const ok = await fenetre({
@@ -273,7 +273,7 @@ async function desinstaller(a) {
 async function toutDesinstaller() {
   const modeles = h('input', { type: 'checkbox', style: { width: 'auto' } })
   const ok = await fenetre({
-    titre: 'Désinstaller KTEC',
+    titre: 'Désinstaller K.NOVA',
     contenu: h('div', {},
       h('p', { class: 'texte-2' }, `Le dossier ${etat.installe.dossier} et les raccourcis seront supprimés. Le fichier de connaissances (.ktec), vos rapports (Documents/KTEC) et vos réglages ailleurs sont gardés.`),
       h('label', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, modeles, `Supprimer aussi les modèles d’IA (${etat.dossierModeles}) — ils peuvent servir à un autre agent du poste`)),
@@ -281,12 +281,12 @@ async function toutDesinstaller() {
   })
   if (!ok) return
   const r = await api('/api/ktec/installation/tout-desinstaller', { methode: 'POST', corps: { modeles: modeles.checked } })
-  vider(racine, h('div', { class: 'portail' }, h('h1', {}, 'KTEC est désinstallé'), h('p', { class: 'texte-2' }, r.arret ? 'Vous pouvez fermer cet onglet.' : 'Vos données sont gardées.')))
+  vider(racine, h('div', { class: 'portail' }, h('h1', {}, 'K.NOVA est désinstallé'), h('p', { class: 'texte-2' }, r.arret ? 'Vous pouvez fermer cet onglet.' : 'Vos données sont gardées.')))
 }
 
 async function ouvrirKtec(dossier) {
   await api('/api/ktec/installation/lancer', { methode: 'POST', corps: { dossier } })
-  vider(racine, h('div', { class: 'portail' }, entete(), h('div', { class: 'carte' }, h('h2', {}, 'KTEC démarre'), h('p', { class: 'texte-2' }, 'Le portail s’ouvre dans un nouvel onglet. Vous pouvez fermer celui-ci.'))))
+  vider(racine, h('div', { class: 'portail' }, entete(), h('div', { class: 'carte' }, h('h2', {}, 'K.NOVA démarre'), h('p', { class: 'texte-2' }, 'Le portail s’ouvre dans un nouvel onglet. Vous pouvez fermer celui-ci.'))))
 }
 
 // KTEC redémarre (code 42) : on attend qu'il réponde, puis on recharge la page.

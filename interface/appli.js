@@ -6,7 +6,7 @@
 //   { chemin, titre, icone, menu, groupe, aide, admin, afficher(zone, { id, query }) }
 // (menu: 'admin' → dans le menu en mode administrateur seulement ; admin: true → écran réservé, hors menu)
 
-import { h, vider, ic, fenetreOuverte, notifier, nomAppli, COULEUR_KTEC } from './socle/ui.js'
+import { h, vider, ic, fenetreOuverte, notifier, nomAppli, NOM_KNOVA, COULEUR_KTEC } from './socle/ui.js'
 import { etat, suivreEtat, surChangement, modeAdmin } from './socle/etat.js'
 import { appli, api } from './socle/api.js'
 import { etiquetteIA, etiquetteMySQL } from './socle/connexion.js'
@@ -22,7 +22,7 @@ if (!description) {
 }
 const app = await import(`/apps/${appli}/interface/menu.js`)
 const BLOCS = app.blocs
-document.title = `${description.nom} — KTEC`
+document.title = `${description.nom} — K.NOVA`
 // La teinte de vert de l'application (app.json « couleur ») : boutons, sélections, filtres actifs…
 if (description.couleur) document.documentElement.style.setProperty('--accent', description.couleur)
 document.querySelector('link[rel=icon]').href = `/apps/${appli}/${description.icone || 'interface/icone.svg'}`
@@ -72,7 +72,7 @@ function dessinerMenu() {
   vider(
     menu,
     // Retour au portail, et passage direct aux autres applications installées.
-    h('a', { class: 'menu-ktec', href: '/', title: 'Portail KTEC : toutes les applications' }, ic('retour', 14), nomAppli('KTEC', COULEUR_KTEC)),
+    h('a', { class: 'menu-ktec', href: '/', title: 'Portail K.NOVA : toutes les applications' }, ic('retour', 14), nomAppli(NOM_KNOVA, COULEUR_KTEC)),
     h('div', { class: 'menu-titre' },
       h('img', { src: `/apps/${appli}/${description.icone || 'interface/icone.svg'}`, alt: '' }),
       h('div', {}, h('strong', {}, nomAppli(description.nom)), h('span', {}, description.sousTitre || ''))),
@@ -88,7 +88,7 @@ function dessinerMenu() {
     autresApplis.length
       ? h('div', { class: 'menu-autres' }, autresApplis.map((a) => h('a', { href: `/${a.id}/`, title: a.description || '' }, h('img', { src: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, alt: '' }), nomAppli(a.nom, a.couleur))))
       : null,
-    h('div', { class: 'pied' }, `${description.nom} ${description.version} · KTEC ${etat.version}`),
+    h('div', { class: 'pied' }, `${description.nom} ${description.version} · K.NOVA ${etat.version}`),
   )
 }
 
@@ -114,7 +114,7 @@ function dessinerBarre() {
 }
 
 function quandEtatChange(nouveau, ancien) {
-  if (nouveau.injoignable) return notifier('KTEC ne répond plus : relancez-le avec son raccourci.', 'erreur')
+  if (nouveau.injoignable) return notifier('K.NOVA ne répond plus : relancez-le avec son raccourci.', 'erreur')
   dessinerBarre()
   if (nouveau.partage?.avertissement && nouveau.partage.avertissement !== ancien.partage?.avertissement) notifier(nouveau.partage.avertissement)
   // Mode administrateur pris ou rendu : les écrans montrent ou cachent leurs boutons de modification.

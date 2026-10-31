@@ -32,7 +32,7 @@ export async function api(chemin, { methode = 'GET', corps, fichier, entetes = {
     reponse = await fetch(adresse(chemin), options)
   } catch (erreur) {
     if (erreur.name === 'AbortError') throw erreur
-    throw new Error("KTEC ne répond plus. Relancez-le avec son raccourci.")
+    throw new Error("K.NOVA ne répond plus. Relancez-le avec son raccourci.")
   }
   const texte = await reponse.text()
   const donnees = texte ? JSON.parse(texte) : null

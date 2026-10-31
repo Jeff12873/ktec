@@ -155,11 +155,13 @@ export function etiquetteFichier(p = {}) {
 }
 
 // Le bouton du mode administrateur : seulement utile si le fichier a un mot de passe (sinon les
-// modifications prennent la main toutes seules), ou pour rendre la main.
+// modifications prennent la main toutes seules), ou pour rendre la main. Il dit ce qu'il fait :
+// « Passer en admin » (liseré tournant), puis « Passer en consultation » (rouge pastel).
 export function boutonAdmin(p = {}) {
   if (p.admin?.ceNavigateur && !p.admin.auto) {
-    return h('button', { class: 'petit', title: 'Revenir en consultation', onclick: quitterModeAdmin }, ic('cadenasOuvert', 16), `Administrateur : ${p.admin.nom}`)
+    return h('button', { class: 'petit bouton-admin actif', title: `Administrateur : ${p.admin.nom}. Revenir en consultation.`, onclick: quitterModeAdmin }, ic('cadenasOuvert', 16), 'Passer en consultation')
   }
   if (!p.motDePasse) return null
-  return h('button', { class: 'petit', onclick: ouvrirModeAdmin, title: 'Passer en mode administrateur pour modifier' }, ic('cadenas', 16), 'Consultation')
+  // Le bouton est recréé à chaque changement d'état : on cale son liseré sur l'horloge pour qu'il tourne sans à-coup.
+  return h('button', { class: 'petit bouton-admin', style: { animationDelay: `-${Math.round(performance.now() % 3000)}ms` }, onclick: ouvrirModeAdmin, title: 'Passer en mode administrateur pour modifier' }, ic('cadenas', 16), 'Passer en admin')
 }

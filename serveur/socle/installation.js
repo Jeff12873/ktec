@@ -125,9 +125,37 @@ export function modifierReglagesPoste(changements) {
   return reglages
 }
 
-// Petit journal pour comprendre un problème après coup (journal.txt, 200 Ko au plus).
+// Petit journal pour comprendre un problème après coup (journal.txt, 200 Ko au plus). Les dernières lignes
+// restent aussi en mémoire pour la console de debug (Réglages, administrateur), qui les suit en direct :
+// K.NOVA tourne sans fenêtre, c'est là qu'on regarde ce qui se passe.
+const dernieresLignes = []
+const ecouteurs = new Set()
+export const lignesJournal = () => [...dernieresLignes]
+export function suivreJournal(ecouteur) {
+  ecouteurs.add(ecouteur)
+  return () => ecouteurs.delete(ecouteur)
+}
+function retenir(ligne) {
+  dernieresLignes.push(ligne)
+  if (dernieresLignes.length > 600) dernieresLignes.shift()
+  for (const ecouteur of ecouteurs) {
+    try {
+      ecouteur(ligne)
+    } catch {}
+  }
+}
+// Les avertissements et erreurs de Node passent aussi dans la console de debug (pas dans le fichier).
+for (const niveau of ['warn', 'error']) {
+  const origine = console[niveau].bind(console)
+  console[niveau] = (...morceaux) => {
+    origine(...morceaux)
+    retenir(`${new Date().toISOString()}  [${niveau === 'warn' ? 'attention' : 'erreur'}] ${morceaux.map((m) => (m instanceof Error ? m.stack : String(m))).join(' ')}`)
+  }
+}
+
 export function journal(...morceaux) {
   const ligne = `${new Date().toISOString()}  ${morceaux.join(' ')}\n`
+  retenir(ligne.trimEnd())
   process.stdout.write(ligne)
   try {
     if (fs.existsSync(chemins.journal) && fs.statSync(chemins.journal).size > 200_000) {

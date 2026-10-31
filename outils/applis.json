@@ -7,7 +7,7 @@
       "couleur": "#10b981",
       "nom": "BiRTEC",
       "sousTitre": "Rapports BIRT",
-      "description": "Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs ITM, sur la base de la GMAO.",
+      "description": "Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs de la GMAO.",
       "depot": "Jeff12873/birtec",
       "besoins": ["java", "birt", "ia"]
     },

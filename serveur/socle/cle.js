@@ -58,9 +58,9 @@ export function lireFichierCle(texte) {
   try {
     j = JSON.parse(String(texte))
   } catch {
-    throw Object.assign(new Error('Ce fichier n’est pas une clé du site KTEC.'), { statut: 400 })
+    throw Object.assign(new Error('Ce fichier n’est pas une clé du site K.NOVA.'), { statut: 400 })
   }
-  if (j.format !== 'ktec-cle-du-site' || !j.cle) throw Object.assign(new Error('Ce fichier n’est pas une clé du site KTEC.'), { statut: 400 })
+  if (j.format !== 'ktec-cle-du-site' || !j.cle) throw Object.assign(new Error('Ce fichier n’est pas une clé du site K.NOVA.'), { statut: 400 })
   const c = Buffer.from(j.cle, 'base64')
   if (c.length !== 32) throw Object.assign(new Error('Clé du site abîmée.'), { statut: 400 })
   return c

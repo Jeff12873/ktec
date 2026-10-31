@@ -77,7 +77,7 @@ async function suivreEnFlux(ctx, travail, apres = () => {}) {
 
 // Le lanceur (Lancer KTEC.bat, lancer-ktec.sh) relance KTEC quand il s'arrête avec le code 42.
 function redemarrer() {
-  journal('Redémarrage de KTEC après une mise à jour')
+  journal('Redémarrage de K.NOVA après une mise à jour')
   arreter(42)
 }
 

@@ -1,4 +1,4 @@
-// L'installation de KTEC et de ses applications, ses mises à jour et sa désinstallation.
+// L'installation de K.NOVA et de ses applications, ses mises à jour et sa désinstallation.
 //
 // Source des paquets :
 //   - hors ligne : le kit (dossier hors-ligne/ à côté du lanceur), avec kit.json, les composants et applis/<id>.zip ;
@@ -17,7 +17,7 @@ import { RACINE, WINDOWS, version, lireJson, ecrireJson, dossierInstallationParD
 import { telecharger } from '../socle/telechargement.js'
 import { decompresser, lireZip } from '../socle/zip.js'
 import * as composants from './composants.js'
-import { creerRaccourcis, supprimerRaccourcis } from './raccourcis.js'
+import { creerRaccourcis, supprimerRaccourcis, mettreAJourRaccourcis } from './raccourcis.js'
 
 const KIT = path.join(RACINE, 'hors-ligne')
 const DEPOT_CATALOGUE = 'https://raw.githubusercontent.com/Jeff12873/ktec/main/outils/applis.json'
@@ -144,10 +144,10 @@ export async function installer({ dossier, applis = [], modele = 'auto', raccour
     const etapes = 3 + (besoins.has('ia') ? 2 : 0) + (besoins.has('java') ? 1 : 0) + (raccourcis ? 1 : 0)
     let numero = 0
     const etape = (titre) => suivi('etape', { numero: ++numero, total: etapes, titre })
-    journal(`Installation de KTEC dans ${dossier} : ${applis.join(', ') || 'socle seul'} (${k ? 'kit hors ligne' : 'en ligne'})`)
+    journal(`Installation de K.NOVA dans ${dossier} : ${applis.join(', ') || 'socle seul'} (${k ? 'kit hors ligne' : 'en ligne'})`)
 
     // 1. Le programme KTEC et Node
-    etape(`Programme KTEC ${cat.socle.version || version()} dans ${dossier}`)
+    etape(`Programme K.NOVA ${cat.socle.version || version()} dans ${dossier}`)
     fs.mkdirSync(dossier, { recursive: true })
     if (path.resolve(dossier) !== path.resolve(RACINE)) copierSocle(RACINE, dossier)
     composants.installerNode(dossier, suivi)
@@ -288,16 +288,16 @@ const differente = (dispo, installee) => Boolean(dispo) && dispo !== installee &
 // Renvoie { redemarrer } : vrai si le programme KTEC qui tourne a été remplacé.
 export async function mettreAJour({ applis = null, socle = true } = {}, suivi) {
   const dossier = dossierInstalle()
-  if (!dossier) throw new Error('KTEC n’est pas installé sur ce poste.')
+  if (!dossier) throw new Error('K.NOVA n’est pas installé sur ce poste.')
   const reg = registre(dossier)
   const cat = await catalogueApplis()
   let redemarrer = false
   if (socle && differente(cat.socle.version, reg.ktec)) {
-    suivi('etape', { numero: 1, total: 2, titre: `Programme KTEC ${reg.ktec} → ${cat.socle.version}` })
+    suivi('etape', { numero: 1, total: 2, titre: `Programme K.NOVA ${reg.ktec} → ${cat.socle.version}` })
     if (kit()) copierSocle(RACINE, dossier)
     else {
       const zip = path.join(os.tmpdir(), `KTEC-${process.pid}.zip`)
-      await telecharger(`https://github.com/${cat.socle.depot}/releases/latest/download/${cat.socle.paquet}`, zip, { surProgression: composants.progression(suivi, 'KTEC') })
+      await telecharger(`https://github.com/${cat.socle.depot}/releases/latest/download/${cat.socle.paquet}`, zip, { surProgression: composants.progression(suivi, 'K.NOVA') })
       const temporaire = path.join(os.tmpdir(), `KTEC-maj-${process.pid}`)
       fs.rmSync(temporaire, { recursive: true, force: true })
       decompresser(fs.readFileSync(zip), temporaire)
@@ -305,6 +305,7 @@ export async function mettreAJour({ applis = null, socle = true } = {}, suivi) {
       fs.rmSync(temporaire, { recursive: true, force: true })
       fs.rmSync(zip, { force: true })
     }
+    mettreAJourRaccourcis(dossier)
     // Le moteur Java a pu changer : on le recompile.
     const config = lireJson(path.join(dossier, 'installation.json'), {})
     if (config.java && config.birt && config.connecteur) {
@@ -338,7 +339,7 @@ const DOSSIER_MAJ = path.join(RACINE, 'cache', 'mise-a-jour')
 
 export function lireMiseAJour(octets) {
   const dossier = dossierInstalle()
-  if (!dossier) throw new Error('KTEC n’est pas installé sur ce poste.')
+  if (!dossier) throw new Error('K.NOVA n’est pas installé sur ce poste.')
   fs.rmSync(DOSSIER_MAJ, { recursive: true, force: true })
   try {
     decompresser(octets, DOSSIER_MAJ)
@@ -348,7 +349,7 @@ export function lireMiseAJour(octets) {
   // Le zip peut contenir un dossier racine (KTEC-mise-a-jour-…/).
   const racineMaj = trouverRacineMaj()
   const infos = racineMaj && lireJson(path.join(racineMaj, 'mise-a-jour.json'), null)
-  if (!infos) throw new Error('Ce zip n’est pas une mise à jour de KTEC (mise-a-jour.json absent).')
+  if (!infos) throw new Error('Ce zip n’est pas une mise à jour de K.NOVA (mise-a-jour.json absent).')
   const reg = registre(dossier)
   return {
     cree: infos.cree,
@@ -366,21 +367,22 @@ function trouverRacineMaj() {
 // Applique la mise à jour lue : le programme s'il est différent, et les applications installées dont la version diffère.
 export async function appliquerMiseAJour(suivi) {
   const dossier = dossierInstalle()
-  if (!dossier) throw new Error('KTEC n’est pas installé sur ce poste.')
+  if (!dossier) throw new Error('K.NOVA n’est pas installé sur ce poste.')
   const racineMaj = trouverRacineMaj()
   const infos = racineMaj && lireJson(path.join(racineMaj, 'mise-a-jour.json'), null)
   if (!infos) throw new Error('Aucune mise à jour lue : choisissez d’abord le fichier.')
   const reg = registre(dossier)
   let redemarrer = false
   if (infos.ktec && infos.ktec !== reg.ktec && fs.existsSync(path.join(racineMaj, 'KTEC'))) {
-    suivi('etape', { numero: 1, total: 2, titre: `Programme KTEC ${reg.ktec} → ${infos.ktec}` })
+    suivi('etape', { numero: 1, total: 2, titre: `Programme K.NOVA ${reg.ktec} → ${infos.ktec}` })
     copierSocle(path.join(racineMaj, 'KTEC'), dossier)
+    mettreAJourRaccourcis(dossier)
     const config = lireJson(path.join(dossier, 'installation.json'), {})
     if (config.java && config.birt && config.connecteur) {
       composants.compilerMoteurJava(dossier, { javac: path.join(path.dirname(config.java), WINDOWS ? 'javac.exe' : 'javac') }, config.birt, config.connecteur, suivi)
     }
     reg.ktec = lireVersion(dossier)
-    suivi('message', `Programme KTEC ${reg.ktec} installé.`)
+    suivi('message', `Programme K.NOVA ${reg.ktec} installé.`)
     redemarrer = path.resolve(dossier) === path.resolve(RACINE)
   }
   suivi('etape', { numero: 2, total: 2, titre: 'Applications' })
@@ -402,7 +404,7 @@ export async function appliquerMiseAJour(suivi) {
 // Une application : son dossier apps/<id> et sa ligne du registre. Les composants communs restent.
 export function desinstallerAppli(id) {
   const dossier = dossierInstalle()
-  if (!dossier) throw new Error('KTEC n’est pas installé sur ce poste.')
+  if (!dossier) throw new Error('K.NOVA n’est pas installé sur ce poste.')
   const reg = registre(dossier)
   fs.rmSync(path.join(dossier, 'apps', id), { recursive: true, force: true })
   delete reg.applis[id]
@@ -416,12 +418,12 @@ export function desinstallerAppli(id) {
 // Si ce programme tourne depuis le dossier à supprimer, la suppression est faite juste après son arrêt.
 export function toutDesinstaller({ modeles = false } = {}) {
   const dossier = dossierInstalle()
-  if (!dossier) throw new Error('KTEC n’est pas installé sur ce poste.')
+  if (!dossier) throw new Error('K.NOVA n’est pas installé sur ce poste.')
   const config = lireJson(path.join(dossier, 'installation.json'), {})
   supprimerRaccourcis()
   const aSupprimer = [dossier]
   if (modeles && config.dossierModeles && !config.dossierModeles.startsWith(dossier)) aSupprimer.push(config.dossierModeles)
-  journal(`Désinstallation de KTEC : ${aSupprimer.join(', ')}`)
+  journal(`Désinstallation de K.NOVA : ${aSupprimer.join(', ')}`)
   const enCoursDUtilisation = path.resolve(dossier) === path.resolve(RACINE)
   if (!enCoursDUtilisation) {
     for (const d of aSupprimer) fs.rmSync(d, { recursive: true, force: true })
@@ -440,8 +442,8 @@ export function toutDesinstaller({ modeles = false } = {}) {
 // Lance KTEC installé (après une installation depuis un kit ou un zip).
 export function lancerKtec(dossier) {
   if (WINDOWS) {
-    // Fenêtre réduite, comme le raccourci : on ne voit que le navigateur.
-    spawn('cmd.exe', ['/c', `start "KTEC" /min "${path.join(dossier, 'Lancer KTEC.bat')}"`], { cwd: dossier, detached: true, stdio: 'ignore', windowsVerbatimArguments: true }).unref()
+    // Comme le raccourci : Node sur le lanceur, sans fenêtre ; on ne voit que la fenêtre de K.NOVA.
+    spawn(path.join(dossier, 'moteur', 'node', 'node.exe'), [path.join('serveur', 'lanceur.js')], { cwd: dossier, detached: true, stdio: 'ignore', windowsHide: true }).unref()
   } else {
     spawn('sh', [path.join(dossier, 'lancer-ktec.sh')], { cwd: dossier, detached: true, stdio: 'ignore' }).unref()
   }

@@ -46,7 +46,7 @@ export function lancerAssistant({ seulementCle = false } = {}) {
     // ---- 1. Bienvenue
     function bienvenue() {
       ecran({
-        titre: 'Bienvenue dans KTEC',
+        titre: 'Bienvenue dans K.NOVA',
         description: 'Les applications de l’atelier : rapports et indicateurs (BiRTEC), recherche de pièces (PDRTEC), assistant IA (AITEC). Tout reste chez vous : un fichier de connaissances local, une IA sur ce poste, aucun envoi sur Internet. Trois questions pour commencer.',
         boutons: [bouton('Commencer', () => fichier(), 'principal')],
       })
@@ -127,7 +127,7 @@ export function lancerAssistant({ seulementCle = false } = {}) {
         return ecran({
           numero: 2,
           titre: 'Avez-vous la clé du site ?',
-          description: 'La configuration de ce fichier (connexion, adresses, requêtes, réglages) est chiffrée. La clé du site, un petit fichier .ktecclef exporté sur le premier poste, permet à KTEC de la lire. Elle n’est demandée qu’une fois sur ce poste.',
+          description: 'La configuration de ce fichier (connexion, adresses, requêtes, réglages) est chiffrée. La clé du site, un petit fichier .ktecclef exporté sur le premier poste, permet à K.NOVA de la lire. Elle n’est demandée qu’une fois sur ce poste.',
           contenu: h('div', {}, message ? erreur(message) : null, choix),
           boutons: [
             bouton('Oui, je la choisis', () => choix.click(), 'principal'),
@@ -142,7 +142,7 @@ export function lancerAssistant({ seulementCle = false } = {}) {
       ecran({
         numero: 2,
         titre: 'Protéger la configuration ?',
-        description: 'KTEC peut chiffrer la configuration rangée dans le fichier (connexion à la base, adresses, requêtes, réglages des applications) : sans la clé du site, personne ne peut la lire, et aucun mot de passe n’est à taper. La clé est créée sur ce poste ; exportez-la ensuite et gardez-la en lieu sûr : les autres postes en auront besoin.',
+        description: 'K.NOVA peut chiffrer la configuration rangée dans le fichier (connexion à la base, adresses, requêtes, réglages des applications) : sans la clé du site, personne ne peut la lire, et aucun mot de passe n’est à taper. La clé est créée sur ce poste ; exportez-la ensuite et gardez-la en lieu sûr : les autres postes en auront besoin.',
         contenu: message ? erreur(message) : null,
         boutons: [
           bouton('Oui, chiffrer et exporter la clé', async () => {
@@ -224,9 +224,9 @@ export function lancerAssistant({ seulementCle = false } = {}) {
       const ligne = (libelle, valeur) => valeur ? h('li', {}, h('b', {}, libelle + ' : '), valeur) : null
       ecran({
         titre: seulementCle ? 'La configuration est lisible' : 'C’est prêt',
-        description: seulementCle ? 'La clé du site est enregistrée sur ce poste : les applications retrouvent leurs réglages.' : 'KTEC est réglé sur ce poste. Tout se modifie ensuite dans « Réglages », en bas du lanceur.',
+        description: seulementCle ? 'La clé du site est enregistrée sur ce poste : les applications retrouvent leurs réglages.' : 'K.NOVA est réglé sur ce poste. Tout se modifie ensuite dans « Réglages », en bas du lanceur.',
         contenu: seulementCle ? null : h('ul', { class: 'bilan-assistant' }, ligne('Fichier de connaissances', bilan.fichier), ligne('Clé du site', bilan.cle), ligne('Base de la GMAO', bilan.connexion)),
-        boutons: [bouton('Ouvrir KTEC', async () => { if (!seulementCle) await api('/api/ktec/assistant/fini', { methode: 'POST' }).catch(() => {}); fermer() }, 'principal')],
+        boutons: [bouton('Ouvrir K.NOVA', async () => { if (!seulementCle) await api('/api/ktec/assistant/fini', { methode: 'POST' }).catch(() => {}); fermer() }, 'principal')],
       })
     }
 

@@ -1,6 +1,7 @@
 // « Message au développeur » : une petite fenêtre pour proposer une amélioration, avec des captures d'écran
 // (collées avec Ctrl+V, glissées ou choisies). Le message est rangé dans le fichier de connaissances, avec
-// l'application, l'écran, la version et le poste ; rien n'est envoyé sur Internet.
+// l'application, l'écran, la version et le poste. Pour l'envoyer : un mot de passe, puis Outlook s'ouvre avec
+// le mail prêt (K.NOVA lui-même ne se connecte pas à Internet).
 
 import { h, vider, ic, notifier, fenetre } from './ui.js'
 import { api } from './api.js'
@@ -40,22 +41,59 @@ export function ouvrirMessage({ appli = 'ktec', ecran = '' } = {}) {
     titre: 'Message au développeur',
     large: true,
     contenu: h('div', {},
-      h('p', { class: 'texte-2' }, 'Une idée d’amélioration, un souci ? Décrivez-le, avec une capture si possible. Le message reste chez vous, dans le fichier de connaissances : il sera lu et exporté depuis le lanceur (« Messages »).'),
+      h('p', { class: 'texte-2' }, 'Une idée d’amélioration, un souci ? Décrivez-le, avec une capture si possible. Le message est gardé dans le fichier de connaissances (« Messages » sur le portail) ; avec le mot de passe, il part au développeur par Outlook.'),
       zone),
     boutons: [
       { texte: 'Annuler', classe: 'discret', valeur: null },
-      {
-        texte: 'Enregistrer le message',
-        classe: 'principal',
-        action: async () => {
-          if (!texte.value.trim() && !images.length) { notifier('Écrivez un message ou ajoutez une image.', 'erreur'); return false }
-          await api('/api/ktec/messages', { methode: 'POST', corps: { appli, ecran, texte: texte.value, images } })
-          notifier('Message enregistré, merci !')
-          return true
-        },
-      },
+      { texte: 'Enregistrer seulement', classe: 'discret', action: () => enregistrer() },
+      { texte: 'Envoyer par Outlook…', classe: 'principal', action: async () => {
+        const message = await enregistrer()
+        if (message) await envoyerParOutlook([message.id])
+        return Boolean(message)
+      } },
     ],
   })
+
+  async function enregistrer() {
+    if (!texte.value.trim() && !images.length) { notifier('Écrivez un message ou ajoutez une image.', 'erreur'); return false }
+    const message = await api('/api/ktec/messages', { methode: 'POST', corps: { appli, ecran, texte: texte.value, images } })
+    notifier('Message enregistré, merci !')
+    return message
+  }
+}
+
+// L'envoi : le mot de passe (demandé une fois par page), puis le mail s'ouvre dans Outlook ; s'il y a des
+// captures, leur zip est téléchargé en même temps, à joindre au mail.
+let motDePasseRetenu = ''
+export async function envoyerParOutlook(ids = null) {
+  let reponse = null
+  if (motDePasseRetenu) reponse = await api('/api/ktec/messages/envoi', { methode: 'POST', corps: { motDePasse: motDePasseRetenu, ids } }).catch(() => null)
+  if (!reponse) {
+    const champ = h('input', { type: 'password', autocomplete: 'off', placeholder: 'Mot de passe' })
+    setTimeout(() => champ.focus(), 50)
+    reponse = await fenetre({
+      titre: 'Envoyer au développeur',
+      contenu: h('div', {}, h('p', { class: 'texte-2', style: { marginTop: 0 } }, 'L’envoi est réservé aux personnes qui ont reçu le mot de passe. Outlook s’ouvrira avec le mail prêt à partir.'), champ),
+      boutons: [
+        { texte: 'Annuler', classe: 'discret', valeur: null },
+        { texte: 'Préparer le mail', classe: 'principal', action: async () => {
+          const r = await api('/api/ktec/messages/envoi', { methode: 'POST', corps: { motDePasse: champ.value, ids } })
+          motDePasseRetenu = champ.value
+          return r
+        } },
+      ],
+    })
+  }
+  if (!reponse) return false
+  if (reponse.zip) {
+    const lien = h('a', { href: reponse.zip, download: '' })
+    document.body.append(lien)
+    lien.click()
+    lien.remove()
+  }
+  setTimeout(() => (location.href = reponse.mailto), reponse.zip ? 600 : 0)
+  notifier(reponse.zip ? 'Outlook s’ouvre : joignez le zip des captures (dossier Téléchargements), puis envoyez.' : 'Outlook s’ouvre avec le mail prêt : il ne reste qu’à l’envoyer.')
+  return true
 }
 
 // Une image en « data: » ; réduite si elle dépasse COTE_MAX, en PNG (captures) ou JPEG si elle reste lourde.
