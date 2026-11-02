@@ -24,7 +24,7 @@ const DEPOT_CATALOGUE = 'https://raw.githubusercontent.com/Jeff12873/ktec/main/o
 
 // Ce qui fait le programme KTEC lui-même (copié ou remplacé à l'installation et aux mises à jour).
 const FICHIERS_DU_SOCLE = ['serveur', 'interface', 'moteur-java', 'outils', 'docs', 'VERSION', 'package.json', 'README.md', 'nouveautes.json',
-  'Lancer KTEC.bat', 'lancer-ktec.sh', 'Installer KTEC.bat', 'installer-ktec.sh']
+  'Lancer KTEC.bat', 'lancer-ktec.sh', 'Installer KTEC.bat', 'installer-ktec.sh', 'Desinstaller KTEC.bat']
 
 export const kit = () => lireJson(path.join(KIT, 'kit.json'), null)
 
@@ -229,7 +229,7 @@ function copierSocle(source, destination) {
   }
   if (!WINDOWS) for (const sh of ['lancer-ktec.sh', 'installer-ktec.sh']) if (fs.existsSync(path.join(destination, sh))) fs.chmodSync(path.join(destination, sh), 0o755)
   // Lanceurs Windows en fins de ligne Windows (cmd lit mal un .bat en fins Linux).
-  for (const bat of ['Lancer KTEC.bat', 'Installer KTEC.bat']) {
+  for (const bat of ['Lancer KTEC.bat', 'Installer KTEC.bat', 'Desinstaller KTEC.bat']) {
     const f = path.join(destination, bat)
     if (fs.existsSync(f)) fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n').replace(/\n/g, '\r\n'))
   }

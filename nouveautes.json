@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.5",
+      "date": "2026-11-02",
+      "points": [
+        "« Desinstaller KTEC.bat » (Windows) : arrête K.NOVA, retire le programme, ses applications et ses raccourcis ; garde Documents\\KTEC (fichier de connaissances, sauvegardes) ; les modèles d'IA seulement si on le demande. Fourni dans le kit et dans le dossier installé"
+      ]
+    },
+    {
       "version": "0.8.4",
       "date": "2026-11-02",
       "points": [

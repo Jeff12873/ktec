@@ -29,7 +29,7 @@ const catalogue = lireCatalogue()
 const applis = lireJson(path.join(RACINE, 'outils', 'applis.json'), { applis: [] })
 const ICI = process.platform === 'win32' ? 'windows' : 'linux'
 const FICHIERS_DU_PROGRAMME = ['serveur', 'interface', 'moteur-java', 'outils', 'docs', 'VERSION', 'package.json', 'README.md', 'nouveautes.json',
-  'Lancer KTEC.bat', 'lancer-ktec.sh', 'Installer KTEC.bat', 'installer-ktec.sh']
+  'Lancer KTEC.bat', 'lancer-ktec.sh', 'Installer KTEC.bat', 'installer-ktec.sh', 'Desinstaller KTEC.bat']
 
 main().catch((erreur) => {
   console.error('\n✗ ' + erreur.message)
