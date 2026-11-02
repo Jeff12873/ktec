@@ -5,7 +5,8 @@
       "date": "2026-11-02",
       "points": [
         "Zip de mise à jour décompressé : « Installer KTEC.bat » applique la mise à jour hors ligne à K.NOVA installé (il l'arrête s'il est ouvert), au lieu de lancer une installation en ligne qui restait bloquée sur « Installation en cours » sans accès à Internet",
-        "Téléchargements : abandon avec un message clair après une minute sans réponse (poste sans accès à Internet ou proxy muet), au lieu d'attendre indéfiniment"
+        "Téléchargements : abandon avec un message clair après une minute sans réponse (poste sans accès à Internet ou proxy muet), au lieu d'attendre indéfiniment",
+        "« Installer KTEC.bat » prend le Node de K.NOVA déjà installé quand le zip n'en contient pas : plus de téléchargement de Node pour une mise à jour"
       ]
     },
     {

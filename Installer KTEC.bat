@@ -12,6 +12,9 @@ set "NODE_VERSION=v24.21.0"
 set "NODE=%~dp0hors-ligne\node\node.exe"
 if exist "%NODE%" goto lancer
 
+rem Mise a jour d'un poste ou K.NOVA est deja installe : son Node suffit, rien a telecharger.
+set "NODE=%LOCALAPPDATA%\KTEC\moteur\node\node.exe"
+if exist "%NODE%" goto lancer
 set "NODE=%LOCALAPPDATA%\KTEC-installation\node-%NODE_VERSION%-win-x64\node.exe"
 if exist "%NODE%" goto lancer
 echo Téléchargement de Node %NODE_VERSION%...
