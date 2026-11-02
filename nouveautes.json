@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.8.7",
+      "date": "2026-11-02",
+      "points": [
+        "Pastille « IA » ou « NoIA » sur chaque tuile d'application (portail et page d'installation) : AITEC a besoin de l'IA, BiRTEC et PDRTEC fonctionnent sans",
+        "BiRTEC n'exige plus l'IA à l'installation : il s'installe avec Java et BIRT seulement, sur tout poste"
+      ]
+    },
+    {
       "version": "0.8.6",
       "date": "2026-11-02",
       "points": [

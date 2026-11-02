@@ -9,7 +9,7 @@
       "sousTitre": "Rapports BIRT",
       "description": "Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs de la GMAO.",
       "depot": "Jeff12873/birtec",
-      "besoins": ["java", "birt", "ia"]
+      "besoins": ["java", "birt"]
     },
     {
       "id": "pdrtec",

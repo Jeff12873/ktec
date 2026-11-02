@@ -139,7 +139,8 @@ function formulaireInstallation() {
     vider(tuiles, catalogue.applis.map((a) => h('label', { class: `tuile-appli ${choix.has(a.id) ? '' : 'absente'}${bloquee(a) ? ' bloquee' : ''}`, style: { cursor: bloquee(a) ? 'not-allowed' : 'pointer', ...(a.couleur ? { '--accent': a.couleur } : {}) }, title: bloquee(a) ? etat.capaciteIA.raison : null },
       h('div', { class: 'tete' },
         h('input', { type: 'checkbox', checked: choix.has(a.id), disabled: bloquee(a), style: { width: 'auto' }, onchange: (e) => { e.target.checked ? choix.add(a.id) : choix.delete(a.id); dessinerTuiles() } }),
-        h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre))),
+        h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre)),
+        (a.besoins || []).includes('ia') ? h('span', { class: 'pastille-ia' }, 'IA') : h('span', { class: 'pastille-ia sans' }, 'NoIA')),
       h('p', {}, a.description),
       bloquee(a) ? h('p', { class: 'raison-bloquee' }, ic('cadenas', 14), ' Pas installable sur ce poste : l’IA demandée y serait trop lente.') : null,
       h('span', { class: 'version' }, `Version ${versionLisible(a.disponible)} · demande : ${(a.besoins || []).map((b) => BESOINS[b] || b).join(', ')}`))))
