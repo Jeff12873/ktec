@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.8.4",
+      "date": "2026-11-02",
+      "points": [
+        "Chaque tuile d'application a son bouton « Désinstaller » (mode administrateur) : les données du fichier de connaissances sont gardées, K.NOVA redémarre",
+        "Désinstaller une application ou K.NOVA depuis K.NOVA installé est réservé à l'administrateur ; seule une application connue du poste peut être désinstallée"
+      ]
+    },
+    {
       "version": "0.8.3",
       "date": "2026-10-31",
       "points": [

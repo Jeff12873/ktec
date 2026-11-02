@@ -374,6 +374,7 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 .tuile-appli .tete span { color: var(--texte-3); font-size: 13px; }
 .tuile-appli p { color: var(--texte-2); font-size: 14px; flex: 1; }
 .tuile-appli .version { font-size: 12px; color: var(--texte-3); }
+.tuile-appli .pied-tuile { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; }
 .tuile-appli.absente { opacity: 0.55; border-style: dashed; }
 .portail-pied { margin-top: 32px; color: var(--texte-3); font-size: 13px; display: flex; gap: 18px; flex-wrap: wrap; }
 .portail-etat { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }

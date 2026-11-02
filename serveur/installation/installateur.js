@@ -406,6 +406,8 @@ export function desinstallerAppli(id) {
   const dossier = dossierInstalle()
   if (!dossier) throw new Error('K.NOVA n’est pas installé sur ce poste.')
   const reg = registre(dossier)
+  // Seulement une application connue du registre, par son identifiant simple (jamais un chemin).
+  if (!/^[a-z0-9-]+$/.test(String(id || '')) || !reg?.applis?.[id]) throw new Error(`Application inconnue : ${id || '(aucune)'}`)
   fs.rmSync(path.join(dossier, 'apps', id), { recursive: true, force: true })
   delete reg.applis[id]
   ecrireJson(path.join(dossier, 'registre.json'), reg)

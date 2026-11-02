@@ -39,6 +39,8 @@ export function routes(r, { modeInstallation }) {
   })
 
   r.post('/api/ktec/installation/desinstaller', async (ctx) => {
+    // Depuis K.NOVA installé : réservé à l'administrateur (depuis le kit d'installation, il n'y a pas encore de fichier).
+    if (!modeInstallation) ctx.exigerModeAdmin()
     const { id } = await ctx.json()
     const registre = desinstallerAppli(id)
     // Les routes de l'application sont chargées : on redémarre KTEC (sauf depuis le kit, qui n'en charge aucune).
@@ -47,6 +49,8 @@ export function routes(r, { modeInstallation }) {
   })
 
   r.post('/api/ktec/installation/tout-desinstaller', async (ctx) => {
+    // Depuis K.NOVA installé : réservé à l'administrateur (depuis le kit d'installation, il n'y a pas encore de fichier).
+    if (!modeInstallation) ctx.exigerModeAdmin()
     const { modeles = false } = await ctx.json()
     const { arret } = toutDesinstaller({ modeles })
     if (arret) arreter(0)

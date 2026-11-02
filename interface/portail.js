@@ -31,13 +31,34 @@ const assistant = await api('/api/ktec/assistant').catch(() => ({}))
 const avecAssistant = Boolean(assistant.aFaire || assistant.cleManquante)
 
 
+// Désinstaller une application, depuis sa tuile (administrateur). Ses données dans le fichier de connaissances
+// sont gardées : la réinstaller les retrouve. K.NOVA redémarre ensuite.
+const boutonsDesinstaller = []
+function boutonDesinstaller(a) {
+  const bouton = h('button', { class: 'petit discret danger desinstaller-appli', hidden: !modeAdmin(), title: `Désinstaller ${a.nom} de ce poste`, onclick: async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!(await confirmer(`Désinstaller ${a.nom} de ce poste ? Ses données dans le fichier de connaissances sont gardées : la réinstaller les retrouve. K.NOVA redémarre ensuite.`, { texte: 'Désinstaller', danger: true }))) return
+    try {
+      await api('/api/ktec/installation/desinstaller', { methode: 'POST', corps: { id: a.id } })
+      notifier(`${a.nom} est désinstallée : K.NOVA redémarre.`)
+      setTimeout(() => location.reload(), 4000)
+    } catch (erreur) {
+      notifier(erreur.message, 'erreur')
+    }
+  } }, ic('poubelle', 14), 'Désinstaller')
+  boutonsDesinstaller.push(bouton)
+  return bouton
+}
+surChangement(() => boutonsDesinstaller.forEach((b) => { b.hidden = !modeAdmin() }))
+
 const installees = new Set(applis.map((a) => a.id))
 const tuiles = [
   ...applis.map((a) => h('a', { class: 'tuile-appli', href: `/${a.id}/`, style: a.couleur ? { '--accent': a.couleur } : {} },
     h('div', { class: 'tete' }, h('img', { src: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, alt: '' }),
       h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre || ''))),
     h('p', {}, a.description || ''),
-    h('span', { class: 'version' }, `Version ${a.version}`))),
+    h('div', { class: 'pied-tuile' }, h('span', { class: 'version' }, `Version ${a.version}`), boutonDesinstaller(a)))),
   ...SUITE.filter((a) => !installees.has(a.id)).map((a) => h('a', { class: 'tuile-appli absente', href: '/installation/', style: { '--accent': a.couleur }, title: 'Pas encore installée sur ce poste : cliquer pour l’installer' },
     h('div', { class: 'tete' }, h('img', { src: '/icone.svg', alt: '' }), h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre))),
     h('p', {}, a.description),
