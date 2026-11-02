@@ -18,7 +18,7 @@ export function modeleConseille(catalogue, ramGo, vramGo) {
 
 // Télécharge un fichier depuis Hugging Face en vérifiant sa taille et son empreinte.
 export async function telechargerDepuisHuggingFace(depot, fichier, destination, surProgression) {
-  const infos = await fetch(`https://huggingface.co/api/models/${depot}?blobs=true`).then((r) => r.json())
+  const infos = await fetch(`https://huggingface.co/api/models/${depot}?blobs=true`, { signal: AbortSignal.timeout(30_000) }).then((r) => r.json())
   const fiche = infos.siblings?.find((s) => s.rfilename === fichier)
   if (!fiche) throw new Error(`Fichier ${fichier} introuvable sur Hugging Face (${depot})`)
   await telecharger(`https://huggingface.co/${depot}/resolve/main/${fichier}`, destination, {

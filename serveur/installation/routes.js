@@ -8,7 +8,7 @@ import path from 'node:path'
 import { journal, RACINE } from '../socle/installation.js'
 import { publierMaintenant } from '../socle/partage.js'
 import { arreterIA } from '../socle/ia.js'
-import { etat, catalogueApplis, installer, mettreAJour, desinstallerAppli, toutDesinstaller, lancerKtec, lireMiseAJour, appliquerMiseAJour } from './installateur.js'
+import { etat, catalogueApplis, installer, mettreAJour, desinstallerAppli, toutDesinstaller, lancerKtec, lireMiseAJour, appliquerMiseAJour, appliquerPaquet } from './installateur.js'
 
 export function routes(r, { modeInstallation }) {
   r.get('/api/ktec/installation/etat', () => ({ ...etat(), modeInstallation }))
@@ -36,6 +36,11 @@ export function routes(r, { modeInstallation }) {
   // … puis appliqué (réponse en flux, comme une mise à jour en ligne).
   r.post('/api/ktec/installation/fichier/appliquer', async (ctx) => {
     await suivreEnFlux(ctx, (suivi) => appliquerMiseAJour(suivi), (resultat) => resultat.redemarrer && redemarrer())
+  })
+
+  // Lancé depuis un zip de mise à jour décompressé : la mise à jour rangée à côté, appliquée à K.NOVA installé.
+  r.post('/api/ktec/installation/paquet/appliquer', async (ctx) => {
+    await suivreEnFlux(ctx, (suivi) => appliquerPaquet(suivi))
   })
 
   r.post('/api/ktec/installation/desinstaller', async (ctx) => {

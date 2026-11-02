@@ -28,12 +28,25 @@ const FICHIERS_DU_SOCLE = ['serveur', 'interface', 'moteur-java', 'outils', 'doc
 
 export const kit = () => lireJson(path.join(KIT, 'kit.json'), null)
 
+// Lancé depuis un zip de mise à jour décompressé (KTEC-mise-a-jour-…/KTEC/Installer KTEC.bat) : la mise à jour
+// s'applique hors ligne à K.NOVA déjà installé, avec les paquets rangés à côté (rien n'est téléchargé).
+const RACINE_PAQUET = path.dirname(RACINE)
+export const paquetMaj = () => (registre(RACINE) ? null : lireJson(path.join(RACINE_PAQUET, 'mise-a-jour.json'), null))
+
 // ---------------------------------------------------------------- catalogue et état
 
 // Les applications disponibles, avec leur dernière version (kit hors ligne ou GitHub).
 export async function catalogueApplis() {
   const k = kit()
   const local = lireJson(path.join(RACINE, 'outils', 'applis.json'), { applis: [] })
+  const p = paquetMaj()
+  if (p) {
+    return {
+      source: 'paquet',
+      socle: { version: p.ktec, nouveautes: lireJson(path.join(RACINE, 'nouveautes.json'), { versions: [] }).versions },
+      applis: local.applis.filter((a) => p.applis?.[a.id]).map((a) => ({ ...a, disponible: p.applis[a.id], nouveautes: nouveautesDuPaquet(path.join(RACINE_PAQUET, 'applis', `${a.id}.zip`), a.id) })),
+    }
+  }
   if (k) {
     return {
       source: 'kit',
@@ -100,9 +113,11 @@ export function dossierInstalle() {
 export function etat() {
   const installe = dossierInstalle()
   const k = kit()
+  const p = paquetMaj()
   return {
-    source: k ? 'kit' : 'github',
+    source: k ? 'kit' : p ? 'paquet' : 'github',
     kit: k,
+    paquet: p,
     versionProgramme: version(),
     enInstallation: !registre(RACINE), // lancé depuis un kit ou un zip (pas depuis une installation)
     installe: installe ? { dossier: installe, ...registre(installe) } : null,
@@ -365,10 +380,9 @@ function trouverRacineMaj() {
 }
 
 // Applique la mise à jour lue : le programme s'il est différent, et les applications installées dont la version diffère.
-export async function appliquerMiseAJour(suivi) {
+export async function appliquerMiseAJour(suivi, racineMaj = trouverRacineMaj()) {
   const dossier = dossierInstalle()
   if (!dossier) throw new Error('K.NOVA n’est pas installé sur ce poste.')
-  const racineMaj = trouverRacineMaj()
   const infos = racineMaj && lireJson(path.join(racineMaj, 'mise-a-jour.json'), null)
   if (!infos) throw new Error('Aucune mise à jour lue : choisissez d’abord le fichier.')
   const reg = registre(dossier)
@@ -397,6 +411,37 @@ export async function appliquerMiseAJour(suivi) {
   ecrireJson(path.join(dossier, 'registre.json'), reg)
   fs.rmSync(DOSSIER_MAJ, { recursive: true, force: true })
   return { redemarrer, registre: reg }
+}
+
+// Le zip décompressé à côté de ce programme : K.NOVA installé est d'abord arrêté (ses fichiers sont remplacés),
+// puis la mise à jour est appliquée comme depuis « Depuis un fichier… ».
+export async function appliquerPaquet(suivi) {
+  if (!paquetMaj()) throw new Error('Ce dossier n’est pas un zip de mise à jour décompressé.')
+  const dossier = dossierInstalle()
+  if (!dossier) throw new Error('K.NOVA n’est pas installé sur ce poste : il faut d’abord le kit hors ligne complet.')
+  if (await arreterKtecInstalle(dossier)) suivi('message', 'K.NOVA ouvert sur ce poste : arrêté pour la mise à jour.')
+  return appliquerMiseAJour(suivi, RACINE_PAQUET)
+}
+
+// Demande à K.NOVA installé de s'arrêter (il enregistre le fichier de connaissances), puis attend qu'il ne réponde plus.
+async function arreterKtecInstalle(dossier) {
+  const { port } = lireJson(path.join(dossier, 'cache', 'serveur.json'), {})
+  if (!port) return false
+  const adresse = `http://127.0.0.1:${port}`
+  try {
+    await fetch(`${adresse}/api/ktec/quitter`, { method: 'POST', headers: { 'X-KTEC': '1' }, signal: AbortSignal.timeout(3000) })
+  } catch {
+    return false // il ne tournait pas
+  }
+  for (let i = 0; i < 20; i++) {
+    await new Promise((ok) => setTimeout(ok, 500))
+    try {
+      await fetch(`${adresse}/api/ping`, { signal: AbortSignal.timeout(1000) })
+    } catch {
+      return true
+    }
+  }
+  return true
 }
 
 // ---------------------------------------------------------------- désinstallation

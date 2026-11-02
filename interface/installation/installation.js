@@ -27,12 +27,13 @@ function entete() {
     h('img', { src: '/icone.svg', alt: '' }),
     h('div', {}, h('h1', {}, nomAppli(NOM_KNOVA)), h('p', { class: 'sous-titre' }, etat?.installe && !etat.modeInstallation ? 'Installation et mises à jour' : 'Installation des applications de l’atelier')),
     h('div', { class: 'espace' }),
-    etat ? h('span', { class: 'etiquette accent', title: sourceDetail() }, ic(etat.source === 'kit' ? 'dossier' : 'nuage', 15), etat.source === 'kit' ? 'Kit hors ligne' : 'En ligne (GitHub)') : null,
+    etat ? h('span', { class: 'etiquette accent', title: sourceDetail() }, ic(etat.source === 'github' ? 'nuage' : 'dossier', 15), { kit: 'Kit hors ligne', paquet: 'Mise à jour hors ligne' }[etat.source] || 'En ligne (GitHub)') : null,
     etat && !etat.modeInstallation ? h('a', { class: 'bouton petit discret', href: '/' }, ic('retour', 14), 'Portail') : null,
   )
 }
 
 function sourceDetail() {
+  if (etat.source === 'paquet') return `Zip de mise à jour fabriqué le ${dateHeureFr(etat.paquet.cree)} : rien n'est téléchargé.`
   if (etat.source !== 'kit') return 'Les paquets sont téléchargés depuis GitHub (dernières versions publiées).'
   return `Kit pour ${etat.kit.systeme}, fabriqué le ${dateHeureFr(etat.kit.cree)} : rien n'est téléchargé.`
 }
@@ -40,6 +41,11 @@ function sourceDetail() {
 function dessiner() {
   const contenu = h('div', { class: 'portail' }, entete())
   if (catalogue.erreur) contenu.append(h('div', { class: 'bandeau' }, ic('alerte'), `Catalogue indisponible : ${catalogue.erreur}`))
+  // Lancé depuis le zip de mise à jour décompressé : seulement cette mise à jour, hors ligne.
+  if (etat.paquet) {
+    contenu.append(cartePaquet())
+    return vider(racine, contenu)
+  }
   if (etat.installe) contenu.append(carteInstallee())
   if (!etat.installe || etat.modeInstallation) contenu.append(formulaireInstallation())
   vider(racine, contenu)
@@ -87,6 +93,30 @@ function carteInstallee() {
     h('p', { class: 'discret', style: { fontSize: '13px', marginTop: '12px' } }, `Composants communs : ${Object.entries(inst.composants || {}).map(([k, v]) => `${k} ${v}`).join(', ') || '—'}. Rien n'est installé deux fois.`),
     h('div', { class: 'actions', style: { marginTop: '10px' } }, h('button', { class: 'petit discret danger', onclick: toutDesinstaller }, ic('poubelle', 14), 'Désinstaller K.NOVA')),
   )
+}
+
+// ---------------------------------------------------------------- zip de mise à jour décompressé
+
+function cartePaquet() {
+  const inst = etat.installe
+  const p = etat.paquet
+  if (!inst) {
+    return h('div', { class: 'bandeau' }, ic('alerte'), 'Ce dossier est une mise à jour, mais K.NOVA n’est pas installé sur ce poste : installez-le d’abord avec le kit hors ligne complet.')
+  }
+  const change = (installee, fournie) => (!plusRecente(fournie, installee) ? h('span', { class: 'discret' }, 'déjà à jour') : h('strong', {}, `${versionLisible(installee)} → ${fournie}`))
+  const lignes = [
+    h('tr', {}, h('td', {}, h('strong', {}, 'Programme K.NOVA')), h('td', {}, change(inst.ktec, p.ktec))),
+    ...catalogue.applis.map((a) => h('tr', {}, h('td', {}, h('strong', {}, nomAppli(a.nom, a.couleur))),
+      h('td', {}, inst.applis?.[a.id] ? change(inst.applis[a.id], a.disponible) : h('span', { class: 'discret' }, 'pas installée ici : ignorée')))),
+  ]
+  return h('div', { class: 'carte' },
+    h('div', { class: 'carte-entete' }, h('h2', {}, ic('telecharger', 18), 'Mise à jour hors ligne'),
+      h('div', { class: 'actions' },
+        h('button', { class: 'principal', onclick: () => lancerMiseAJour(null, '/api/ktec/installation/paquet/appliquer') }, ic('rafraichir', 16), 'Mettre à jour'),
+        h('button', { onclick: () => ouvrirKtec(inst.dossier) }, ic('lecture', 16), 'Ouvrir K.NOVA sans mettre à jour'))),
+    h('p', { class: 'texte-2', style: { marginTop: 0 } }, `Mise à jour fabriquée le ${dateHeureFr(p.cree)}, pour K.NOVA installé dans `, h('span', { class: 'mono' }, inst.dossier),
+      '. Rien n’est téléchargé. K.NOVA, s’il est ouvert, est arrêté le temps de la mise à jour. Vos données (fichier de connaissances, rapports, réglages) ne sont pas touchées.'),
+    h('table', { class: 'tableau' }, h('tbody', {}, lignes)))
 }
 
 // ---------------------------------------------------------------- première installation
@@ -225,6 +255,12 @@ async function lancerMiseAJour(applis, adresse = '/api/ktec/installation/mettre-
     return
   }
   suivi.terminer('Mise à jour terminée')
+  // Depuis le zip décompressé : K.NOVA installé est arrêté, on propose de l'ouvrir.
+  if (etat.modeInstallation && etat.installe) {
+    vider(suivi.fin, h('div', { class: 'bandeau info', style: { marginTop: '14px' } }, ic('coche'), `Mise à jour installée dans ${etat.installe.dossier}.`),
+      h('div', { class: 'actions' }, h('button', { class: 'principal', onclick: () => ouvrirKtec(etat.installe.dossier) }, ic('lecture', 16), 'Ouvrir K.NOVA')))
+    return
+  }
   vider(suivi.fin, h('div', { class: 'bandeau info', style: { marginTop: '14px' } }, ic('coche'), resultat.redemarrer ? 'Mise à jour installée : K.NOVA redémarre…' : 'Tout est à jour.'))
   if (resultat.redemarrer) attendreRedemarrage()
   else setTimeout(charger, 1500)
