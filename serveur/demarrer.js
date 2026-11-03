@@ -35,16 +35,19 @@ const sansNavigateur = process.argv.includes('--sans-navigateur')
 
 // ---- 1. déjà lancé ?
 const precedent = lireJson(fichierServeur, null)
-if (precedent && (await repond(precedent.port))) {
+const enMarche = precedent && (await repond(precedent.port))
+if (enMarche) {
   console.log('K.NOVA est déjà lancé : ouverture de sa fenêtre.')
-  if (!sansNavigateur) ouvrirNavigateur(`http://127.0.0.1:${precedent.port}${page}`)
+  // Aucune page ouverte depuis 10 s (fenêtre restée noire ou fermée) : le navigateur habituel, plus sûr.
+  const sansFenetre = Date.now() - (enMarche.presence || 0) > 10_000
+  if (!sansNavigateur) ouvrirNavigateur(`http://127.0.0.1:${precedent.port}${page}`, { habituel: sansFenetre })
   process.exit(0)
 }
 
 // ---- 2. démarrage
 journal(`Démarrage de K.NOVA ${version()} (${RACINE})`)
 const routes = creerRoutes()
-routes.get('/api/ping', () => ({ identifiant }))
+routes.get('/api/ping', () => ({ identifiant, presence: presence.derniere }))
 routesPortail(routes)
 routesInstallation(routes, { modeInstallation })
 routesMessages(routes)
@@ -65,7 +68,19 @@ const adresse = `http://127.0.0.1:${port}${page}`
 journal(`K.NOVA prêt : ${adresse}`)
 console.log(`\n  K.NOVA est ouvert : ${adresse}\n`)
 if (modeInstallation) console.log(`  Si la page ne s'affiche pas, ouvrez cette adresse dans votre navigateur.\n`)
-if (!sansNavigateur) ouvrirNavigateur(adresse)
+if (!sansNavigateur) {
+  const ouvertLe = Date.now()
+  ouvrirNavigateur(adresse)
+  // La fenêtre de K.NOVA (Edge en mode « app », profil à part) peut rester noire ou ne pas s'ouvrir sur un poste
+  // verrouillé : sans aucun signe de sa page au bout de 15 s, K.NOVA s'ouvre dans le navigateur habituel.
+  if (!modeInstallation) {
+    setTimeout(() => {
+      if (presence.derniere > ouvertLe) return
+      journal('Aucune fenêtre de K.NOVA au bout de 15 s : ouverture dans le navigateur habituel')
+      ouvrirNavigateur(adresse, { habituel: true })
+    }, 15_000).unref()
+  }
+}
 
 // Plus aucune fenêtre ouverte depuis 3 minutes : K.NOVA s'arrête proprement (il tourne sans console, rien
 // d'autre ne permettrait de le fermer). Une fenêtre réduite donne encore signe de vie au moins une fois par minute.
@@ -104,7 +119,8 @@ async function demarrerSurUnPortLibre() {
 async function repond(port) {
   try {
     const reponse = await fetch(`http://127.0.0.1:${port}/api/ping`, { signal: AbortSignal.timeout(1500) })
-    return (await reponse.json()).identifiant === identifiant
+    const r = await reponse.json()
+    return r.identifiant === identifiant ? r : false
   } catch {
     return false
   }
@@ -115,8 +131,8 @@ async function repond(port) {
 // de l'utilisateur. Sans l'un d'eux : le navigateur par défaut.
 // L'installation s'ouvre dans le navigateur habituel : sur les postes verrouillés, la fenêtre « app » à profil
 // séparé peut rester noire, et rien ne s'installerait.
-function ouvrirNavigateur(adresse) {
-  const fenetre = modeInstallation ? null : navigateurApp()
+function ouvrirNavigateur(adresse, { habituel = false } = {}) {
+  const fenetre = modeInstallation || habituel ? null : navigateurApp()
   try {
     if (fenetre) {
       const profil = path.join(chemins.cache, 'fenetre')

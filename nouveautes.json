@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.8.10",
+      "date": "2026-11-03",
+      "points": [
+        "Si la fenêtre de K.NOVA ne s'ouvre pas (ou reste noire) sur un poste verrouillé, K.NOVA s'ouvre au bout de 15 secondes dans le navigateur habituel",
+        "Un nouveau double-clic sur le raccourci, quand K.NOVA tourne sans page ouverte, ouvre le navigateur habituel au lieu de ne rien faire"
+      ]
+    },
+    {
       "version": "0.8.9",
       "date": "2026-11-03",
       "points": [
