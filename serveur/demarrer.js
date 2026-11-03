@@ -64,6 +64,7 @@ ecrireJson(fichierServeur, { port, pid: process.pid })
 const adresse = `http://127.0.0.1:${port}${page}`
 journal(`K.NOVA prêt : ${adresse}`)
 console.log(`\n  K.NOVA est ouvert : ${adresse}\n`)
+if (modeInstallation) console.log(`  Si la page ne s'affiche pas, ouvrez cette adresse dans votre navigateur.\n`)
 if (!sansNavigateur) ouvrirNavigateur(adresse)
 
 // Plus aucune fenêtre ouverte depuis 3 minutes : K.NOVA s'arrête proprement (il tourne sans console, rien
@@ -112,8 +113,10 @@ async function repond(port) {
 // K.NOVA s'ouvre dans sa propre fenêtre, comme une application : Edge (ou Chrome, Chromium) en mode « app »,
 // sans onglets ni barre d'adresse, avec un profil à lui (cache/fenetre) pour ne pas se mêler au navigateur
 // de l'utilisateur. Sans l'un d'eux : le navigateur par défaut.
+// L'installation s'ouvre dans le navigateur habituel : sur les postes verrouillés, la fenêtre « app » à profil
+// séparé peut rester noire, et rien ne s'installerait.
 function ouvrirNavigateur(adresse) {
-  const fenetre = navigateurApp()
+  const fenetre = modeInstallation ? null : navigateurApp()
   try {
     if (fenetre) {
       const profil = path.join(chemins.cache, 'fenetre')

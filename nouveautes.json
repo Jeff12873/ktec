@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.9",
+      "date": "2026-11-03",
+      "points": [
+        "La page d'installation s'ouvre dans le navigateur habituel (et son adresse est rappelée dans la console) : la fenêtre « application » de K.NOVA pouvait rester noire sur un poste verrouillé"
+      ]
+    },
+    {
       "version": "0.8.8",
       "date": "2026-11-03",
       "points": [
