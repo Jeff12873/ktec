@@ -33,6 +33,11 @@ const barre = h('header', { class: 'barre' })
 const zone = h('main', { class: 'contenu' })
 let contenuBarre = ''
 let affiche = null // le bloc affiché, pour le recharger quand le fichier partagé change
+// Le même écran redessiné (window.ktec.recharger, après une fenêtre fermée…) : on revient où on en était dans la
+// page ; un autre écran s'ouvre en haut. Déclaré avant le premier affichage (plus bas, au chargement).
+let routeAffichee = null
+const ancetres = (e) => { const l = []; for (let p = e?.parentElement; p; p = p.parentElement) l.push(p); return l }
+const defilables = () => [document.scrollingElement, zone, ...ancetres(zone)].filter((e, i, l) => e && l.indexOf(e) === i)
 const autresApplis = toutes.filter((a) => a.id !== appli)
 
 await suivreEtat()
@@ -53,12 +58,6 @@ function routeActuelle() {
   const bloc = BLOCS.find((b) => b.chemin === chemin) || app.accueil || BLOCS[0]
   return { bloc, id: reste.join('/') || null, query }
 }
-
-// Le même écran redessiné (window.ktec.recharger, après une fenêtre fermée…) : on revient où on en était dans la
-// page ; un autre écran s'ouvre en haut.
-let routeAffichee = null
-const defilables = () => [document.scrollingElement, zone, ...ancetres(zone)].filter((e, i, l) => e && l.indexOf(e) === i)
-const ancetres = (e) => { const l = []; for (let p = e?.parentElement; p; p = p.parentElement) l.push(p); return l }
 
 async function afficherBloc() {
   const { bloc, id, query } = routeActuelle()
