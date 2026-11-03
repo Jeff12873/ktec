@@ -129,10 +129,10 @@ async function repond(port) {
 // K.NOVA s'ouvre dans sa propre fenêtre, comme une application : Edge (ou Chrome, Chromium) en mode « app »,
 // sans onglets ni barre d'adresse, avec un profil à lui (cache/fenetre) pour ne pas se mêler au navigateur
 // de l'utilisateur. Sans l'un d'eux : le navigateur par défaut.
-// L'installation s'ouvre dans le navigateur habituel : sur les postes verrouillés, la fenêtre « app » à profil
-// séparé peut rester noire, et rien ne s'installerait.
+// Sous Windows, K.NOVA (et son installation) s'ouvre dans un onglet du navigateur habituel : sur les postes
+// verrouillés, la fenêtre « app » à profil séparé reste noire. Ailleurs, la fenêtre à part est gardée.
 function ouvrirNavigateur(adresse, { habituel = false } = {}) {
-  const fenetre = modeInstallation || habituel ? null : navigateurApp()
+  const fenetre = modeInstallation || habituel || WINDOWS ? null : navigateurApp()
   try {
     if (fenetre) {
       const profil = path.join(chemins.cache, 'fenetre')
