@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.12",
+      "date": "2026-11-03",
+      "points": [
+        "Quand un écran se redessine sur place (après la fermeture d'une fenêtre, par exemple), la page reste là où on en était au lieu de remonter en haut"
+      ]
+    },
+    {
       "version": "0.8.11",
       "date": "2026-11-03",
       "points": [

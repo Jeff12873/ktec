@@ -54,10 +54,21 @@ function routeActuelle() {
   return { bloc, id: reste.join('/') || null, query }
 }
 
+// Le même écran redessiné (window.ktec.recharger, après une fenêtre fermée…) : on revient où on en était dans la
+// page ; un autre écran s'ouvre en haut.
+let routeAffichee = null
+const defilables = () => [document.scrollingElement, zone, ...ancetres(zone)].filter((e, i, l) => e && l.indexOf(e) === i)
+const ancetres = (e) => { const l = []; for (let p = e?.parentElement; p; p = p.parentElement) l.push(p); return l }
+
 async function afficherBloc() {
   const { bloc, id, query } = routeActuelle()
+  const memeEcran = routeAffichee === location.hash
+  routeAffichee = location.hash
+  const positions = memeEcran ? defilables().map((e) => [e, e.scrollTop]).filter(([, y]) => y > 0) : []
   affiche = bloc
   dessinerMenu()
+  // Pendant le rechargement, la zone garde sa hauteur : la page ne saute pas en haut le temps de redessiner.
+  if (memeEcran) zone.style.minHeight = `${zone.offsetHeight}px`
   vider(zone)
   try {
     if ((bloc.menu === 'admin' || bloc.admin) && !modeAdmin()) throw new Error('Écran réservé à l’administrateur : passez en mode administrateur (en haut de l’écran).')
@@ -66,6 +77,8 @@ async function afficherBloc() {
   } catch (erreur) {
     vider(zone, h('div', { class: 'bandeau' }, ic('alerte'), erreur.message))
   }
+  zone.style.minHeight = ''
+  for (const [e, y] of positions) e.scrollTop = y
 }
 
 function dessinerMenu() {
