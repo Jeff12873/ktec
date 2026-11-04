@@ -23,8 +23,7 @@ import { telecharger, tailleLisible } from '../serveur/socle/telechargement.js'
 import { telechargerDepuisHuggingFace, lireCatalogue } from '../serveur/socle/modeles.js'
 import { decompresser, lireZip, zipperDossier, creerZip } from '../serveur/socle/zip.js'
 import { extraireTarGz } from '../serveur/socle/tar.js'
-import { fichierLnk } from '../serveur/installation/raccourcis.js'
-import { ecrireIco } from '../serveur/socle/icone.js'
+import { ecrireIcone, raccourciInstaller, lisezMoi, ICONE } from './racine-windows.js'
 
 const options = lireOptions(process.argv.slice(2))
 const catalogue = lireCatalogue()
@@ -220,7 +219,7 @@ async function main() {
   // « fichiers ». Le raccourci lance le Node du kit sur le lanceur, sans console : seule la page s'ouvre.
   const windows = options.systeme === 'windows'
   const supplements = windows ? racineWindows(sortie, nomKit) : []
-  const { taille } = await zipperDossier(sortie, fichierZip, { prefixe: windows ? `${nomKit}/fichiers/` : `${nomKit}/`, surProgression: progression(path.basename(fichierZip)), garder: (nom) => duKit.has(nom) || nom === 'icone-installation.ico', supplements })
+  const { taille } = await zipperDossier(sortie, fichierZip, { prefixe: windows ? `${nomKit}/fichiers/` : `${nomKit}/`, surProgression: progression(path.basename(fichierZip)), garder: (nom) => duKit.has(nom) || nom === ICONE, supplements })
   finProgression()
   console.log(`\nKit prêt : ${fichierZip} (${tailleLisible(taille)})`)
   console.log(windows ? 'Sur le poste : extraire le zip, puis double-cliquer « Installer K.NOVA ».\n' : 'Sur le poste : décompresser le zip, puis lancer installer-ktec.sh.\n')
@@ -228,28 +227,12 @@ async function main() {
 
 // Le raccourci et le LISEZ-MOI de la racine du kit Windows (écrits à côté du dossier du kit, ajoutés au zip).
 function racineWindows(sortie, nomKit) {
-  ecrireIco(fs.readFileSync(path.join(sortie, 'interface', 'icone.png')), path.join(sortie, 'icone-installation.ico'))
+  ecrireIcone(sortie)
   const lnk = `${sortie}-Installer K.NOVA.lnk`
-  fs.writeFileSync(lnk, fichierLnk({
-    cible: 'C:\\Windows\\System32\\cmd.exe',
-    argumentsCible: '/c fichiers\\hors-ligne\\node\\node.exe fichiers\\serveur\\lanceur.js --installation',
-    icone: 'fichiers\\icone-installation.ico',
-  }))
-  const lisezMoi = `${sortie}-LISEZ-MOI.txt`
-  fs.writeFileSync(lisezMoi, [
-    'K.NOVA — installation',
-    '',
-    '1. Extraire ce dossier sur le PC (clic droit sur le zip › Extraire tout) : le raccourci ne marche pas depuis le zip.',
-    '2. Double-cliquer « Installer K.NOVA ».',
-    '   La page d\'installation s\'ouvre dans le navigateur et guide jusqu\'au bout : rien n\'est téléchargé,',
-    '   aucun droit d\'administrateur n\'est demandé. K.NOVA s\'installe dans le profil de l\'utilisateur.',
-    '3. À la fin, « Ouvrir K.NOVA ». Un raccourci K.NOVA est posé sur le Bureau et dans le menu Démarrer.',
-    '',
-    'Le dossier « fichiers » contient le programme : il n\'y a rien à y ouvrir.',
-    'Si le raccourci ne fait rien : double-cliquer fichiers\\Installer KTEC.bat (même installation, avec une console).',
-    '',
-  ].join('\r\n'), 'utf8')
-  return [{ chemin: lnk, nom: `${nomKit}/Installer K.NOVA.lnk` }, { chemin: lisezMoi, nom: `${nomKit}/LISEZ-MOI.txt` }]
+  fs.writeFileSync(lnk, raccourciInstaller())
+  const texte = `${sortie}-LISEZ-MOI.txt`
+  fs.writeFileSync(texte, lisezMoi({ enLigne: false }), 'utf8')
+  return [{ chemin: lnk, nom: `${nomKit}/Installer K.NOVA.lnk` }, { chemin: texte, nom: `${nomKit}/LISEZ-MOI.txt` }]
 }
 
 // Le paquet d'une application depuis son dossier de développement : comme la Release GitHub

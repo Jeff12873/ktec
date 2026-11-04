@@ -38,11 +38,21 @@ jobs:
           chmod +x dist/KTEC/*.sh
           (cd dist && zip -qr KTEC.zip KTEC)
 
+      # Les petits packs d'installation en ligne (page de présentation) : le programme, Node et le lanceur.
+      # Windows : le raccourci « Installer K.NOVA » à la racine, le reste dans « fichiers ».
+      - name: Packs d'installation
+        run: |
+          NODE_VERSION="$(node -p "require('./outils/catalogue.json').node")"
+          curl -sL --fail -o node-win.zip "https://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-win-x64.zip"
+          unzip -qj node-win.zip "node-$NODE_VERSION-win-x64/node.exe" -d node-win
+          node outils/fabriquer-pack.js --node node-win/node.exe --sortie dist/K.NOVA-windows.zip
+          (cd dist && mv KTEC K.NOVA && zip -qr K.NOVA-linux.zip K.NOVA && mv K.NOVA KTEC)
+
       - name: Release
         env:
           NOTES: ${{ github.event.head_commit.message }}
         run: |
-          gh release create "v$VERSION" dist/KTEC.zip --title "KTEC $VERSION" --notes "${NOTES:-Nouvelle version}"
+          gh release create "v$VERSION" dist/KTEC.zip dist/K.NOVA-windows.zip dist/K.NOVA-linux.zip --title "KTEC $VERSION" --notes "${NOTES:-Nouvelle version}"
           # On garde les 3 dernières versions
           gh release list --limit 100 --json tagName --jq '.[3:][].tagName' | while read -r ancienne; do
             gh release delete "$ancienne" --yes --cleanup-tag

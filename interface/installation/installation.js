@@ -183,6 +183,45 @@ function formulaireInstallation() {
 
 // ---------------------------------------------------------------- en cours
 
+// Pendant les téléchargements : des phrases qui tournent, et une fois (une seule) le découpage des concombres.
+const CITATIONS = [
+  'Vos données restent chez vous : rien ne quitte le poste, même pas pour l’IA.',
+  'Une panne bien décrite est déjà à moitié réparée.',
+  'L’IA de K.NOVA tourne sur ce PC : pas de nuage, pas de fuite.',
+  'Le meilleur dépannage est celui qu’on n’a pas eu à faire.',
+  'Une pièce bien rangée se retrouve en dix secondes, pas en dix minutes.',
+  'Un rapport clair vaut mieux que dix tableaux que personne ne lit.',
+  'La connexion à la GMAO reste en lecture : K.NOVA regarde, il ne touche pas sans vous.',
+  'Chaque fichier téléchargé est vérifié par son empreinte avant d’être installé.',
+  'La maintenance, c’est l’art de rendre les problèmes ennuyeux.',
+  'Pas de droits d’administrateur, pas de service caché : tout est dans votre profil.',
+  'Un mot de passe chiffré dans le fichier, jamais en clair, jamais demandé à l’utilisateur.',
+  'Patience : un modèle d’IA, c’est quelques milliards de paramètres à ranger.',
+]
+
+function citationsTournantes() {
+  const zone = h('p', { class: 'citation-installation' })
+  let n = Math.floor(Math.random() * CITATIONS.length)
+  const tourner = () => {
+    if (!zone.isConnected) return clearInterval(minuterie)
+    zone.classList.remove('visible')
+    setTimeout(() => { zone.textContent = CITATIONS[n++ % CITATIONS.length]; zone.classList.add('visible') }, 300)
+  }
+  const minuterie = setInterval(tourner, 9000)
+  setTimeout(tourner, 0)
+  return zone
+}
+
+// Le concombre arrive, le couteau le découpe en rondelles qui s'envolent : une seule fois par installation.
+function decoupageDesConcombres(zone) {
+  const scene = h('div', { class: 'decoupe-concombres', 'aria-hidden': 'true' },
+    h('span', { class: 'concombre-entier' }, '🥒'),
+    h('span', { class: 'couteau' }, '🔪'),
+    ...Array.from({ length: 7 }, (_, i) => h('span', { class: 'rondelle', style: { '--i': String(i), '--x': `${(i - 3) * 38}px`, '--r': `${(i % 2 ? 1 : -1) * (120 + i * 40)}deg` } })))
+  zone.append(scene)
+  setTimeout(() => scene.remove(), 4200)
+}
+
 function vueSuivi(titre) {
   const etapes = h('ol', { class: 'chemin-tables', style: { marginTop: 0 } })
   const barre = h('div', { class: 'progression', hidden: true }, h('div', { style: { width: '0%' } }))
@@ -190,7 +229,10 @@ function vueSuivi(titre) {
   const journal = h('div', { class: 'discret mono', style: { fontSize: '12px', maxHeight: '220px', overflow: 'auto', marginTop: '10px' } })
   const fin = h('div')
   const titreCarte = h('h2', {}, ic('rafraichir', 18), titre)
-  vider(racine, h('div', { class: 'portail' }, entete(), h('div', { class: 'carte' }, h('div', { class: 'carte-entete' }, titreCarte), etapes, barre, detail, journal, fin)))
+  const citation = citationsTournantes()
+  const scene = h('div', { class: 'scene-concombres' })
+  let decoupe = false
+  vider(racine, h('div', { class: 'portail' }, entete(), h('div', { class: 'carte' }, h('div', { class: 'carte-entete' }, titreCarte), etapes, barre, detail, scene, citation, journal, fin)))
   return {
     surEvenement(type, d) {
       if (type === 'etape') {
@@ -201,6 +243,8 @@ function vueSuivi(titre) {
       } else if (type === 'progression') {
         barre.hidden = false
         barre.firstChild.style.width = `${d.total ? Math.min(100, (d.recu / d.total) * 100) : 0}%`
+        // À mi-chemin du premier gros téléchargement : les concombres, une fois.
+        if (!decoupe && d.total > 20e6 && d.recu / d.total > 0.5) { decoupe = true; decoupageDesConcombres(scene) }
         detail.textContent = `${d.nom} : ${tailleFr(d.recu)}${d.total ? ` sur ${tailleFr(d.total)}` : ''}`
       } else if (type === 'message') {
         journal.append(h('div', {}, '✓ ', d))
@@ -211,6 +255,7 @@ function vueSuivi(titre) {
     barre,
     detail,
     terminer(texte) {
+      citation.remove()
       vider(titreCarte, ic('coche', 18), texte)
       etapes.querySelectorAll('li').forEach((li) => (li.style.opacity = 0.6))
     },

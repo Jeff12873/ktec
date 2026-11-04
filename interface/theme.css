@@ -500,3 +500,18 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 /* Console de debug (Réglages, administrateur) */
 .console-debug { height: 55vh; overflow: auto; margin: 0; padding: 10px 12px; border-radius: 10px; background: #05080a; border: 1px solid var(--bord); font: 12px/1.5 ui-monospace, Consolas, monospace; color: #c7d2cc; white-space: pre-wrap; word-break: break-word; }
 .console-debug .ligne-erreur { color: #fca5a5; }
+
+/* Installation : phrases tournantes et découpage des concombres (une fois) */
+.citation-installation { min-height: 44px; margin: 14px 0 0; text-align: center; font-style: italic; color: var(--texte-2); opacity: 0; transform: translateY(4px); transition: opacity .3s, transform .3s; }
+.citation-installation.visible { opacity: 1; transform: none; }
+.scene-concombres { position: relative; height: 0; }
+.decoupe-concombres { position: absolute; left: 50%; top: -6px; width: 0; height: 90px; pointer-events: none; }
+.decoupe-concombres > span { position: absolute; left: 0; top: 30px; font-size: 44px; line-height: 1; transform: translateX(-50%); }
+.concombre-entier { animation: kn-arrivee 1.1s ease-out both, kn-disparait .2s linear 2s forwards; }
+.couteau { font-size: 38px !important; top: -10px !important; animation: kn-couteau .35s ease-in 1.1s 3 both; }
+.rondelle { width: 26px; height: 26px; top: 40px !important; border-radius: 50%; background: radial-gradient(circle, #e8f5c8 0 35%, #a3e635 36% 70%, #3f6212 71%); opacity: 0; animation: kn-rondelle 2s cubic-bezier(.2, .7, .3, 1) calc(2s + var(--i) * 60ms) forwards; }
+@keyframes kn-arrivee { from { transform: translateX(-400px) rotate(-40deg); opacity: 0 } to { transform: translateX(-50%) rotate(0); opacity: 1 } }
+@keyframes kn-disparait { to { opacity: 0; transform: translateX(-50%) scale(.6) } }
+@keyframes kn-couteau { 0% { transform: translate(-30%, -20px) rotate(-30deg) } 60% { transform: translate(-30%, 30px) rotate(0) } 100% { transform: translate(-30%, -20px) rotate(-30deg) } }
+@keyframes kn-rondelle { 0% { opacity: 1; transform: translate(-50%, 0) rotate(0) } 60% { opacity: 1 } 100% { opacity: 0; transform: translate(calc(-50% + var(--x) * 3), -60px) rotate(var(--r)) } }
+@media (prefers-reduced-motion: reduce) { .decoupe-concombres { display: none; } .citation-installation { transition: none; } }

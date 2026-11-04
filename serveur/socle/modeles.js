@@ -17,13 +17,19 @@ export function modeleConseille(catalogue, ramGo, vramGo) {
 }
 
 // Télécharge un fichier depuis Hugging Face en vérifiant sa taille et son empreinte.
+// Les modèles du catalogue sont figés : la version (revision) et l'empreinte attendue y sont notées, si bien que
+// tous les postes ont exactement le même fichier ; un fichier changé sur Hugging Face est refusé.
 export async function telechargerDepuisHuggingFace(depot, fichier, destination, surProgression) {
-  const infos = await fetch(`https://huggingface.co/api/models/${depot}?blobs=true`, { signal: AbortSignal.timeout(30_000) }).then((r) => r.json())
+  const modele = lireCatalogue().modeles.find((m) => m.depot === depot)
+  const revision = modele?.revision || 'main'
+  const attendue = modele ? (fichier === modele.fichier ? modele.sha256 : fichier === modele.vision ? modele.vision_sha256 : null) : null
+  const infos = await fetch(`https://huggingface.co/api/models/${depot}/revision/${revision}?blobs=true`, { signal: AbortSignal.timeout(30_000) }).then((r) => r.json())
   const fiche = infos.siblings?.find((s) => s.rfilename === fichier)
   if (!fiche) throw new Error(`Fichier ${fichier} introuvable sur Hugging Face (${depot})`)
-  await telecharger(`https://huggingface.co/${depot}/resolve/main/${fichier}`, destination, {
+  if (attendue && fiche.lfs?.sha256 && fiche.lfs.sha256 !== attendue) throw new Error(`Le modèle ${fichier} a changé sur Hugging Face : il n'est pas celui prévu pour K.NOVA.`)
+  await telecharger(`https://huggingface.co/${depot}/resolve/${revision}/${fichier}`, destination, {
     taille: fiche.size,
-    sha256: fiche.lfs?.sha256,
+    sha256: attendue || fiche.lfs?.sha256,
     surProgression,
   })
   return destination
