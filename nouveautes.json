@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.16",
+      "date": "2026-11-04",
+      "points": [
+        "Kit Windows : à la racine, seulement le raccourci « Installer K.NOVA » et le LISEZ-MOI ; le programme est rangé dans « fichiers ». L'installation s'ouvre dans le navigateur, sans console, et s'arrête seule quand sa page est fermée"
+      ]
+    },
+    {
       "version": "0.8.15",
       "date": "2026-11-04",
       "points": [

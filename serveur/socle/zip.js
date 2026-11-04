@@ -130,7 +130,8 @@ export function creerZip(fichiers) {
 // (Explorateur) et Linux (unzip) savent ouvrir. Les fichiers exécutables gardent ce droit sous Linux.
 //   prefixe : dossier racine dans le zip (ex. « KTEC-hors-ligne-windows/ »)
 // garder(nom) : les entrées du premier niveau à mettre dans le zip (par défaut : toutes).
-export async function zipperDossier(source, destination, { prefixe = '', surProgression = () => {}, garder = () => true } = {}) {
+// supplements : [{ chemin, nom }], des fichiers d'ailleurs rangés sous ce nom dans le zip (ex. à sa racine).
+export async function zipperDossier(source, destination, { prefixe = '', surProgression = () => {}, garder = () => true, supplements = [] } = {}) {
   const fichiers = []
   const parcourir = (dossier) => {
     for (const entree of fs.readdirSync(dossier, { withFileTypes: true })) {
@@ -141,6 +142,8 @@ export async function zipperDossier(source, destination, { prefixe = '', surProg
     }
   }
   parcourir(source)
+  const noms = new Map(fichiers.map((f) => [f, prefixe + path.relative(source, f).split(path.sep).join('/')]))
+  for (const s of supplements) { fichiers.push(s.chemin); noms.set(s.chemin, s.nom) }
   const total = fichiers.reduce((t, f) => t + fs.statSync(f).size, 0)
   const MAX = 0xffffffff
   const maintenant = new Date()
@@ -159,7 +162,7 @@ export async function zipperDossier(source, destination, { prefixe = '', surProg
     for (const fichier of fichiers) {
       const infos = fs.statSync(fichier)
       const taille = infos.size
-      const nom = Buffer.from(prefixe + path.relative(source, fichier).split(path.sep).join('/'), 'utf8')
+      const nom = Buffer.from(noms.get(fichier), 'utf8')
       const gros = taille >= MAX
       const debut = position
       // En-tête local (le CRC est écrit après coup, une fois le fichier lu).

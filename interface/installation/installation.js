@@ -346,3 +346,7 @@ if (new URLSearchParams(location.search).has('tout') && etat?.installe && !etat.
   history.replaceState(null, '', '/installation/')
   lancerMiseAJour(null)
 }
+
+// Signe de vie de la page, chaque minute : lancé par le raccourci du kit (sans console), le programme
+// d'installation s'arrête seul quand plus aucune page n'est ouverte.
+setInterval(() => api('/api/ktec/etat').catch(() => {}), 60_000)

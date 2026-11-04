@@ -10,6 +10,9 @@ import { publierMaintenant } from '../socle/partage.js'
 import { arreterIA } from '../socle/ia.js'
 import { etat, catalogueApplis, installer, mettreAJour, desinstallerAppli, toutDesinstaller, lancerKtec, lireMiseAJour, appliquerMiseAJour, appliquerPaquet } from './installateur.js'
 
+// Les travaux suivis en direct (installation, mise à jour) : tant qu'il y en a un, le programme ne s'arrête pas seul.
+export const travaux = { enCours: 0 }
+
 export function routes(r, { modeInstallation }) {
   r.get('/api/ktec/installation/etat', () => ({ ...etat(), modeInstallation }))
 
@@ -72,6 +75,7 @@ export function routes(r, { modeInstallation }) {
 
 async function suivreEnFlux(ctx, travail, apres = () => {}) {
   const flux = ouvrirFlux(ctx.res)
+  travaux.enCours++
   try {
     const resultat = await travail((type, donnees) => flux.envoyer(type, donnees))
     flux.envoyer('fin', resultat)
@@ -81,6 +85,8 @@ async function suivreEnFlux(ctx, travail, apres = () => {}) {
     journal(`Installation : ${erreur.stack || erreur.message}`)
     flux.envoyer('erreur', { message: erreur.message })
     flux.fermer()
+  } finally {
+    travaux.enCours--
   }
 }
 

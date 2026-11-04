@@ -17,7 +17,7 @@ import { spawn } from 'node:child_process'
 import { creerRoutes, demarrerServeur, pourAppli } from './socle/http.js'
 import { chargerApplis } from './socle/applis.js'
 import { routes as routesPortail, presence } from './portail.js'
-import { routes as routesInstallation } from './installation/routes.js'
+import { routes as routesInstallation, travaux } from './installation/routes.js'
 import { routes as routesMessages } from './messages.js'
 import { routes as routesRequeteur } from './requeteur.js'
 import { ktec } from './socle/ktec.js'
@@ -92,6 +92,16 @@ if (!sansNavigateur && !modeInstallation) {
     arreterIA()
     process.exit(0)
   }, 30_000).unref()
+}
+
+// Installation lancée par le raccourci du kit (sans console) : la page fermée depuis 10 minutes et rien en cours,
+// le programme d'installation s'arrête. La page donne signe de vie chaque minute.
+if (modeInstallation) {
+  setInterval(() => {
+    if (travaux.enCours || Date.now() - presence.derniere < 10 * 60_000) return
+    journal('Page d’installation fermée depuis 10 minutes : arrêt')
+    process.exit(0)
+  }, 60_000).unref()
 }
 
 for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
