@@ -56,16 +56,26 @@ surChangement(() => boutonsDesinstaller.forEach((b) => { b.hidden = !modeAdmin()
 const pastilleIA = (a) => (a.besoins || []).includes('ia')
   ? h('span', { class: 'pastille-ia', title: 'Cette application a besoin de l’IA installée sur le poste' }, 'IA')
   : h('span', { class: 'pastille-ia sans', title: 'Cette application fonctionne sans IA' }, 'NoIA')
+// Pastille « Eco+ » : l'application existe aussi en un seul fichier HTML, pour les postes sans K.NOVA.
+// Un clic le télécharge (fabriqué à la demande, avec les réglages du site).
+const pastilleEco = (a) => (a.eco
+  ? h('span', { class: 'pastille-ia eco', role: 'button', tabindex: '0', title: `Télécharger ${a.nom} éco+ : un seul fichier HTML, sans K.NOVA ni IA, pour les postes qui ne l’ont pas`, onclick: (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const lien = h('a', { href: `/api/${a.id}/eco`, download: '' })
+    document.body.append(lien); lien.click(); lien.remove()
+  } }, 'Eco+')
+  : null)
 
 const installees = new Set(applis.map((a) => a.id))
 const tuiles = [
   ...applis.map((a) => h('a', { class: 'tuile-appli', href: `/${a.id}/`, style: a.couleur ? { '--accent': a.couleur } : {} },
     h('div', { class: 'tete' }, h('img', { src: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, alt: '' }),
-      h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre || '')), pastilleIA(a)),
+      h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre || '')), h('span', { class: 'pastilles-appli' }, pastilleEco(a), pastilleIA(a))),
     h('p', {}, a.description || ''),
     h('div', { class: 'pied-tuile' }, h('span', { class: 'version' }, `Version ${a.version}`), boutonDesinstaller(a)))),
   ...SUITE.filter((a) => !installees.has(a.id)).map((a) => h('a', { class: 'tuile-appli absente', href: '/installation/', style: { '--accent': a.couleur }, title: 'Pas encore installée sur ce poste : cliquer pour l’installer' },
-    h('div', { class: 'tete' }, h('img', { src: '/icone.svg', alt: '' }), h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre)), pastilleIA(a)),
+    h('div', { class: 'tete' }, h('img', { src: '/icone.svg', alt: '' }), h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre)), h('span', { class: 'pastilles-appli' }, pastilleEco(a), pastilleIA(a))),
     h('p', {}, a.description),
     h('span', { class: 'version' }, 'Pas encore installée — l’installer'))),
 ]

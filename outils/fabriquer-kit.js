@@ -223,7 +223,7 @@ async function main() {
 // Le paquet d'une application depuis son dossier de développement : comme la Release GitHub
 // (dossier <id>/ avec les fichiers publiés de l'application).
 function paquetLocal(dossier, id) {
-  const PUBLIES = ['app.json', 'blocs', 'interface', 'lib', 'docs', 'VERSION', 'package.json', 'README.md', 'nouveautes.json']
+  const PUBLIES = ['app.json', 'blocs', 'eco', 'interface', 'lib', 'docs', 'VERSION', 'package.json', 'README.md', 'nouveautes.json']
   const fichiers = []
   const ajouter = (chemin, nom) => {
     if (fs.statSync(chemin).isDirectory()) for (const e of fs.readdirSync(chemin)) ajouter(path.join(chemin, e), `${nom}/${e}`)

@@ -382,6 +382,10 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
   color: var(--violet); background: var(--violet-doux); border: 1px solid color-mix(in srgb, var(--violet) 45%, transparent);
 }
 .pastille-ia.sans { color: var(--texte-3); background: transparent; border-color: var(--bord); }
+.pastilles-appli { margin-left: auto; align-self: flex-start; display: flex; gap: 6px; }
+.pastilles-appli .pastille-ia { margin-left: 0; }
+.pastille-ia.eco { color: #a3e635; background: color-mix(in srgb, #a3e635 12%, transparent); border-color: color-mix(in srgb, #a3e635 45%, transparent); cursor: pointer; }
+.pastille-ia.eco:hover { background: color-mix(in srgb, #a3e635 24%, transparent); }
 .portail-pied { margin-top: 32px; color: var(--texte-3); font-size: 13px; display: flex; gap: 18px; flex-wrap: wrap; }
 .portail-etat { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 

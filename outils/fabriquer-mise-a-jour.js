@@ -17,7 +17,7 @@ import { lireZip, creerZip } from '../serveur/socle/zip.js'
 
 const FICHIERS_DU_PROGRAMME = ['serveur', 'interface', 'moteur-java', 'outils', 'docs', 'VERSION', 'package.json', 'README.md', 'nouveautes.json',
   'Lancer KTEC.bat', 'lancer-ktec.sh', 'Installer KTEC.bat', 'installer-ktec.sh', 'Desinstaller KTEC.bat']
-const PUBLIES = ['app.json', 'blocs', 'interface', 'lib', 'docs', 'VERSION', 'package.json', 'README.md', 'nouveautes.json']
+const PUBLIES = ['app.json', 'blocs', 'eco', 'interface', 'lib', 'docs', 'VERSION', 'package.json', 'README.md', 'nouveautes.json']
 
 const args = process.argv.slice(2)
 const applisLocales = args.includes('--applis-locales')

@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.15",
+      "date": "2026-11-04",
+      "points": [
+        "Pastille « Eco+ » sur la vignette d'une application qui existe aussi en un seul fichier HTML (PDRTEC) : un clic la télécharge"
+      ]
+    },
+    {
       "version": "0.8.14",
       "date": "2026-11-04",
       "points": [
