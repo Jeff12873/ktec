@@ -113,11 +113,12 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       ctx.fill()
     }
 
-    // Phase 1 : le cloud extérieur, et les données qui fuient vers lui.
-    const K = [cx + 250 * u, cy - 165 * u]
-    const vuNuage = entre(t, 2200, 3400) * (1 - entre(t, 9000, 10600))
+    // Phase 1 : le cloud extérieur, une nova rouge et noire menaçante en haut, et les données aspirées vers elle.
+    const K = [cx, cy - 255 * u]
+    const detour = [cx + 70 * u, cy - 150 * u] // le point qui courbe la fuite
+    const vuNova = entre(t, 2200, 3400) * (1 - entre(t, 9000, 10600))
     const fuite = entre(t, 2800, 3600) * (1 - entre(t, 8300, 9000))
-    if (vuNuage > 0) nuage(ctx, K[0], K[1], u * (1 + 0.5 * entre(t, 9000, 10600)), vuNuage, t)
+    if (vuNova > 0) nova(ctx, K[0], K[1], u * (1 - 0.6 * entre(t, 9000, 10600)), vuNova, t)
     if (fuite > 0) {
       ctx.globalAlpha = fuite * 0.25
       ctx.strokeStyle = ROUGE
@@ -126,7 +127,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       ctx.lineWidth = 1.5
       ctx.beginPath()
       ctx.moveTo(cx, cy)
-      ctx.quadraticCurveTo(cx + 40 * u, cy - 190 * u, K[0], K[1])
+      ctx.quadraticCurveTo(detour[0], detour[1], K[0], K[1])
       ctx.stroke()
       ctx.setLineDash([])
     }
@@ -152,7 +153,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       // L'éclat où la fuite se cogne au bouclier.
       const choc = entre(t, 8500, 8700) * (1 - entre(t, 8700, 9600))
       if (choc > 0) {
-        const [dx, dy] = dir(-62)
+        const [dx, dy] = dir(-90)
         ctx.globalAlpha = choc
         ctx.fillStyle = '#fff'
         ctx.shadowColor = VERT
@@ -191,7 +192,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
         for (let k = 0; k < 7; k++) {
           const q = p - k * 0.018
           if (q < 0) continue
-          const [bx, by] = courbe([hx, hy], [cx + 40 * u, cy - 190 * u], K, q)
+          const [bx, by] = courbe([hx, hy], detour, K, q)
           ctx.globalAlpha = fuite * (1 - k / 7) * (1 - q * 0.4)
           ctx.fillStyle = k ? ROUGE : '#fecaca'
           ctx.beginPath()
@@ -387,30 +388,64 @@ function courbe([ax, ay], [bx, by], [cx, cy], p) {
   return [q * q * ax + 2 * q * p * bx + p * p * cx, q * q * ay + 2 * q * p * by + p * p * cy]
 }
 
-// Le cloud extérieur : des bulles rouges qui se fondent, un point d'interrogation, et qui se dispersent en partant.
-function nuage(ctx, x, y, s, alpha, t) {
+// Le cloud extérieur : une nova sombre et menaçante. Un cœur noir cerclé de rouge, une couronne rouge sang,
+// des pointes qui vacillent et tournent lentement ; elle se résorbe quand le bouclier coupe la fuite.
+function nova(ctx, x, y, s, alpha, t) {
   ctx.save()
   ctx.translate(x, y)
   ctx.scale(s, s)
   ctx.globalAlpha = alpha
-  ctx.fillStyle = 'rgba(248, 113, 113, 0.22)'
-  ctx.shadowColor = ROUGE
-  ctx.shadowBlur = 26
+  const pouls = 1 + 0.08 * Math.sin(t / 260) + 0.04 * Math.sin(t / 97)
+  // La couronne.
+  const couronne = ctx.createRadialGradient(0, 0, 20, 0, 0, 120 * pouls)
+  couronne.addColorStop(0, 'rgba(220, 38, 38, 0.75)')
+  couronne.addColorStop(0.35, 'rgba(127, 29, 29, 0.45)')
+  couronne.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  ctx.fillStyle = couronne
   ctx.beginPath()
-  for (const [dx, dy, r] of [[-40, 8, 26], [-12, -14, 34], [24, -4, 30], [48, 12, 22], [0, 16, 26]]) {
-    ctx.moveTo(dx + r, dy)
-    ctx.arc(dx, dy + Math.sin(t / 600 + dx) * 2, r, 0, Math.PI * 2)
-  }
+  ctx.arc(0, 0, 120 * pouls, 0, Math.PI * 2)
   ctx.fill()
+  // Les pointes : longues et courtes en alternance, qui vacillent.
+  ctx.rotate(t / 6000)
+  ctx.beginPath()
+  const n = 14
+  for (let i = 0; i <= n * 2; i++) {
+    const a = (i / (n * 2)) * Math.PI * 2
+    const r = i % 2 ? 34 : (62 + 22 * Math.sin(t / 180 + i * 1.7)) * (i % 4 ? 0.8 : 1.15)
+    ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r)
+  }
+  ctx.closePath()
+  ctx.fillStyle = '#7f1d1d'
+  ctx.shadowColor = '#ef4444'
+  ctx.shadowBlur = 30
+  ctx.fill()
+  ctx.strokeStyle = '#ef4444'
+  ctx.lineWidth = 1.5
+  ctx.stroke()
+  ctx.rotate(-t / 6000)
+  // Le cœur noir, cerclé de rouge vif.
+  ctx.shadowBlur = 20
+  ctx.fillStyle = '#050505'
+  ctx.beginPath()
+  ctx.arc(0, 0, 30, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.strokeStyle = '#f87171'
+  ctx.lineWidth = 3
+  ctx.stroke()
   ctx.shadowBlur = 0
-  ctx.fillStyle = '#fecaca'
-  ctx.font = '700 34px system-ui, sans-serif'
-  ctx.textAlign = 'center'
+  // Une lueur rouge qui tourne dans le cœur, comme un œil.
+  const oeil = ctx.createRadialGradient(Math.cos(t / 900) * 8, Math.sin(t / 900) * 8, 0, 0, 0, 30)
+  oeil.addColorStop(0, 'rgba(239, 68, 68, 0.55)')
+  oeil.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  ctx.fillStyle = oeil
+  ctx.beginPath()
+  ctx.arc(0, 0, 30, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.font = '600 13px system-ui, sans-serif'
+  ctx.fillStyle = '#f87171'
+  ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.fillText('?', 4, 2)
-  ctx.font = '600 12px system-ui, sans-serif'
-  ctx.fillStyle = ROUGE
-  ctx.fillText('cloud extérieur', 4, 62)
+  ctx.fillText('cloud extérieur', 96, 0)
   ctx.restore()
 }
 
