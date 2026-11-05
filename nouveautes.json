@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.33",
+      "date": "2026-11-05",
+      "points": [
+        "« Pourquoi K.NOVA ? » : plus aucune étiquette sur l'animation, seul le texte du bas raconte ; il présente chaque application au moment où sa planète apparaît"
+      ]
+    },
+    {
       "version": "0.8.32",
       "date": "2026-11-05",
       "points": [

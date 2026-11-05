@@ -22,15 +22,16 @@ const PHRASES = [
   { debut: 8000, texte: 'Avec K.NOVA, vous restez maîtres de vos données : tout est local, rien ne quitte le site.' },
   { debut: 11000, texte: 'Toutes les données du site sont réunies dans un seul fichier, chiffré, rangé chez vous.' },
   { debut: 14300, texte: 'Il ne s’ouvre qu’avec la clé du site, gardée à part : copié ou volé, le fichier reste illisible.' },
-  { debut: 19500, texte: 'Autour de lui, les applications de l’atelier.' },
-  { debut: 23500, texte: 'Et une IA qui tourne sur le poste, sans Internet.' },
+  { debut: 19500, texte: 'BiRTEC : la puissance des requêtes, les données simplifiées.' },
+  { debut: 22000, texte: 'PDRTEC : une recherche de pièces performante et classée.' },
+  { debut: 24500, texte: 'AITEC : la maintenance de premier niveau, dynamique et évolutive.' },
   { debut: 27000, texte: 'Moins de temps à chercher, plus de temps pour décider.' },
 ]
 // Les mêmes couleurs et le même ordre que les orbites du logo.
 const APPLIS = [
-  { nom: 'BiRTEC', role: 'La puissance des requêtes, les données simplifiées', couleur: '#10b981', rayon: 118, angle: -35 },
-  { nom: 'PDRTEC', role: 'Une recherche de pièces performante et classée', couleur: '#a3e635', rayon: 182, angle: 205 },
-  { nom: 'AITEC', role: 'La maintenance de premier niveau, dynamique et évolutive', couleur: '#2dd4bf', rayon: 246, angle: 80 },
+  { nom: 'BiRTEC', couleur: '#10b981', rayon: 118, angle: -35 },
+  { nom: 'PDRTEC', couleur: '#a3e635', rayon: 182, angle: 205 },
+  { nom: 'AITEC', couleur: '#2dd4bf', rayon: 246, angle: 80 },
 ]
 const SOLEIL = '#fde68a'
 const VERT = '#4ade80'
@@ -61,7 +62,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
   const texte = h('p', { class: 'recit-texte' })
   const barres = PHASES.map(() => h('span', {}, h('i')))
   const passer = h('button', { class: 'petit discret recit-passer' }, 'Passer')
-  const ecran = h('div', { class: 'recit-knova', role: 'dialog', 'aria-label': 'Pourquoi K.NOVA ?' },
+  const ecran = h('div', { class: 'recit-knova', 'aria-label': 'Pourquoi K.NOVA ?' },
     toile, phase, texte, h('div', { class: 'recit-bas' }, h('div', { class: 'recit-barres' }, barres), passer))
   document.body.append(ecran)
   document.body.classList.add('recit-en-cours')
@@ -255,21 +256,13 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
           ctx.arc(cx, cy, rc * (1 + 0.4 * clic), 0, Math.PI * 2)
           ctx.fill()
         }
-        // Sous le soleil : ce qu'il contient, puis « chiffré » une fois fermé.
-        ctx.globalAlpha = cadenas * (1 - entre(t, 18800, 19600)) // parti avant l'arrivée des orbites
-        ctx.font = `600 ${Math.max(13, 17 * u)}px system-ui, sans-serif`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'top'
-        ctx.fillStyle = ferme > 0.5 ? VERT : SOLEIL
-        ctx.fillText(ferme > 0.5 ? 'verrouillé · chiffré' : 'toutes les données du site', cx, cy + rc + 12 * u)
       }
     }
 
     // Phase 3 : les applications sortent du soleil et prennent leur orbite. Phase 4 : elles tournent plus vite
     // et renvoient vers lui ce qu'elles trouvent (rien ne part ailleurs).
-    const etiquettes = [] // dessinées après tout le reste
     APPLIS.forEach((a, i) => {
-      const debut = 19700 + i * 1100
+      const debut = 19700 + i * 2500
       if (t < debut) return
       const e = sortie(entre(t, debut, debut + 1500))
       const acceleration = Math.max(0, t - 27000) * 0.6
@@ -307,46 +300,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       ctx.arc(px, py, (8 + 6 * (1 - e)) * u, 0, Math.PI * 2)
       ctx.fill()
       ctx.shadowBlur = 0
-      // Le nom et le rôle, centrés en quelques lignes courtes, sur un encart sombre posé vers l'extérieur :
-      // aucune orbite ni lueur ne passe sous le texte.
-      const nomVu = entre(t, debut + 900, debut + 1700) * (1 - entre(t, 29200, 29800))
-      if (nomVu > 0) etiquettes.push(() => {
-        const grand = `700 ${Math.max(15, 20 * u)}px system-ui, sans-serif`
-        const petit = `${Math.max(12, 14 * u)}px system-ui, sans-serif`
-        const interligne = Math.max(16, 19 * u)
-        ctx.font = petit
-        const lignes = couper(ctx, a.role, Math.max(150, 190 * u))
-        const largeur = Math.max(...lignes.map((l) => ctx.measureText(l).width), (ctx.font = grand, ctx.measureText(a.nom).width)) + 28 * u
-        const hauteur = interligne * (lignes.length + 1.3) + 16 * u
-        const ecart = 24 * u + Math.hypot(largeur, hauteur) / 2
-        const bx = Math.min(w - largeur / 2 - 8, Math.max(largeur / 2 + 8, px + dx * ecart))
-        const by = Math.min(ht - 110 - hauteur / 2, Math.max(hauteur / 2 + 50, py + dy * ecart))
-        ctx.globalAlpha = nomVu
-        ctx.fillStyle = 'rgba(5, 9, 8, 0.88)'
-        ctx.strokeStyle = a.couleur
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.roundRect(bx - largeur / 2, by - hauteur / 2, largeur, hauteur, 12 * u)
-        ctx.fill()
-        ctx.globalAlpha = nomVu * 0.5
-        ctx.stroke()
-        ctx.globalAlpha = nomVu
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        let y = by - hauteur / 2 + 8 * u + interligne * 0.65
-        ctx.fillStyle = a.couleur
-        ctx.font = grand
-        ctx.fillText(a.nom, bx, y)
-        y += interligne * 1.3
-        ctx.fillStyle = '#cbd5e1'
-        ctx.font = petit
-        for (const l of lignes) {
-          ctx.fillText(l, bx, y)
-          y += interligne
-        }
-      })
     })
-    for (const dessinerEtiquette of etiquettes) dessinerEtiquette()
 
     ctx.globalAlpha = 1
 
@@ -396,17 +350,6 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
     }
     image = requestAnimationFrame(etape)
   })
-}
-
-// Coupe un texte en lignes d'au plus « largeur » pixels (avec la police en cours).
-function couper(ctx, texte, largeur) {
-  const lignes = ['']
-  for (const mot of texte.split(' ')) {
-    const essai = lignes.at(-1) ? `${lignes.at(-1)} ${mot}` : mot
-    if (lignes.at(-1) && ctx.measureText(essai).width > largeur) lignes.push(mot)
-    else lignes[lignes.length - 1] = essai
-  }
-  return lignes
 }
 
 // Un point d'une courbe de Bézier quadratique.
@@ -484,12 +427,6 @@ function nova(ctx, x, y, s, alpha, t) {
   ctx.arc(0, 0, rayon, 0, Math.PI * 2)
   ctx.stroke()
   ctx.shadowBlur = 0
-  ctx.globalAlpha = alpha
-  ctx.font = '600 13px system-ui, sans-serif'
-  ctx.fillStyle = '#f87171'
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('cloud extérieur', R * 2.1, 0)
   ctx.restore()
 }
 
