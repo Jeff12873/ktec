@@ -17,6 +17,7 @@ import path from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { telecharger, tailleLisible } from '../socle/telechargement.js'
 import { decompresser } from '../socle/zip.js'
+import { deplacer } from '../socle/installation.js'
 import { extraireTarGz } from '../socle/tar.js'
 import { telechargerDepuisHuggingFace, modeleConseille, lireCatalogue } from '../socle/modeles.js'
 
@@ -214,9 +215,10 @@ export async function installerBirt(dossier, kit, suivi) {
     const archive = path.join(dossier, 'moteur', 'birt.zip')
     await telecharger(c.birt.url, archive, { surProgression: progression(suivi, 'Moteur BIRT') })
     const temporaire = path.join(dossier, 'moteur', 'birt-temporaire')
-    decompresser(fs.readFileSync(archive), temporaire, (nom) => nom.startsWith('ReportEngine/'))
-    fs.renameSync(path.join(temporaire, 'ReportEngine'), cible)
     fs.rmSync(temporaire, { recursive: true, force: true })
+    decompresser(fs.readFileSync(archive), temporaire, (nom) => nom.startsWith('ReportEngine/'))
+    await deplacer(path.join(temporaire, 'ReportEngine'), cible)
+    fs.rmSync(temporaire, { recursive: true, force: true, maxRetries: 10 })
     fs.rmSync(archive, { force: true })
   }
   fs.writeFileSync(path.join(cible, c.birt.version), '')

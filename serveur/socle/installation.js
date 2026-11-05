@@ -58,6 +58,23 @@ export function dossierModelesParDefaut() {
   return WINDOWS ? path.join(public_, 'KTEC', 'modeles') : path.join(dossierInstallationParDefaut(), 'modeles')
 }
 
+// Déplace un fichier ou un dossier. Sous Windows, un dossier qu'on vient d'extraire est souvent tenu un moment
+// par l'antivirus ou l'indexation (EPERM, EACCES, EBUSY) : on réessaie 15 s, puis on copie et on efface.
+export async function deplacer(source, destination) {
+  for (let essai = 0; ; essai++) {
+    try {
+      return fs.renameSync(source, destination)
+    } catch (erreur) {
+      if (!['EPERM', 'EACCES', 'EBUSY'].includes(erreur.code)) throw erreur
+      if (essai >= 30) break
+      await new Promise((fin) => setTimeout(fin, 500))
+    }
+  }
+  fs.rmSync(destination, { recursive: true, force: true })
+  fs.cpSync(source, destination, { recursive: true })
+  fs.rmSync(source, { recursive: true, force: true, maxRetries: 10 })
+}
+
 export function lireJson(fichier, defaut) {
   try {
     return JSON.parse(fs.readFileSync(fichier, 'utf8'))

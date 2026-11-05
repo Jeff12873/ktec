@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.19",
+      "date": "2026-11-05",
+      "points": [
+        "Installation sous Windows : le moteur BIRT et les applications s'installent même quand l'antivirus tient un instant le dossier qu'on vient d'extraire (l'erreur EPERM)"
+      ]
+    },
+    {
       "version": "0.8.18",
       "date": "2026-11-05",
       "points": [

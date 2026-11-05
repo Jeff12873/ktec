@@ -13,7 +13,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
-import { RACINE, WINDOWS, version, lireJson, ecrireJson, dossierInstallationParDefaut, dossierModelesParDefaut, journal } from '../socle/installation.js'
+import { RACINE, WINDOWS, deplacer, version, lireJson, ecrireJson, dossierInstallationParDefaut, dossierModelesParDefaut, journal } from '../socle/installation.js'
 import { telecharger } from '../socle/telechargement.js'
 import { decompresser, lireZip } from '../socle/zip.js'
 import * as composants from './composants.js'
@@ -285,8 +285,8 @@ async function installerAppli(dossier, appli, suivi, zipLocal = null) {
   const cible = path.join(apps, appli.id)
   const ancienne = path.join(apps, `.${appli.id}-ancienne`)
   fs.rmSync(ancienne, { recursive: true, force: true })
-  if (fs.existsSync(cible)) fs.renameSync(cible, ancienne)
-  fs.renameSync(contenu, cible)
+  if (fs.existsSync(cible)) await deplacer(cible, ancienne)
+  await deplacer(contenu, cible)
   fs.rmSync(nouveau, { recursive: true, force: true })
   fs.rmSync(ancienne, { recursive: true, force: true })
   const v = lireVersion(cible)
