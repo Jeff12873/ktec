@@ -92,7 +92,16 @@ export function constellation({ surBigBang = null } = {}) {
   }
 
   const rayonBoule = () => 2 + Math.sqrt(masse) * 2.2
-  const attire = () => souris.la && souris.depuis && performance.now() - souris.depuis >= 10_000 && !document.body.classList.contains('intro-en-cours')
+  // Pendant l'intro (création du logo) ou le récit « Pourquoi K.NOVA ? », la gravité est en pause et ses
+  // 10 secondes repartent de zéro : elle ne peut pas se déclencher pendant, ni juste après.
+  const enSpectacle = () => document.body.classList.contains('intro-en-cours') || document.body.classList.contains('recit-en-cours')
+  const attire = () => {
+    if (enSpectacle()) {
+      if (souris.depuis) souris.depuis = performance.now()
+      return false
+    }
+    return souris.la && souris.depuis && performance.now() - souris.depuis >= 10_000
+  }
 
   // Attire les étoiles vers la souris, de plus en plus fort à mesure que la boule grossit.
   function graviter(temps) {
@@ -157,7 +166,7 @@ export function constellation({ surBigBang = null } = {}) {
       if (p.avalee) continue
       // Sans attraction (souris partie, intro), les étoiles retrouvent peu à peu leur dérive tranquille.
       const vitesse = Math.hypot(p.vx, p.vy)
-      if (vitesse > 0.25 && (!souris.la || document.body.classList.contains('intro-en-cours'))) {
+      if (vitesse > 0.25 && (!souris.la || enSpectacle())) {
         p.vx *= 0.98
         p.vy *= 0.98
       }

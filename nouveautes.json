@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.22",
+      "date": "2026-11-05",
+      "points": [
+        "Les étoiles attirées par la souris ne se déclenchent plus pendant l'intro du logo ni pendant « Pourquoi K.NOVA ? » : les 10 secondes d'attente repartent de zéro à la fin"
+      ]
+    },
+    {
       "version": "0.8.21",
       "date": "2026-11-05",
       "points": [
