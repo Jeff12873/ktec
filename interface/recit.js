@@ -29,9 +29,9 @@ const PHRASES = [
 ]
 // Les mêmes couleurs et le même ordre que les orbites du logo.
 const APPLIS = [
-  { nom: 'BiRTEC', couleur: '#10b981', rayon: 118, angle: -35 },
-  { nom: 'PDRTEC', couleur: '#a3e635', rayon: 182, angle: 205 },
-  { nom: 'AITEC', couleur: '#2dd4bf', rayon: 246, angle: 80 },
+  { nom: 'BiRTEC', role: 'La puissance des requêtes, les données simplifiées', couleur: '#10b981', rayon: 118, angle: -35 },
+  { nom: 'PDRTEC', role: 'Une recherche de pièces performante et classée', couleur: '#a3e635', rayon: 182, angle: 205 },
+  { nom: 'AITEC', role: 'La maintenance de premier niveau, dynamique et évolutive', couleur: '#2dd4bf', rayon: 246, angle: 80 },
 ]
 const SOLEIL = '#fde68a'
 const VERT = '#4ade80'
@@ -97,9 +97,10 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
   }
 
   function dessiner(t) {
-    const u = Math.min(w / 900, ht / 800)
+    const u = Math.min(w / 900, ht / 860)
     const cx = w / 2
-    const cy = ht / 2 // le milieu, là où l'intro fera exploser le logo
+    // Un peu au-dessus du milieu, pour laisser la place au texte du bas ; au milieu à la fin, là où l'intro fera exploser le logo.
+    const cy = ht * (0.42 + 0.08 * sortie(entre(t, 29300, 30600)))
     // La fin : tout se contracte dans le soleil, qui se réduit à une étincelle.
     const contraction = 1 - sortie(entre(t, 29300, 30600))
     const scene = 1 - entre(t, 30400, 31000)
@@ -300,17 +301,23 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       ctx.arc(px, py, (8 + 6 * (1 - e)) * u, 0, Math.PI * 2)
       ctx.fill()
       ctx.shadowBlur = 0
-      // Juste le nom, à côté de la planète, vers l'extérieur.
+      // Le nom à côté de la planète, vers l'extérieur, et sa phrase dessous en deux lignes courtes.
       const nomVu = entre(t, debut + 900, debut + 1700) * (1 - entre(t, 29200, 29800))
       if (nomVu > 0) {
+        const lx = px + (dx >= 0 ? 16 : -16) * u
         ctx.globalAlpha = nomVu
-        ctx.font = `700 ${Math.max(14, 18 * u)}px system-ui, sans-serif`
         ctx.textAlign = dx >= 0 ? 'left' : 'right'
         ctx.textBaseline = 'middle'
-        ctx.fillStyle = a.couleur
         ctx.shadowColor = '#000'
         ctx.shadowBlur = 8
-        ctx.fillText(a.nom, px + (dx >= 0 ? 16 : -16) * u, py)
+        const tn = Math.max(14, 18 * u)
+        const tp = Math.max(12, 13.5 * u)
+        ctx.font = `700 ${tn}px system-ui, sans-serif`
+        ctx.fillStyle = a.couleur
+        ctx.fillText(a.nom, lx, py)
+        ctx.font = `${tp}px system-ui, sans-serif`
+        ctx.fillStyle = '#cbd5e1'
+        couper(ctx, a.role, Math.max(150, 200 * u)).forEach((ligne, k) => ctx.fillText(ligne, lx, py + tn * 0.8 + tp * (0.7 + k * 1.3)))
         ctx.shadowBlur = 0
       }
     })
@@ -363,6 +370,17 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
     }
     image = requestAnimationFrame(etape)
   })
+}
+
+// Coupe un texte en lignes d'au plus « largeur » pixels (avec la police en cours).
+function couper(ctx, texte, largeur) {
+  const lignes = ['']
+  for (const mot of texte.split(' ')) {
+    const essai = lignes.at(-1) ? `${lignes.at(-1)} ${mot}` : mot
+    if (lignes.at(-1) && ctx.measureText(essai).width > largeur) lignes.push(mot)
+    else lignes[lignes.length - 1] = essai
+  }
+  return lignes
 }
 
 // Un point d'une courbe de Bézier quadratique.
