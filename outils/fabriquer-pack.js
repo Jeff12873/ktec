@@ -13,7 +13,7 @@ import { ecrireIco } from '../serveur/socle/icone.js'
 import { raccourciInstaller, lisezMoi, ICONE } from './racine-windows.js'
 
 const PROGRAMME = ['serveur', 'interface', 'moteur-java', 'outils', 'VERSION', 'package.json', 'README.md', 'nouveautes.json',
-  'Lancer KTEC.bat', 'Installer KTEC.bat', 'Desinstaller KTEC.bat']
+  'Lancer KTEC.bat', 'Installer KTEC.bat', 'installer-discret.bat', 'Desinstaller KTEC.bat']
 
 const args = process.argv.slice(2)
 const option = (nom) => { const i = args.indexOf(nom); return i < 0 ? null : args[i + 1] }

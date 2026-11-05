@@ -1,6 +1,7 @@
 // La racine d'un pack Windows : le raccourci « Installer K.NOVA » et le LISEZ-MOI ; tout le reste est dans « fichiers ».
-// Le raccourci lance le Node du pack sur le lanceur (sans console) : seule la page d'installation s'ouvre, dans le
-// navigateur. Il est « relatif » (sans dossier de travail) : il marche où que le pack soit extrait.
+// Le raccourci lance fichiers\installer-discret.bat (le Node du pack sur le lanceur, sans console qui reste) : seule
+// la page d'installation s'ouvre, dans le navigateur. Il est « relatif » (aucun chemin absolu) : il marche où que le
+// pack soit extrait. Au premier lancement, le lanceur le réécrit avec ses chemins complets et l'icône de K.NOVA.
 // Utilisé par fabriquer-kit.js (kit hors ligne complet) et fabriquer-pack.js (petit pack, en ligne).
 
 import fs from 'node:fs'
@@ -15,11 +16,8 @@ export function ecrireIcone(dossierFichiers) {
   ecrireIco(fs.readFileSync(path.join(dossierFichiers, 'interface', 'icone.png')), path.join(dossierFichiers, ICONE))
 }
 
-export const raccourciInstaller = () => fichierLnk({
-  cible: 'C:\\Windows\\System32\\cmd.exe',
-  argumentsCible: '/c fichiers\\hors-ligne\\node\\node.exe fichiers\\serveur\\lanceur.js --installation',
-  icone: `fichiers\\${ICONE}`,
-})
+export const LANCEUR_INSTALLATION = 'installer-discret.bat'
+export const raccourciInstaller = () => fichierLnk({ relatif: `.\\fichiers\\${LANCEUR_INSTALLATION}`, icone: `fichiers\\${ICONE}` })
 
 export function lisezMoi({ enLigne }) {
   return [
@@ -34,6 +32,7 @@ export function lisezMoi({ enLigne }) {
     '3. À la fin, « Ouvrir K.NOVA ». Un raccourci K.NOVA est posé sur le Bureau et dans le menu Démarrer.',
     '',
     'Le dossier « fichiers » contient le programme : il n\'y a rien à y ouvrir.',
+    'L\'icône de K.NOVA apparaît sur le raccourci après le premier lancement.',
     'Si le raccourci ne fait rien : double-cliquer fichiers\\Installer KTEC.bat (même installation, avec une console).',
     '',
   ].join('\r\n')

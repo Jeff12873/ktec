@@ -81,8 +81,9 @@ function dossiersWindows() {
 
 // Un raccourci Windows (.lnk, format MS-SHLLINK) écrit à la main : chemin de la cible, ses arguments, dossier de
 // travail, icône, fenêtre réduite (on ne voit que la fenêtre de K.NOVA).
-// dossier vide : le programme démarre dans le dossier du raccourci (raccourci « relatif », qui suit la clé USB).
-export function fichierLnk({ cible, argumentsCible = '', dossier = '', icone }) {
+// relatif : la cible vue depuis le dossier du raccourci (« .\\fichiers\\… ») ; Windows s'en sert quand la cible
+// absolue manque, ou quand il n'y en a pas (raccourci d'un pack qu'on peut extraire n'importe où).
+export function fichierLnk({ cible = '', relatif = '', argumentsCible = '', dossier = '', icone }) {
   const u32 = (n) => { const b = Buffer.alloc(4); b.writeUInt32LE(n); return b }
   const u16 = (n) => { const b = Buffer.alloc(2); b.writeUInt16LE(n); return b }
   const unicode = (t) => Buffer.from(t, 'utf16le')
@@ -90,7 +91,7 @@ export function fichierLnk({ cible, argumentsCible = '', dossier = '', icone }) 
 
   const entete = Buffer.concat([
     u32(0x4c), Buffer.from('0114020000000000c000000000000046', 'hex'),
-    u32(0x02 | (dossier ? 0x10 : 0) | (argumentsCible ? 0x20 : 0) | 0x40 | 0x80), // LinkInfo, dossier de travail, arguments, icône, Unicode
+    u32((cible ? 0x02 : 0) | (relatif ? 0x08 : 0) | (dossier ? 0x10 : 0) | (argumentsCible ? 0x20 : 0) | 0x40 | 0x80), // LinkInfo, chemin relatif, dossier de travail, arguments, icône, Unicode
     u32(0x20), Buffer.alloc(24), u32(0), u32(0),
     u32(7), // fenêtre réduite
     u16(0), u16(0), u32(0), u32(0),
@@ -116,7 +117,7 @@ export function fichierLnk({ cible, argumentsCible = '', dossier = '', icone }) 
   const tailleInfo = tailleEnteteInfo + corps.reduce((n, b) => n + b.length, 0)
   const linkInfo = Buffer.concat([u32(tailleInfo), u32(tailleEnteteInfo), u32(1), u32(offVolume), u32(offChemin), u32(0), u32(offSuffixe), ...offsetsUnicode, ...corps])
 
-  return Buffer.concat([entete, linkInfo, ...(dossier ? [chaine(dossier)] : []), ...(argumentsCible ? [chaine(argumentsCible)] : []), chaine(icone), u32(0)])
+  return Buffer.concat([entete, ...(cible ? [linkInfo] : []), ...(relatif ? [chaine(relatif)] : []), ...(dossier ? [chaine(dossier)] : []), ...(argumentsCible ? [chaine(argumentsCible)] : []), chaine(icone), u32(0)])
 }
 
 function dossiersLinux() {
