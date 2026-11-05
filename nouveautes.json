@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.24",
+      "date": "2026-11-05",
+      "points": [
+        "« Pourquoi K.NOVA ? » : le début parle de l'enjeu, la propriété et la maîtrise des données de l'entreprise pour ne pas dépendre de services extérieurs"
+      ]
+    },
+    {
       "version": "0.8.23",
       "date": "2026-11-05",
       "points": [

@@ -1,6 +1,6 @@
 // « Pourquoi K.NOVA ? » : un enchaînement d'une trentaine de secondes, joué au tout premier lancement sur le poste,
 // puis à la demande (bouton du pied du portail). Quatre phases dans l'univers de la supernova :
-//   1. le problème : les IA classiques envoient les données de l'entreprise dans un cloud qu'on ne maîtrise pas ;
+//   1. l'enjeu : la propriété et la maîtrise des données ; les confier à un cloud extérieur, c'est en dépendre ;
 //   2. la connaissance : ici tout reste chez vous, réuni dans un seul fichier .ktec chiffré ;
 //   3. les applications, en orbite autour de ce fichier ;
 //   4. le résultat : tout se contracte dans le soleil, et l'intro du portail prend le relais (la création du logo).
@@ -11,15 +11,15 @@ import { h } from './socle/ui.js'
 const DUREE = 27_000 // en temps du récit ; joué au ralenti (LENTEUR), il dure une quarantaine de secondes
 const LENTEUR = 1.5
 const PHASES = [
-  { debut: 0, fin: 8000, titre: 'Le problème' },
+  { debut: 0, fin: 8000, titre: 'L’enjeu' },
   { debut: 8000, fin: 15500, titre: 'La connaissance' },
   { debut: 15500, fin: 23000, titre: 'Les applications' },
   { debut: 23000, fin: DUREE, titre: 'Le résultat' },
 ]
 const PHRASES = [
-  { debut: 0, texte: 'Les données de l’entreprise sont son bien le plus précieux.' },
-  { debut: 3800, texte: 'Les assistants IA classiques les envoient vers un cloud extérieur, que personne ne maîtrise.' },
-  { debut: 8000, texte: 'Avec K.NOVA, tout est local : rien ne quitte le site.' },
+  { debut: 0, texte: 'Aujourd’hui, la propriété et la maîtrise de ses données sont cruciales pour une entreprise.' },
+  { debut: 3800, texte: 'Les confier aux IA et aux clouds extérieurs, c’est dépendre de services que l’on ne contrôle pas.' },
+  { debut: 8000, texte: 'Avec K.NOVA, vous restez maîtres de vos données : tout est local, rien ne quitte le site.' },
   { debut: 11500, texte: 'Ce que l’on sait du site tient dans un seul fichier .ktec, chiffré, chez vous.' },
   { debut: 15500, texte: 'Autour de lui, les applications de l’atelier.' },
   { debut: 19500, texte: 'Et une IA qui tourne sur le poste, sans Internet.' },
