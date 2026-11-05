@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.28",
+      "date": "2026-11-05",
+      "points": [
+        "Portail : les icônes des applications restent immobiles au repos ; elles s'animent seulement au survol de la souris"
+      ]
+    },
+    {
       "version": "0.8.27",
       "date": "2026-11-05",
       "points": [
