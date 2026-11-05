@@ -3,16 +3,18 @@
 // (réglage « ktec.messages » et fichiers « ktec-messages ») ; le portail les liste (à faire, en cours, fait).
 //
 // L'envoi : derrière un mot de passe (donné seulement aux personnes choisies), K.NOVA prépare un mail vers le
-// développeur, que la messagerie du poste (Outlook) envoie elle-même, avec le zip des captures à joindre.
+// développeur (fichier .eml, captures dans le corps du mail) qu'Outlook ouvre comme un brouillon prêt à partir.
 // K.NOVA ne se connecte jamais à Internet. Seule l'empreinte du mot de passe est ici (scrypt) : on ne peut pas
 // en retrouver le mot de passe.
 
 import os from 'node:os'
 import crypto from 'node:crypto'
+import fs from 'node:fs'
 import path from 'node:path'
+import { spawn } from 'node:child_process'
 import { ErreurHttp, envoyerOctets } from './socle/http.js'
 import { lireInfo, ecrireInfo, lireFichier, enregistrerFichier, supprimerFichier } from './socle/ktec.js'
-import { version, reglagesPoste } from './socle/installation.js'
+import { version, reglagesPoste, chemins, WINDOWS } from './socle/installation.js'
 import { applisPubliques } from './socle/applis.js'
 import { creerZip } from './socle/zip.js'
 
@@ -48,6 +50,71 @@ const nomZip = () => {
   const d = new Date()
   return `messages-KNOVA-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.zip`
 }
+
+// Le mail en .eml : « X-Unsent: 1 » fait qu'Outlook l'ouvre en brouillon (bouton Envoyer), les captures
+// dans le corps (images « cid: »). Un lien « mailto: » ne peut pas porter d'image.
+const echapper = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+const base64Lignes = (octets) => Buffer.from(octets).toString('base64').replace(/.{76}/g, '$&\r\n')
+const TYPES_IMAGE = { png: 'image/png', jpg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' }
+
+function fabriquerEml(sujet, messages) {
+  const frontiere = `----=_KNOVA_${crypto.randomBytes(12).toString('hex')}`
+  const images = []
+  const html = messages.map((m) => {
+    const vignettes = (m.images || []).map((nom) => {
+      const octets = lireFichier('ktec-messages', nom)
+      if (!octets) return ''
+      const cid = `${nom.replace(/[^a-z0-9.-]/gi, '')}@knova`
+      images.push({ nom, cid, octets })
+      return `<p><img src="cid:${cid}" alt="${echapper(nom)}" style="max-width:100%;border:1px solid #ccc"></p>`
+    }).join('')
+    const entete = texteMessage({ ...m, texte: '', images: [] }).split('\n').slice(0, 2)
+    return `<h3 style="margin:16px 0 4px">${echapper(entete[0].replace(/^# /, ''))}</h3><p style="color:#666;margin:0 0 8px">${echapper(entete[1])}</p>`
+      + `<p style="white-space:pre-wrap">${echapper(m.texte || '(sans texte)')}</p>${vignettes}`
+  }).join('<hr>')
+  const lignes = [
+    `To: ${DESTINATAIRE}`,
+    `Subject: =?UTF-8?B?${Buffer.from(sujet, 'utf8').toString('base64')}?=`,
+    'X-Unsent: 1',
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/related; boundary="${frontiere}"; type="text/html"`,
+    '',
+    `--${frontiere}`,
+    'Content-Type: text/html; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    base64Lignes(Buffer.from(`<!doctype html><html><body style="font-family:Segoe UI,Arial,sans-serif;font-size:14px">${html}</body></html>`, 'utf8')),
+  ]
+  for (const image of images) lignes.push(
+    `--${frontiere}`,
+    `Content-Type: ${TYPES_IMAGE[path.extname(image.nom).slice(1)] || 'application/octet-stream'}; name="${image.nom}"`,
+    'Content-Transfer-Encoding: base64',
+    `Content-ID: <${image.cid}>`,
+    `Content-Disposition: inline; filename="${image.nom}"`,
+    '',
+    base64Lignes(image.octets),
+  )
+  lignes.push(`--${frontiere}--`, '')
+  return Buffer.from(lignes.join('\r\n'), 'utf8')
+}
+
+// Le .eml est rangé dans cache/messages et ouvert par la messagerie par défaut du poste (Outlook).
+function ouvrirMail(octets) {
+  const dossier = path.join(chemins.cache, 'messages')
+  fs.mkdirSync(dossier, { recursive: true })
+  for (const ancien of fs.readdirSync(dossier)) fs.rmSync(path.join(dossier, ancien), { force: true })
+  const fichier = path.join(dossier, `message-KNOVA-${Date.now()}.eml`)
+  fs.writeFileSync(fichier, octets)
+  const [commande, args] = WINDOWS ? ['cmd', ['/c', 'start', '', fichier]] : ['xdg-open', [fichier]]
+  try {
+    spawn(commande, args, { detached: true, stdio: 'ignore', windowsHide: true }).on('error', () => {}).unref()
+    return true
+  } catch {
+    return false
+  }
+}
+
+let dernierMail = null
 
 export function routes(r) {
   r.get('/api/ktec/messages', () => lireMessages())
@@ -85,30 +152,30 @@ export function routes(r) {
     return message
   })
 
-  // { motDePasse, ids? } : vérifie le mot de passe et prépare le mail (adresse « mailto: » ouverte par la messagerie
-  // du poste). Les messages envoyés passent « en cours ». Le zip des captures est à joindre au mail.
+  // { motDePasse, ids? } : vérifie le mot de passe, fabrique le mail (.eml, captures comprises) et l'ouvre dans
+  // la messagerie du poste. Les messages envoyés passent « en cours ».
   r.post('/api/ktec/messages/envoi', async (ctx) => {
     const { motDePasse, ids } = await ctx.json()
     verifierMotDePasseEnvoi(motDePasse)
     const messages = lireMessages()
     const choisis = messages.filter((m) => (Array.isArray(ids) && ids.length ? ids.includes(m.id) : m.etat !== 'fait'))
     if (!choisis.length) throw new ErreurHttp(400, 'Aucun message à envoyer.')
-    const avecImages = choisis.some((m) => m.images?.length)
-    // Un lien « mailto: » trop long est refusé par Outlook : le corps est raccourci, le zip a tout.
-    let corps = choisis.map(texteMessage).join('\n\n----------------------------------------\n\n')
-    if (corps.length > 1500) corps = corps.slice(0, 1500) + '\n\n[…] La suite est dans le zip joint.'
-    if (avecImages) corps += `\n\nCaptures d’écran : joindre le fichier ${nomZip()} (dossier Téléchargements).`
     const sujet = `K.NOVA — ${choisis.length} message${choisis.length > 1 ? 's' : ''} (${[...new Set(choisis.map((m) => m.appli))].join(', ')})`
+    dernierMail = fabriquerEml(sujet, choisis)
+    const ouvert = ouvrirMail(dernierMail)
     const maintenant = new Date().toISOString()
     for (const m of choisis) {
       m.envoyeLe = maintenant
       if (m.etat === 'a_faire') m.etat = 'en_cours'
     }
     ecrireInfo('ktec.messages', messages)
-    return {
-      mailto: `mailto:${DESTINATAIRE}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`,
-      zip: avecImages ? `/api/ktec/messages/export.zip?ids=${choisis.map((m) => m.id).join(',')}` : null,
-    }
+    return { ouvert, eml: '/api/ktec/messages/mail.eml' }
+  })
+
+  // Le dernier mail préparé, à ouvrir à la main si la messagerie ne s'est pas ouverte.
+  r.get('/api/ktec/messages/mail.eml', (ctx) => {
+    if (!dernierMail) throw new ErreurHttp(404, 'Aucun mail préparé')
+    envoyerOctets(ctx.res, dernierMail, { type: 'message/rfc822', nom: 'message-KNOVA.eml', telecharger: true })
   })
 
   r.post('/api/ktec/messages/:id', async (ctx) => {

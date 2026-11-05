@@ -62,8 +62,7 @@ export function ouvrirMessage({ appli = 'ktec', ecran = '' } = {}) {
   }
 }
 
-// L'envoi : le mot de passe (demandé une fois par page), puis le mail s'ouvre dans Outlook ; s'il y a des
-// captures, leur zip est téléchargé en même temps, à joindre au mail.
+// L'envoi : le mot de passe (demandé une fois par page), puis le mail s'ouvre dans Outlook, captures comprises.
 let motDePasseRetenu = ''
 export async function envoyerParOutlook(ids = null) {
   let reponse = null
@@ -85,14 +84,13 @@ export async function envoyerParOutlook(ids = null) {
     })
   }
   if (!reponse) return false
-  if (reponse.zip) {
-    const lien = h('a', { href: reponse.zip, download: '' })
+  if (!reponse.ouvert) {
+    const lien = h('a', { href: reponse.eml, download: 'message-KNOVA.eml' })
     document.body.append(lien)
     lien.click()
     lien.remove()
   }
-  setTimeout(() => (location.href = reponse.mailto), reponse.zip ? 600 : 0)
-  notifier(reponse.zip ? 'Outlook s’ouvre : joignez le zip des captures (dossier Téléchargements), puis envoyez.' : 'Outlook s’ouvre avec le mail prêt : il ne reste qu’à l’envoyer.')
+  notifier(reponse.ouvert ? 'Outlook s’ouvre avec le mail prêt, captures comprises : il ne reste qu’à l’envoyer.' : 'Ouvrez le fichier message-KNOVA.eml téléchargé : Outlook l’affiche prêt à envoyer.')
   return true
 }
 

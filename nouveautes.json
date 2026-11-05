@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.20",
+      "date": "2026-11-05",
+      "points": [
+        "Messages au développeur : Outlook s'ouvre avec les captures d'écran dans le mail, plus de zip à joindre à la main"
+      ]
+    },
+    {
       "version": "0.8.19",
       "date": "2026-11-05",
       "points": [
