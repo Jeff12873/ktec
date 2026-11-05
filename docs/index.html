@@ -99,7 +99,7 @@ footer { padding: 40px 0 60px; color: var(--texte-3); font-size: 13px; border-to
 <div class="page">
   <header class="haut">
     <a class="marque" href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"> <rect x="16" y="16" width="480" height="480" rx="112" fill="#0b1220" stroke="#1d3a2c" stroke-width="12"/> <g transform="translate(256 256)" fill="none" stroke-linecap="round"> <circle r="190" stroke="#2dd4bf" stroke-width="9" stroke-dasharray="20 44"/> <circle r="144" stroke="#a3e635" stroke-width="15" stroke-dasharray="76 50"/> <circle r="96" stroke="#10b981" stroke-width="21" stroke-dasharray="124 30"/> </g> <circle cx="420" cy="160" r="9" fill="#10b981"/> <circle cx="92" cy="324" r="8" fill="#a3e635"/> <circle cx="196" cy="74" r="7" fill="#ffffff"/> <circle cx="348" cy="424" r="9" fill="#2dd4bf"/> <circle cx="256" cy="256" r="46" fill="#fde68a"/> <circle cx="256" cy="256" r="22" fill="#ffffff"/> </svg><span>K<b>.NOVA</b></span></a>
-    <nav class="liens"><a href="#outils">Les outils</a><a href="#confiance">Vos données</a><a href="#telecharger">Télécharger</a></nav>
+    <nav class="liens"><a href="#outils">Les outils</a><a href="#confiance">Vos données</a><a href="#telecharger">Télécharger</a><a href="#eco">Sans installation</a></nav>
   </header>
 
   <main>
@@ -200,6 +200,22 @@ footer { padding: 40px 0 60px; color: var(--texte-3); font-size: 13px; border-to
         </div>
         <p class="note">Sous Linux : extraire, puis lancer <code>installer-ktec.sh</code> dans le dossier K.NOVA. L'IA n'est téléchargée que si AITEC est coché (de 2 à 7 Go selon le poste). Pas de connexion à Internet sur un poste ? Un kit hors ligne complet se prépare sur une clé USB.</p>
       </div>
+    </section>
+
+    <section id="eco">
+      <h2>Sans rien installer</h2>
+      <p class="intro">Les versions éco+ tiennent dans un seul fichier HTML : on le télécharge, on l'ouvre dans le navigateur, et c'est tout. Ni K.NOVA, ni IA, ni droits particuliers. Elles travaillent sur les exports de la GMAO glissés sur la page, qui restent sur le poste.</p>
+      <div class="grille">
+        <div class="carte outil" style="--couleur: var(--anis)">
+          <h3><span class="nom">PDR<b>TEC</b></span><span class="pastille eco">Eco+</span></h3>
+          <p>La recherche de pièces de rechange : filtres en cascade, pièces réversibles, stock et coches. Glissez l'export Excel des pièces, les réglages se font dans la page et restent sur le poste.</p>
+          <p style="margin-top:16px"><a class="bouton" href="https://github.com/Jeff12873/pdrtec/releases/latest/download/Recherche-PDR-eco.html" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+            <span>Télécharger PDRTEC éco+<small>Un fichier HTML, environ 1 Mo</small></span>
+          </a></p>
+        </div>
+      </div>
+      <p class="note">Avec K.NOVA installé, la pastille « Eco+ » du portail donne la même page, déjà réglée pour le site.</p>
     </section>
   </main>
 
