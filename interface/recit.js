@@ -256,7 +256,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
           ctx.fill()
         }
         // Sous le soleil : ce qu'il contient, puis « chiffré » une fois fermé.
-        ctx.globalAlpha = cadenas * (1 - entre(t, 19500, 20500) * 0.7)
+        ctx.globalAlpha = cadenas * (1 - entre(t, 18800, 19600)) // parti avant l'arrivée des orbites
         ctx.font = `600 ${Math.max(13, 17 * u)}px system-ui, sans-serif`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'top'
@@ -267,6 +267,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
 
     // Phase 3 : les applications sortent du soleil et prennent leur orbite. Phase 4 : elles tournent plus vite
     // et renvoient vers lui ce qu'elles trouvent (rien ne part ailleurs).
+    const etiquettes = [] // dessinées après tout le reste
     APPLIS.forEach((a, i) => {
       const debut = 19700 + i * 1100
       if (t < debut) return
@@ -306,31 +307,46 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       ctx.arc(px, py, (8 + 6 * (1 - e)) * u, 0, Math.PI * 2)
       ctx.fill()
       ctx.shadowBlur = 0
-      // Le nom et le rôle de l'application.
+      // Le nom et le rôle, centrés en quelques lignes courtes, sur un encart sombre posé vers l'extérieur :
+      // aucune orbite ni lueur ne passe sous le texte.
       const nomVu = entre(t, debut + 900, debut + 1700) * (1 - entre(t, 29200, 29800))
-      if (nomVu > 0) {
-        const grand = `700 ${Math.max(15, 21 * u)}px system-ui, sans-serif`
+      if (nomVu > 0) etiquettes.push(() => {
+        const grand = `700 ${Math.max(15, 20 * u)}px system-ui, sans-serif`
         const petit = `${Math.max(12, 14 * u)}px system-ui, sans-serif`
-        ctx.font = grand
-        let largeur = ctx.measureText(a.nom).width
+        const interligne = Math.max(16, 19 * u)
         ctx.font = petit
-        largeur = Math.max(largeur, ctx.measureText(a.role).width)
-        // Du côté extérieur, sauf si le texte sortirait de l'écran.
-        let droite = dx >= 0
-        if (droite && px + 18 * u + largeur > w - 8) droite = false
-        else if (!droite && px - 18 * u - largeur < 8) droite = true
+        const lignes = couper(ctx, a.role, Math.max(150, 190 * u))
+        const largeur = Math.max(...lignes.map((l) => ctx.measureText(l).width), (ctx.font = grand, ctx.measureText(a.nom).width)) + 28 * u
+        const hauteur = interligne * (lignes.length + 1.3) + 16 * u
+        const ecart = 24 * u + Math.hypot(largeur, hauteur) / 2
+        const bx = Math.min(w - largeur / 2 - 8, Math.max(largeur / 2 + 8, px + dx * ecart))
+        const by = Math.min(ht - 110 - hauteur / 2, Math.max(hauteur / 2 + 50, py + dy * ecart))
         ctx.globalAlpha = nomVu
-        ctx.textAlign = droite ? 'left' : 'right'
+        ctx.fillStyle = 'rgba(5, 9, 8, 0.88)'
+        ctx.strokeStyle = a.couleur
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.roundRect(bx - largeur / 2, by - hauteur / 2, largeur, hauteur, 12 * u)
+        ctx.fill()
+        ctx.globalAlpha = nomVu * 0.5
+        ctx.stroke()
+        ctx.globalAlpha = nomVu
+        ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        const lx = px + (droite ? 18 : -18) * u
+        let y = by - hauteur / 2 + 8 * u + interligne * 0.65
         ctx.fillStyle = a.couleur
         ctx.font = grand
-        ctx.fillText(a.nom, lx, py - 9 * u)
+        ctx.fillText(a.nom, bx, y)
+        y += interligne * 1.3
         ctx.fillStyle = '#cbd5e1'
         ctx.font = petit
-        ctx.fillText(a.role, lx, py + 12 * u)
-      }
+        for (const l of lignes) {
+          ctx.fillText(l, bx, y)
+          y += interligne
+        }
+      })
     })
+    for (const dessinerEtiquette of etiquettes) dessinerEtiquette()
 
     ctx.globalAlpha = 1
 
@@ -380,6 +396,17 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
     }
     image = requestAnimationFrame(etape)
   })
+}
+
+// Coupe un texte en lignes d'au plus « largeur » pixels (avec la police en cours).
+function couper(ctx, texte, largeur) {
+  const lignes = ['']
+  for (const mot of texte.split(' ')) {
+    const essai = lignes.at(-1) ? `${lignes.at(-1)} ${mot}` : mot
+    if (lignes.at(-1) && ctx.measureText(essai).width > largeur) lignes.push(mot)
+    else lignes[lignes.length - 1] = essai
+  }
+  return lignes
 }
 
 // Un point d'une courbe de Bézier quadratique.
