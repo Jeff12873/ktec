@@ -415,64 +415,81 @@ function courbe([ax, ay], [bx, by], [cx, cy], p) {
   return [q * q * ax + 2 * q * p * bx + p * p * cx, q * q * ay + 2 * q * p * by + p * p * cy]
 }
 
-// Le cloud extérieur : une nova sombre et menaçante. Un cœur noir cerclé de rouge, une couronne rouge sang,
-// des pointes qui vacillent et tournent lentement ; elle se résorbe quand le bouclier coupe la fuite.
+// Le cloud extérieur : un disque sombre et calme, cerclé d'une lueur rouge douce. Une fumée légère tourne lentement
+// autour, et une texture de volutes tourne à l'intérieur. Il se résorbe quand le bouclier coupe la fuite.
+const VOLUTES = (() => {
+  const hasard = hasards(7)
+  return Array.from({ length: 46 }, () => ({ r: 0.15 + hasard() * 0.8, a: hasard() * Math.PI * 2, long: 0.3 + hasard() * 0.9, ep: 0.6 + hasard() * 1.6, al: 0.05 + hasard() * 0.1 }))
+})()
 function nova(ctx, x, y, s, alpha, t) {
+  const R = 58
   ctx.save()
   ctx.translate(x, y)
   ctx.scale(s, s)
   ctx.globalAlpha = alpha
-  const pouls = 1 + 0.08 * Math.sin(t / 260) + 0.04 * Math.sin(t / 97)
-  // La couronne.
-  const couronne = ctx.createRadialGradient(0, 0, 20, 0, 0, 120 * pouls)
-  couronne.addColorStop(0, 'rgba(220, 38, 38, 0.75)')
-  couronne.addColorStop(0.35, 'rgba(127, 29, 29, 0.45)')
-  couronne.addColorStop(1, 'rgba(0, 0, 0, 0)')
-  ctx.fillStyle = couronne
+  const pouls = 1 + 0.03 * Math.sin(t / 1400)
+  // Le halo, très doux.
+  const halo = ctx.createRadialGradient(0, 0, R * 0.9, 0, 0, R * 2.3)
+  halo.addColorStop(0, 'rgba(153, 27, 27, 0.35)')
+  halo.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  ctx.fillStyle = halo
   ctx.beginPath()
-  ctx.arc(0, 0, 120 * pouls, 0, Math.PI * 2)
+  ctx.arc(0, 0, R * 2.3, 0, Math.PI * 2)
   ctx.fill()
-  // Les pointes : longues et courtes en alternance, qui vacillent.
-  ctx.rotate(t / 6000)
-  ctx.beginPath()
-  const n = 14
-  for (let i = 0; i <= n * 2; i++) {
-    const a = (i / (n * 2)) * Math.PI * 2
-    const r = i % 2 ? 34 : (62 + 22 * Math.sin(t / 180 + i * 1.7)) * (i % 4 ? 0.8 : 1.15)
-    ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r)
+  // La fumée : des nappes floues qui tournent lentement autour du disque, en ondulant.
+  for (let k = 0; k < 8; k++) {
+    const ang = (k / 8) * Math.PI * 2 + t / 9000 + Math.sin(t / 3200 + k) * 0.25
+    const dist = R * (1.08 + 0.1 * Math.sin(t / 2600 + k * 2))
+    const taille = R * (0.5 + 0.15 * Math.sin(t / 2100 + k * 1.3))
+    const fx = Math.cos(ang) * dist
+    const fy = Math.sin(ang) * dist
+    const nappe = ctx.createRadialGradient(fx, fy, 0, fx, fy, taille)
+    nappe.addColorStop(0, 'rgba(185, 28, 28, 0.22)')
+    nappe.addColorStop(1, 'rgba(185, 28, 28, 0)')
+    ctx.fillStyle = nappe
+    ctx.beginPath()
+    ctx.arc(fx, fy, taille, 0, Math.PI * 2)
+    ctx.fill()
   }
-  ctx.closePath()
-  ctx.fillStyle = '#7f1d1d'
-  ctx.shadowColor = '#ef4444'
-  ctx.shadowBlur = 30
-  ctx.fill()
-  ctx.strokeStyle = '#ef4444'
-  ctx.lineWidth = 1.5
-  ctx.stroke()
-  ctx.rotate(-t / 6000)
-  // Le cœur noir, cerclé de rouge vif.
-  ctx.shadowBlur = 20
-  ctx.fillStyle = '#050505'
+  // Le disque, sombre.
+  const rayon = R * pouls
+  const fond = ctx.createRadialGradient(-rayon * 0.25, -rayon * 0.25, 0, 0, 0, rayon)
+  fond.addColorStop(0, '#2a0808')
+  fond.addColorStop(1, '#0b0202')
+  ctx.fillStyle = fond
   ctx.beginPath()
-  ctx.arc(0, 0, 30, 0, Math.PI * 2)
+  ctx.arc(0, 0, rayon, 0, Math.PI * 2)
   ctx.fill()
-  ctx.strokeStyle = '#f87171'
-  ctx.lineWidth = 3
+  // La texture : des volutes fines qui tournent lentement, à l'intérieur seulement.
+  ctx.save()
+  ctx.clip()
+  ctx.rotate(t / 14000)
+  ctx.lineCap = 'round'
+  for (const v of VOLUTES) {
+    ctx.globalAlpha = alpha * v.al
+    ctx.strokeStyle = '#fca5a5'
+    ctx.lineWidth = v.ep
+    ctx.beginPath()
+    ctx.arc(0, 0, rayon * v.r, v.a, v.a + v.long)
+    ctx.stroke()
+  }
+  ctx.restore()
+  // Le cercle rouge, avec une lueur douce.
+  ctx.globalAlpha = alpha * 0.85
+  ctx.strokeStyle = '#ef4444'
+  ctx.lineWidth = 2
+  ctx.shadowColor = '#ef4444'
+  ctx.shadowBlur = 16
+  ctx.beginPath()
+  ctx.arc(0, 0, rayon, 0, Math.PI * 2)
   ctx.stroke()
   ctx.shadowBlur = 0
-  // Une lueur rouge qui tourne dans le cœur, comme un œil.
-  const oeil = ctx.createRadialGradient(Math.cos(t / 900) * 8, Math.sin(t / 900) * 8, 0, 0, 0, 30)
-  oeil.addColorStop(0, 'rgba(239, 68, 68, 0.55)')
-  oeil.addColorStop(1, 'rgba(0, 0, 0, 0)')
-  ctx.fillStyle = oeil
-  ctx.beginPath()
-  ctx.arc(0, 0, 30, 0, Math.PI * 2)
-  ctx.fill()
+  ctx.globalAlpha = alpha
   ctx.font = '600 13px system-ui, sans-serif'
   ctx.fillStyle = '#f87171'
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.fillText('cloud extérieur', 96, 0)
+  ctx.fillText('cloud extérieur', R * 2.1, 0)
   ctx.restore()
 }
 
