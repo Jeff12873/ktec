@@ -18,7 +18,7 @@ import { pointsNouveaux, encartNouveautes } from './socle/nouveautes.js'
 const SUITE = [
   { id: 'birtec', nom: 'BiRTEC', couleur: '#10b981', sousTitre: 'Rapports BIRT', description: 'Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs de la GMAO.', besoins: ['java', 'birt'] },
   { id: 'pdrtec', nom: 'PDRTEC', couleur: '#a3e635', sousTitre: 'Recherche de pièces', description: 'Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo.', besoins: ['java'] },
-  { id: 'aitec', nom: 'AITEC', couleur: '#2dd4bf', sousTitre: 'Assistant IA', description: 'L’assistant IA de l’atelier : parc, historique, documents, réponses sourcées.', besoins: ['ia', 'java'] },
+  { id: 'aitec', nom: 'AITEC', couleur: '#2dd4bf', sousTitre: 'Maintenance de niveau 1', description: 'La maintenance de premier niveau, dynamique et évolutive : demandes, fiches et rapports d’intervention, indicateurs, avec une IA locale.', besoins: ['ia', 'java'] },
 ]
 
 const racine = document.getElementById('portail')
@@ -53,10 +53,8 @@ function boutonDesinstaller(a) {
 }
 surChangement(() => boutonsDesinstaller.forEach((b) => { b.hidden = !modeAdmin() }))
 
-// Pastille « IA » (l'application a besoin du modèle d'IA) ou « NoIA » (elle fonctionne sans).
-const pastilleIA = (a) => (a.besoins || []).includes('ia')
-  ? h('span', { class: 'pastille-ia', title: 'Cette application a besoin de l’IA installée sur le poste' }, 'IA')
-  : h('span', { class: 'pastille-ia sans', title: 'Cette application fonctionne sans IA' }, 'NoIA')
+// Pastille « IA » : seulement pour une application qui a besoin du modèle d'IA installé sur le poste.
+const pastilleIA = (a) => ((a.besoins || []).includes('ia') ? h('span', { class: 'pastille-ia', title: 'Cette application utilise l’IA installée sur le poste' }, 'IA') : null)
 // Pastille « Eco+ » : l'application existe aussi en un seul fichier HTML, pour les postes sans K.NOVA.
 // Un clic le télécharge (fabriqué à la demande, avec les réglages du site).
 const pastilleEco = (a) => (a.eco

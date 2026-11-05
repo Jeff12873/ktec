@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.8.34",
+      "date": "2026-11-05",
+      "points": [
+        "« Pourquoi K.NOVA ? » : le nom de chaque application s'affiche à côté de sa planète",
+        "Tuiles du portail : seulement la pastille Eco+ (BiRTEC, PDRTEC) et la pastille IA sur AITEC ; AITEC présentée comme la maintenance de premier niveau"
+      ]
+    },
+    {
       "version": "0.8.33",
       "date": "2026-11-05",
       "points": [

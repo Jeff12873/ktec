@@ -300,6 +300,19 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       ctx.arc(px, py, (8 + 6 * (1 - e)) * u, 0, Math.PI * 2)
       ctx.fill()
       ctx.shadowBlur = 0
+      // Juste le nom, à côté de la planète, vers l'extérieur.
+      const nomVu = entre(t, debut + 900, debut + 1700) * (1 - entre(t, 29200, 29800))
+      if (nomVu > 0) {
+        ctx.globalAlpha = nomVu
+        ctx.font = `700 ${Math.max(14, 18 * u)}px system-ui, sans-serif`
+        ctx.textAlign = dx >= 0 ? 'left' : 'right'
+        ctx.textBaseline = 'middle'
+        ctx.fillStyle = a.couleur
+        ctx.shadowColor = '#000'
+        ctx.shadowBlur = 8
+        ctx.fillText(a.nom, px + (dx >= 0 ? 16 : -16) * u, py)
+        ctx.shadowBlur = 0
+      }
     })
 
     ctx.globalAlpha = 1
