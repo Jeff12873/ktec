@@ -96,7 +96,9 @@ function dessinerMenu() {
       b.groupe && b.groupe !== liste[i - 1]?.groupe
         ? h('div', { class: `menu-groupe ${b.groupe === 'Réglages' ? 'en-bas' : ''}` }, b.groupe)
         : null,
-      h('a', { href: `#/${b.chemin}`, class: b === actuel ? 'actif' : '' }, ic(b.icone, 19), h('span', {}, b.titre)),
+      h('a', { href: `#/${b.chemin}`, class: b === actuel ? 'actif' : '' }, ic(b.icone, 19), h('span', {}, b.titre),
+        // beta: true dans la vue → une pastille « Bêta » posée en biais (écran encore en travaux).
+        b.beta ? h('span', { class: 'pastille-beta', title: 'En cours de travail' }, 'Bêta') : null),
     ]),
     autresApplis.length
       ? h('div', { class: 'menu-autres' }, autresApplis.map((a) => h('a', { href: `/${a.id}/`, title: a.description || '' }, h('img', { src: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, alt: '' }), nomAppli(a.nom, a.couleur))))

@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.30",
+      "date": "2026-11-05",
+      "points": [
+        "Menu des applications : une pastille « Bêta » en biais signale un écran encore en travaux"
+      ]
+    },
+    {
       "version": "0.8.29",
       "date": "2026-11-05",
       "points": [
