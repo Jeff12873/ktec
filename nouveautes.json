@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.27",
+      "date": "2026-11-05",
+      "points": [
+        "Portail : les trois icônes battent du même mouvement lent et fluide, décalé d'une tuile à l'autre"
+      ]
+    },
+    {
       "version": "0.8.26",
       "date": "2026-11-05",
       "points": [
