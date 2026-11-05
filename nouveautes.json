@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.23",
+      "date": "2026-11-05",
+      "points": [
+        "« Pourquoi K.NOVA ? » plus lent (une quarantaine de secondes), le texte bien centré et écrit lettre après lettre"
+      ]
+    },
+    {
       "version": "0.8.22",
       "date": "2026-11-05",
       "points": [

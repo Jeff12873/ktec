@@ -8,7 +8,8 @@
 
 import { h } from './socle/ui.js'
 
-const DUREE = 27_000
+const DUREE = 27_000 // en temps du récit ; joué au ralenti (LENTEUR), il dure une quarantaine de secondes
+const LENTEUR = 1.5
 const PHASES = [
   { debut: 0, fin: 8000, titre: 'Le problème' },
   { debut: 8000, fin: 15500, titre: 'La connaissance' },
@@ -81,7 +82,15 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
   let numPhase = -1
   const montrer = (el, contenu) => {
     el.textContent = contenu
-    el.animate([{ opacity: 0, transform: 'translateY(10px)', filter: 'blur(4px)' }, { opacity: 1, transform: 'none', filter: 'none' }], { duration: 700, easing: 'ease-out' })
+    el.animate([{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'none' }], { duration: 700, easing: 'ease-out' })
+  }
+  // La phrase s'écrit lettre après lettre (chaque mot reste entier en bout de ligne).
+  const ecrire = (contenu) => {
+    let rang = 0
+    texte.replaceChildren(...contenu.split(' ').flatMap((mot, i) => [
+      ...(i ? [' '] : []),
+      h('span', { class: 'recit-mot' }, [...mot].map((c) => h('span', { class: 'recit-lettre', style: { animationDelay: `${rang++ * 32}ms` } }, c))),
+    ]))
   }
 
   function dessiner(t) {
@@ -292,7 +301,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
     const ip = PHRASES.findLastIndex((p) => t >= p.debut)
     if (ip !== phrase) {
       phrase = ip
-      montrer(texte, PHRASES[ip].texte)
+      ecrire(PHRASES[ip].texte)
     }
     const nPhase = PHASES.findLastIndex((p) => t >= p.debut)
     if (nPhase !== numPhase) {
@@ -327,7 +336,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
     passer.addEventListener('click', finir)
     addEventListener('keydown', touche, true)
     const etape = (maintenant) => {
-      const t = maintenant - t0
+      const t = (maintenant - t0) / LENTEUR
       dessiner(Math.min(t, DUREE))
       if (t >= DUREE) finir()
       else image = requestAnimationFrame(etape)

@@ -555,10 +555,13 @@ a.tuile-appli:hover .tete img { animation: icone-saut .7s cubic-bezier(.3,1.6,.5
 .recit-knova { position: fixed; inset: 0; z-index: 60; background: radial-gradient(1200px 800px at 50% 50%, #0d1f17, #05080a 70%); color: #e2e8f0; animation: apparition .6s; }
 .recit-toile { position: absolute; inset: 0; width: 100%; height: 100%; }
 .recit-phase { position: absolute; top: 28px; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
-.recit-texte { position: absolute; left: 50%; bottom: 74px; width: min(860px, calc(100% - 32px)); transform: translateX(-50%); margin: 0; text-align: center; font-size: clamp(18px, 2.6vw, 28px); font-weight: 600; line-height: 1.3; text-shadow: 0 2px 18px #000; }
+.recit-texte { position: absolute; left: 0; right: 0; bottom: 74px; max-width: 860px; margin: 0 auto; padding: 0 16px; text-align: center; font-size: clamp(18px, 2.6vw, 28px); font-weight: 600; line-height: 1.3; text-shadow: 0 2px 18px #000; }
 .recit-bas { position: absolute; left: 16px; right: 16px; bottom: 20px; display: flex; align-items: center; gap: 16px; justify-content: center; }
 .recit-barres { display: flex; gap: 6px; width: min(420px, 60%); }
 .recit-barres span { flex: 1; height: 4px; border-radius: 4px; background: rgba(255,255,255,.14); overflow: hidden; }
 .recit-barres i { display: block; height: 100%; width: 0; background: var(--accent); }
 .recit-passer { position: absolute; right: 0; }
 body.recit-en-cours { overflow: hidden; }
+.recit-mot { white-space: nowrap; }
+.recit-lettre { display: inline-block; opacity: 0; animation: recit-lettre .45s ease-out forwards; }
+@keyframes recit-lettre { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
