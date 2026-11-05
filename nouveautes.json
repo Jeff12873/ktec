@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.26",
+      "date": "2026-11-05",
+      "points": [
+        "« Pourquoi K.NOVA ? » : chaque application présentée par ce qu'elle apporte (BiRTEC : la puissance des requêtes, les données simplifiées ; PDRTEC : une recherche de pièces performante et classée ; AITEC : la maintenance de premier niveau, dynamique et évolutive)"
+      ]
+    },
+    {
       "version": "0.8.25",
       "date": "2026-11-05",
       "points": [

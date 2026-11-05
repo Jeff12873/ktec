@@ -28,9 +28,9 @@ const PHRASES = [
 ]
 // Les mêmes couleurs et le même ordre que les orbites du logo.
 const APPLIS = [
-  { nom: 'BiRTEC', role: 'Rapports en une phrase', couleur: '#10b981', rayon: 118, angle: -35 },
-  { nom: 'PDRTEC', role: 'Pièces de rechange', couleur: '#a3e635', rayon: 182, angle: 205 },
-  { nom: 'AITEC', role: 'Maintenance et IA locale', couleur: '#2dd4bf', rayon: 246, angle: 80 },
+  { nom: 'BiRTEC', role: 'La puissance des requêtes, les données simplifiées', couleur: '#10b981', rayon: 118, angle: -35 },
+  { nom: 'PDRTEC', role: 'Une recherche de pièces performante et classée', couleur: '#a3e635', rayon: 182, angle: 205 },
+  { nom: 'AITEC', role: 'La maintenance de premier niveau, dynamique et évolutive', couleur: '#2dd4bf', rayon: 246, angle: 80 },
 ]
 const SOLEIL = '#fde68a'
 const VERT = '#4ade80'
@@ -96,7 +96,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
   }
 
   function dessiner(t) {
-    const u = Math.min(w / 900, ht / 720)
+    const u = Math.min(w / 900, ht / 800)
     const cx = w / 2
     const cy = ht / 2 // le milieu, là où l'intro fera exploser le logo
     // La fin : tout se contracte dans le soleil, qui se réduit à une étincelle.
