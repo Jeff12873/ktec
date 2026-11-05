@@ -515,3 +515,50 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 @keyframes kn-couteau { 0% { transform: translate(-30%, -20px) rotate(-30deg) } 60% { transform: translate(-30%, 30px) rotate(0) } 100% { transform: translate(-30%, -20px) rotate(-30deg) } }
 @keyframes kn-rondelle { 0% { opacity: 1; transform: translate(-50%, 0) rotate(0) } 60% { opacity: 1 } 100% { opacity: 0; transform: translate(calc(-50% + var(--x) * 3), -60px) rotate(var(--r)) } }
 @media (prefers-reduced-motion: reduce) { .decoupe-concombres { display: none; } .citation-installation { transition: none; } }
+
+/* ------------------------------------------------------------ Portail : tuiles animées */
+/* Arrivée : les tuiles montent l'une après l'autre en s'allumant (--i : leur rang). */
+.tuiles-applis.arrivee .tuile-appli { animation: tuile-arrivee .8s cubic-bezier(.2,.9,.25,1.15) backwards; animation-delay: calc(var(--i, 0) * 140ms); }
+@keyframes tuile-arrivee {
+  0% { opacity: 0; transform: perspective(800px) translateY(60px) rotateX(28deg) scale(.88); filter: blur(6px) brightness(2); }
+  60% { opacity: 1; filter: blur(0) brightness(1.4); }
+  100% { transform: none; filter: none; }
+}
+/* Survol : la tuile se soulève, s'éclaire dans sa couleur, un reflet la traverse et son icône saute. */
+.tuile-appli { position: relative; overflow: hidden; isolation: isolate; transition: border-color .25s, transform .35s cubic-bezier(.2,.9,.25,1.3), box-shadow .35s; }
+.tuile-appli::before {
+  content: ""; position: absolute; inset: -40% auto -40% -60%; width: 45%; z-index: -1; pointer-events: none;
+  background: linear-gradient(100deg, transparent, color-mix(in srgb, var(--accent) 28%, transparent), rgba(255,255,255,.18), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+}
+a.tuile-appli:hover { transform: translateY(-8px) scale(1.025); box-shadow: 0 18px 40px -12px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
+a.tuile-appli:hover::before { animation: tuile-reflet .9s ease-out; }
+@keyframes tuile-reflet { to { transform: translateX(420%) skewX(-18deg); } }
+/* Icônes vivantes : chaque application a son mouvement, en continu. */
+.tuile-appli .tete img { transition: transform .3s; }
+.tuile-appli[data-appli="birtec"] .tete img { animation: icone-flotte 4s ease-in-out infinite; }
+.tuile-appli[data-appli="aitec"] .tete img { animation: icone-respire 3s ease-in-out infinite; }
+.tuile-appli[data-appli="pdrtec"] .tete img { animation: icone-balance 5s ease-in-out infinite; }
+a.tuile-appli:hover .tete img { animation: icone-saut .7s cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes icone-flotte { 50% { transform: translateY(-5px); filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--accent) 60%, transparent)); } }
+@keyframes icone-respire { 0%, 100% { filter: drop-shadow(0 0 2px color-mix(in srgb, var(--accent) 40%, transparent)); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 14px var(--accent)); } }
+@keyframes icone-balance { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 60%, transparent)); } }
+@keyframes icone-saut { 0% { transform: none; } 40% { transform: translateY(-10px) scale(1.18) rotate(-8deg); } 100% { transform: scale(1.12) rotate(0); filter: drop-shadow(0 0 12px var(--accent)); } }
+/* Ouverture : la tuile s'agrandit jusqu'à remplir l'écran, dans sa couleur, avant d'ouvrir l'application. */
+.ouverture-appli { position: fixed; z-index: 70; display: grid; place-items: center; pointer-events: none; border-radius: var(--rayon-carte); background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent) 30%, var(--carte)), var(--fond) 75%); border: 1px solid var(--accent); }
+.ouverture-appli img { width: 96px; height: 96px; filter: drop-shadow(0 0 24px var(--accent)); }
+@media (prefers-reduced-motion: reduce) {
+  .tuiles-applis.arrivee .tuile-appli, .tuile-appli .tete img, a.tuile-appli:hover .tete img, a.tuile-appli:hover::before { animation: none !important; }
+}
+
+/* ------------------------------------------------------------ « Pourquoi K.NOVA ? » (interface/recit.js) */
+.recit-knova { position: fixed; inset: 0; z-index: 60; background: radial-gradient(1200px 800px at 50% 50%, #0d1f17, #05080a 70%); color: #e2e8f0; animation: apparition .6s; }
+.recit-toile { position: absolute; inset: 0; width: 100%; height: 100%; }
+.recit-phase { position: absolute; top: 28px; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
+.recit-texte { position: absolute; left: 50%; bottom: 74px; width: min(860px, calc(100% - 32px)); transform: translateX(-50%); margin: 0; text-align: center; font-size: clamp(18px, 2.6vw, 28px); font-weight: 600; line-height: 1.3; text-shadow: 0 2px 18px #000; }
+.recit-bas { position: absolute; left: 16px; right: 16px; bottom: 20px; display: flex; align-items: center; gap: 16px; justify-content: center; }
+.recit-barres { display: flex; gap: 6px; width: min(420px, 60%); }
+.recit-barres span { flex: 1; height: 4px; border-radius: 4px; background: rgba(255,255,255,.14); overflow: hidden; }
+.recit-barres i { display: block; height: 100%; width: 0; background: var(--accent); }
+.recit-passer { position: absolute; right: 0; }
+body.recit-en-cours { overflow: hidden; }

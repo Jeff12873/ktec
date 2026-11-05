@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.8.21",
+      "date": "2026-11-05",
+      "points": [
+        "« Pourquoi K.NOVA ? » : une animation d'une trentaine de secondes en quatre phases (le problème, la connaissance, les applications, le résultat), qui se termine sur la création du logo. Jouée au tout premier lancement, puis avec le bouton du bas du portail",
+        "Tuiles des applications animées : elles arrivent l'une après l'autre, s'éclairent au survol, leurs icônes bougent, et la tuile s'agrandit jusqu'à remplir l'écran à l'ouverture"
+      ]
+    },
+    {
       "version": "0.8.20",
       "date": "2026-11-05",
       "points": [

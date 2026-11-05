@@ -9,6 +9,7 @@ import { carteMySQL, cartePoste, carteFichier, carteCle } from './socle/reglages
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
 import { constellation } from './fond.js'
 import { logoSupernova, jouerIntro } from './supernova.js'
+import { jouerRecit } from './recit.js'
 import { lancerAssistant } from './assistant.js'
 import { ouvrirMessage, envoyerParOutlook } from './socle/message.js'
 import { pointsNouveaux, encartNouveautes } from './socle/nouveautes.js'
@@ -69,16 +70,36 @@ const pastilleEco = (a) => (a.eco
 
 const installees = new Set(applis.map((a) => a.id))
 const tuiles = [
-  ...applis.map((a) => h('a', { class: 'tuile-appli', href: `/${a.id}/`, style: a.couleur ? { '--accent': a.couleur } : {} },
+  ...applis.map((a) => h('a', { class: 'tuile-appli', href: `/${a.id}/`, 'data-appli': a.id, onclick: ouvrirAppli, style: a.couleur ? { '--accent': a.couleur } : {} },
     h('div', { class: 'tete' }, h('img', { src: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, alt: '' }),
       h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre || '')), h('span', { class: 'pastilles-appli' }, pastilleEco(a), pastilleIA(a))),
     h('p', {}, a.description || ''),
     h('div', { class: 'pied-tuile' }, h('span', { class: 'version' }, `Version ${a.version}`), boutonDesinstaller(a)))),
-  ...SUITE.filter((a) => !installees.has(a.id)).map((a) => h('a', { class: 'tuile-appli absente', href: '/installation/', style: { '--accent': a.couleur }, title: 'Pas encore installée sur ce poste : cliquer pour l’installer' },
+  ...SUITE.filter((a) => !installees.has(a.id)).map((a) => h('a', { class: 'tuile-appli absente', href: '/installation/', 'data-appli': a.id, style: { '--accent': a.couleur }, title: 'Pas encore installée sur ce poste : cliquer pour l’installer' },
     h('div', { class: 'tete' }, h('img', { src: '/icone.svg', alt: '' }), h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre)), h('span', { class: 'pastilles-appli' }, pastilleEco(a), pastilleIA(a))),
     h('p', {}, a.description),
     h('span', { class: 'version' }, 'Pas encore installée — l’installer'))),
 ]
+
+tuiles.forEach((t, i) => t.style.setProperty('--i', i))
+
+// Ouvrir une application : sa tuile s'agrandit jusqu'à remplir l'écran, puis la page change.
+// (Ctrl, Maj ou le clic du milieu ouvrent toujours un nouvel onglet, sans animation.)
+function ouvrirAppli(e) {
+  if (e.defaultPrevented || e.button || e.ctrlKey || e.metaKey || e.shiftKey || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  e.preventDefault()
+  const tuile = e.currentTarget
+  const r = tuile.getBoundingClientRect()
+  const voile = h('div', { class: 'ouverture-appli', style: { '--accent': tuile.style.getPropertyValue('--accent'), left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` } },
+    h('img', { src: tuile.querySelector('img')?.src || '/icone.svg', alt: '' }))
+  document.body.append(voile)
+  voile.animate([{ left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, borderRadius: '18px' }, { left: '0px', top: '0px', width: `${innerWidth}px`, height: `${innerHeight}px`, borderRadius: '0px' }],
+    { duration: 550, easing: 'cubic-bezier(.7,0,.2,1)', fill: 'forwards' })
+  voile.firstChild.animate([{ transform: 'scale(.6)', opacity: 0.6 }, { transform: 'scale(1.4)', opacity: 1 }], { duration: 550, easing: 'ease-out', fill: 'forwards' })
+  setTimeout(() => { location.href = tuile.href }, 520)
+}
+// En revenant avec « Précédent », la page peut sortir du cache telle quelle : on retire le voile.
+addEventListener('pageshow', () => document.querySelectorAll('.ouverture-appli').forEach((v) => v.remove()))
 
 // Réglages communs (connexion à la GMAO, ce poste) : bouton « Réglages » ou adresse /#reglages.
 function ouvrirReglages() {
@@ -168,6 +189,7 @@ const corps = [
     h('span', { title: 'Les connaissances du site, communes à toutes les applications' }, ic('livre', 14), ' ', etat.partage?.fichier || etat.fichierKtec),
     h('span', {}, `K.NOVA ${etat.version}`),
     h('div', { style: { flex: 1 } }),
+    h('button', { class: 'petit discret', title: 'Revoir l’animation qui explique K.NOVA', onclick: () => jouerRecit(() => intro(true)).then(arriveeTuiles) }, ic('etincelle', 14), 'Pourquoi K.NOVA ?'),
     h('a', { class: 'bouton petit discret', href: '/installation/', title: 'Mettre à jour, ajouter ou désinstaller des applications' }, ic('telecharger', 14), 'Installation et mises à jour'),
     h('button', { class: 'petit discret', onclick: () => ouvrirMessage({ appli: 'ktec', ecran: 'Lanceur' }) }, ic('envoyer', 14), 'Message au développeur'),
     boutonMessages,
@@ -192,7 +214,26 @@ function intro(rejouer = false, origine = null) {
 
 // Les étoiles rassemblées sous la souris : le logo y fait son big bang (l'intro rejouée à cet endroit).
 constellation({ surBigBang: (x, y) => !document.body.classList.contains('intro-en-cours') && intro(true, { x, y }) })
-const introFinie = intro()
+
+// Les tuiles arrivent l'une après l'autre, une fois l'intro jouée (ou tout de suite).
+function arriveeTuiles() {
+  const grille = racine.querySelector('.tuiles-applis')
+  if (!grille) return
+  grille.classList.remove('arrivee')
+  void grille.offsetWidth
+  grille.classList.add('arrivee')
+}
+
+// Au tout premier lancement sur ce poste (après l'assistant) : « Pourquoi K.NOVA ? », qui se termine sur la
+// création du logo. Ensuite, l'intro habituelle.
+let recitVu = true
+try { recitVu = localStorage.getItem('knova-recit') === 'vu' } catch {}
+let introFinie
+if (!recitVu && !avecAssistant && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  try { localStorage.setItem('knova-recit', 'vu') } catch {}
+  introFinie = jouerRecit(() => intro(true))
+} else introFinie = intro()
+introFinie.then(arriveeTuiles)
 
 // Mises à jour : au lancement, KTEC regarde sur GitHub s'il existe des versions plus récentes que celles installées
 // (programme et applications). Si oui, un bandeau propose de tout mettre à jour d'un clic : seuls les paquets
