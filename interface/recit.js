@@ -1,29 +1,30 @@
 // « Pourquoi K.NOVA ? » : un enchaînement d'une trentaine de secondes, joué au tout premier lancement sur le poste,
 // puis à la demande (bouton du pied du portail). Quatre phases dans l'univers de la supernova :
 //   1. l'enjeu : la propriété et la maîtrise des données ; les confier à un cloud extérieur, c'est en dépendre ;
-//   2. la connaissance : ici tout reste chez vous, réuni dans un seul fichier .ktec chiffré ;
+//   2. la connaissance : tout reste chez vous, réuni dans un seul fichier chiffré, que seule la clé du site ouvre ;
 //   3. les applications, en orbite autour de ce fichier ;
 //   4. le résultat : tout se contracte dans le soleil, et l'intro du portail prend le relais (la création du logo).
 // Tout est dessiné sur une toile, le texte par-dessus. « Passer », Échap ou Entrée mènent directement au logo.
 
 import { h } from './socle/ui.js'
 
-const DUREE = 27_000 // en temps du récit ; joué au ralenti (LENTEUR), il dure une quarantaine de secondes
+const DUREE = 31_000 // en temps du récit ; joué au ralenti (LENTEUR), il dure environ 45 secondes
 const LENTEUR = 1.5
 const PHASES = [
   { debut: 0, fin: 8000, titre: 'L’enjeu' },
-  { debut: 8000, fin: 15500, titre: 'La connaissance' },
-  { debut: 15500, fin: 23000, titre: 'Les applications' },
-  { debut: 23000, fin: DUREE, titre: 'Le résultat' },
+  { debut: 8000, fin: 19500, titre: 'La connaissance' },
+  { debut: 19500, fin: 27000, titre: 'Les applications' },
+  { debut: 27000, fin: DUREE, titre: 'Le résultat' },
 ]
 const PHRASES = [
   { debut: 0, texte: 'Aujourd’hui, la propriété et la maîtrise de ses données sont cruciales pour une entreprise.' },
   { debut: 3800, texte: 'Les confier aux IA et aux clouds extérieurs, c’est dépendre de services que l’on ne contrôle pas.' },
   { debut: 8000, texte: 'Avec K.NOVA, vous restez maîtres de vos données : tout est local, rien ne quitte le site.' },
-  { debut: 11500, texte: 'Ce que l’on sait du site tient dans un seul fichier .ktec, chiffré, chez vous.' },
-  { debut: 15500, texte: 'Autour de lui, les applications de l’atelier.' },
-  { debut: 19500, texte: 'Et une IA qui tourne sur le poste, sans Internet.' },
-  { debut: 23000, texte: 'Moins de temps à chercher, plus de temps pour décider.' },
+  { debut: 11000, texte: 'Toutes les données du site sont réunies dans un seul fichier, chiffré, rangé chez vous.' },
+  { debut: 14300, texte: 'Il ne s’ouvre qu’avec la clé du site, gardée à part : copié ou volé, le fichier reste illisible.' },
+  { debut: 19500, texte: 'Autour de lui, les applications de l’atelier.' },
+  { debut: 23500, texte: 'Et une IA qui tourne sur le poste, sans Internet.' },
+  { debut: 27000, texte: 'Moins de temps à chercher, plus de temps pour décider.' },
 ]
 // Les mêmes couleurs et le même ordre que les orbites du logo.
 const APPLIS = [
@@ -38,6 +39,7 @@ const ROUGE = '#f87171'
 const borne = (x) => Math.min(1, Math.max(0, x))
 const entre = (t, a, b) => borne((t - a) / (b - a))
 const sortie = (p) => 1 - Math.pow(1 - p, 3)
+const doux = (p) => p * p * (3 - 2 * p)
 const dir = (deg) => [Math.cos((deg * Math.PI) / 180), Math.sin((deg * Math.PI) / 180)]
 
 // Un hasard toujours le même : l'enchaînement est identique à chaque fois.
@@ -98,8 +100,8 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
     const cx = w / 2
     const cy = ht / 2 // le milieu, là où l'intro fera exploser le logo
     // La fin : tout se contracte dans le soleil, qui se réduit à une étincelle.
-    const contraction = 1 - sortie(entre(t, 25300, 26600))
-    const scene = 1 - entre(t, 26400, 27000)
+    const contraction = 1 - sortie(entre(t, 29300, 30600))
+    const scene = 1 - entre(t, 30400, 31000)
     ctx.clearRect(0, 0, w, ht)
 
     // Les étoiles du fond.
@@ -199,10 +201,12 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       }
     }
 
-    // Le fichier .ktec : un soleil qui grandit en absorbant les données, avec son cadenas.
+    // Le fichier : un soleil qui grandit en absorbant les données. Son cadenas apparaît ouvert ; la clé du site
+    // arrive, entre dans la serrure, tourne, et l'anse se referme d'un coup (éclair et onde).
     const noyau = sortie(entre(t, 11200, 14000))
     if (noyau > 0) {
-      const rc = u * (5 + 27 * noyau) * (1 + 0.05 * Math.sin(t / 380)) * (0.15 + 0.85 * contraction) * (1 + 0.8 * entre(t, 26300, 26700))
+      const rc = u * (5 + 27 * noyau) * (1 + 0.05 * Math.sin(t / 380)) * (0.15 + 0.85 * contraction) * (1 + 0.8 * entre(t, 30300, 30700))
+        * (1 + 0.6 * doux(entre(t, 14000, 15000)) * (1 - doux(entre(t, 18600, 19600)))) // plus gros pendant le verrouillage
       ctx.globalAlpha = scene
       const halo = ctx.createRadialGradient(cx, cy, rc * 0.2, cx, cy, rc * 3.2)
       halo.addColorStop(0, 'rgba(253, 230, 138, 0.55)')
@@ -218,23 +222,55 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       ctx.fill()
       const cadenas = entre(t, 13200, 14000) * scene
       if (cadenas > 0) {
-        dessinerCadenas(ctx, cx, cy, rc * 0.62, cadenas)
-        ctx.globalAlpha = cadenas * (1 - entre(t, 15500, 16500) * 0.6)
-        ctx.fillStyle = SOLEIL
+        const taille = rc * 0.62
+        const ferme = sortie(entre(t, 16900, 17250))
+        dessinerCadenas(ctx, cx, cy, taille, cadenas, 1 - ferme)
+        // La clé : elle arrive en vol du bas à gauche jusqu'à la serrure, tourne d'un quart de tour, puis s'efface.
+        const vol = sortie(entre(t, 14600, 16100))
+        const vueCle = entre(t, 14600, 14900) * (1 - entre(t, 17600, 18300)) * scene
+        if (vueCle > 0) {
+          const serrure = [cx, cy + taille * 0.25]
+          const depart = [cx - 330 * u, cy + 190 * u]
+          const kx = depart[0] + (serrure[0] - depart[0]) * vol
+          const ky = depart[1] + (serrure[1] - depart[1]) * vol - Math.sin(vol * Math.PI) * 90 * u
+          const tour = sortie(entre(t, 16300, 16900)) * (Math.PI / 2)
+          dessinerCle(ctx, kx, ky, (34 - 12 * vol) * u, -0.5 * (1 - vol), tour, vueCle)
+        }
+        // Le déclic : un éclair blanc et une onde verte autour du soleil.
+        const clic = entre(t, 17200, 18400)
+        if (clic > 0 && clic < 1) {
+          ctx.globalAlpha = (1 - clic) * scene
+          ctx.strokeStyle = VERT
+          ctx.lineWidth = 4 * u * (1 - clic)
+          ctx.shadowColor = VERT
+          ctx.shadowBlur = 24
+          ctx.beginPath()
+          ctx.arc(cx, cy, rc * (1.1 + 3 * sortie(clic)), 0, Math.PI * 2)
+          ctx.stroke()
+          ctx.shadowBlur = 0
+          ctx.globalAlpha = (1 - clic) * 0.8 * scene
+          ctx.fillStyle = '#fff'
+          ctx.beginPath()
+          ctx.arc(cx, cy, rc * (1 + 0.4 * clic), 0, Math.PI * 2)
+          ctx.fill()
+        }
+        // Sous le soleil : ce qu'il contient, puis « chiffré » une fois fermé.
+        ctx.globalAlpha = cadenas * (1 - entre(t, 19500, 20500) * 0.7)
         ctx.font = `600 ${Math.max(13, 17 * u)}px system-ui, sans-serif`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'top'
-        ctx.fillText('connaissances.ktec', cx, cy + rc + 12 * u)
+        ctx.fillStyle = ferme > 0.5 ? VERT : SOLEIL
+        ctx.fillText(ferme > 0.5 ? 'verrouillé · chiffré' : 'toutes les données du site', cx, cy + rc + 12 * u)
       }
     }
 
     // Phase 3 : les applications sortent du soleil et prennent leur orbite. Phase 4 : elles tournent plus vite
     // et renvoient vers lui ce qu'elles trouvent (rien ne part ailleurs).
     APPLIS.forEach((a, i) => {
-      const debut = 15700 + i * 1100
+      const debut = 19700 + i * 1100
       if (t < debut) return
       const e = sortie(entre(t, debut, debut + 1500))
-      const acceleration = Math.max(0, t - 23000) * 0.6
+      const acceleration = Math.max(0, t - 27000) * 0.6
       const angle = a.angle + (t - debut + acceleration) * 0.011 / (1 + i * 0.45)
       const rr = a.rayon * u * contraction
       // L'orbite se dessine en pointillés derrière la planète.
@@ -251,9 +287,9 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       const px = cx + dx * rr * e
       const py = cy + dy * rr * e
       // Phase 4 : des éclats remontent de la planète vers le soleil.
-      if (t > 23000 && t < 25300) {
+      if (t > 27000 && t < 29300) {
         for (let k = 0; k < 3; k++) {
-          const p = ((t - 23000) / 1100 + k / 3 + i * 0.21) % 1
+          const p = ((t - 27000) / 1100 + k / 3 + i * 0.21) % 1
           ctx.globalAlpha = (1 - p) * 0.9
           ctx.fillStyle = a.couleur
           ctx.beginPath()
@@ -270,7 +306,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       ctx.fill()
       ctx.shadowBlur = 0
       // Le nom et le rôle de l'application.
-      const nomVu = entre(t, debut + 900, debut + 1700) * (1 - entre(t, 25200, 25800))
+      const nomVu = entre(t, debut + 900, debut + 1700) * (1 - entre(t, 29200, 29800))
       if (nomVu > 0) {
         const grand = `700 ${Math.max(15, 21 * u)}px system-ui, sans-serif`
         const petit = `${Math.max(12, 14 * u)}px system-ui, sans-serif`
@@ -378,14 +414,19 @@ function nuage(ctx, x, y, s, alpha, t) {
   ctx.restore()
 }
 
-// Un cadenas sombre posé sur le soleil.
-function dessinerCadenas(ctx, x, y, taille, alpha) {
+// Un cadenas sombre posé sur le soleil. ouvert (0 → 1) : l'anse levée, sa branche droite sortie du corps.
+function dessinerCadenas(ctx, x, y, taille, alpha, ouvert = 0) {
   ctx.globalAlpha = alpha
   ctx.strokeStyle = '#0a110d'
   ctx.fillStyle = '#0a110d'
   ctx.lineWidth = taille * 0.22
+  const leve = ouvert * taille * 0.32
+  const haut = y - taille * 0.15
   ctx.beginPath()
-  ctx.arc(x, y - taille * 0.15, taille * 0.42, Math.PI, 0)
+  ctx.moveTo(x - taille * 0.42, haut + taille * 0.1)
+  ctx.lineTo(x - taille * 0.42, haut - leve)
+  ctx.arc(x, haut - leve, taille * 0.42, Math.PI, 0)
+  ctx.lineTo(x + taille * 0.42, haut - leve + (ouvert ? taille * 0.05 : taille * 0.1 + leve))
   ctx.stroke()
   ctx.beginPath()
   ctx.roundRect(x - taille * 0.62, y - taille * 0.15, taille * 1.24, taille * 0.95, taille * 0.15)
@@ -394,4 +435,26 @@ function dessinerCadenas(ctx, x, y, taille, alpha) {
   ctx.beginPath()
   ctx.arc(x, y + taille * 0.25, taille * 0.14, 0, Math.PI * 2)
   ctx.fill()
+}
+
+// La clé du site : un anneau, une tige et deux dents, blanche et lumineuse. (x, y) : le bout de la tige ;
+// pente : son inclinaison en vol ; tour : le quart de tour dans la serrure (la clé s'amincit en tournant).
+function dessinerCle(ctx, x, y, taille, pente, tour, alpha) {
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.translate(x, y)
+  ctx.rotate(pente)
+  ctx.scale(1, Math.max(0.15, Math.cos(tour)))
+  ctx.fillStyle = '#ffffff'
+  ctx.strokeStyle = '#ffffff'
+  ctx.shadowColor = VERT
+  ctx.shadowBlur = 18
+  ctx.lineWidth = taille * 0.16
+  ctx.beginPath()
+  ctx.arc(-taille * 1.25, 0, taille * 0.38, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.fillRect(-taille * 0.88, -taille * 0.08, taille * 0.88, taille * 0.16)
+  ctx.fillRect(-taille * 0.35, 0, taille * 0.12, taille * 0.3)
+  ctx.fillRect(-taille * 0.15, 0, taille * 0.12, taille * 0.22)
+  ctx.restore()
 }

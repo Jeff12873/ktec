@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.25",
+      "date": "2026-11-05",
+      "points": [
+        "« Pourquoi K.NOVA ? » : la phase de la connaissance explique que toutes les données sont dans un seul fichier chiffré, et à quoi sert la clé du site, avec une animation de verrouillage (la clé arrive, tourne, le cadenas se ferme)"
+      ]
+    },
+    {
       "version": "0.8.24",
       "date": "2026-11-05",
       "points": [
