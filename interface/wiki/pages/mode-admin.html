@@ -1,0 +1,41 @@
+<h1>Consultation et mode administrateur</h1>
+<p class="but">Qui peut modifier le fichier de connaissances, et comment prendre ou rendre la main.</p>
+
+<h2>Deux façons de travailler</h2>
+<ul>
+<li><b>Fichier sans mot de passe</b> : tout le monde peut modifier. La main se prend toute seule à la première modification, et se rend après 30 minutes sans modification.</li>
+<li class="admin"><b>Fichier avec mot de passe</b> : chacun est en consultation. Pour modifier : bouton <b>Passer en admin</b> en haut à droite, votre nom et le mot de passe. Revenez en consultation quand vous avez fini.</li>
+</ul>
+
+<script type="application/json" data-maquette>
+{ "titre": "La barre du haut d'une application", "ratio": 16,
+  "blocs": [
+    [0,0,100,100,"","barre"], [40,25,10,50,"IA","bouton"], [51,25,12,50,"GMAO","bouton"], [64,25,16,50,"connaissances.ktec","bouton"], [81,25,12,50,"Passer en admin","accent"], [94,25,5,50,"?","bouton"]
+  ],
+  "reperes": [
+    [72,20,"L'étiquette du fichier dit qui modifie en ce moment, et quand les modifications ont été enregistrées."],
+    [87,20,"Passer en admin (fichier protégé) ; devient « Passer en consultation » une fois administrateur.", true],
+    [96,20,"Le « ? » ouvre la page du wiki de l'écran."]
+  ] }
+</script>
+
+<h2>Ce que le mode administrateur ouvre</h2>
+<ul>
+<li>Les réglages des applications (Configuration, Administration, Paramètres).</li>
+<li>Le SQL des rapports et des requêtes, la console SQL.</li>
+<li>La création et la modification des rapports, indicateurs, fiches, notes du site…</li>
+</ul>
+
+<h2 class="admin">Protéger le fichier par un mot de passe</h2>
+<p>Portail › Réglages › Fichier de connaissances › mot de passe administrateur (4 caractères au moins). Il est demandé pour toute modification, sur tous les postes. Le vider supprime la protection.</p>
+
+<h2>Questions fréquentes</h2>
+<details><summary>J'ai oublié de repasser en consultation</summary><p>Rien de grave : la main est rendue d'elle-même après un moment sans modification, et les autres postes peuvent la reprendre après 10 minutes.</p></details>
+<details class="admin"><summary>Un poste est resté bloqué avec la main</summary><p>Passez en admin et choisissez <b>Reprendre la main</b>. Les dernières secondes de modifications de l'autre poste, pas encore enregistrées, seraient perdues.</p></details>
+<details><summary>Un écran affiche « Réservé à l'administrateur »</summary><p>C'est un écran de réglage : demandez à l'administrateur, ou passez en admin si vous avez le mot de passe.</p></details>
+
+<h2>Trucs et astuces</h2>
+<ul class="astuces">
+<li>Une seule personne modifie à la fois : prévenez vos collègues avant une longue séance de réglages.</li>
+<li>Repassez en consultation dès que vous avez fini : les autres pourront reprendre la main sans attendre.</li>
+</ul>

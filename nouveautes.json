@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.8.36",
+      "date": "2026-11-06",
+      "points": [
+        "Wiki de K.NOVA (/wiki/) : toutes les pages d'aide de K.NOVA et des applications installées, sommaire, recherche, maquettes annotées des écrans, cas d'usage, trucs et astuces, pastille « Admin » sur ce qui se règle côté administrateur",
+        "Notes du site : l'administrateur ajoute ses propres notes au bas d'une page ou des pages à part, rangées dans le fichier de connaissances",
+        "Le « ? » de chaque écran ouvre sa page du wiki dans un onglet à part ; bouton Wiki sur le portail"
+      ]
+    },
+    {
       "version": "0.8.35",
       "date": "2026-11-05",
       "points": [

@@ -1,0 +1,39 @@
+<h1>Connexion à la GMAO</h1>
+<p class="but">Comment les applications lisent la base de données de la GMAO : réglée une fois par l'administrateur, utilisée ensuite par tous, sans mot de passe à taper.</p>
+
+<h2>Pas à pas <span class="pastille-admin">Admin</span></h2>
+<ol>
+<li>Portail › <b>Réglages</b> › carte <b>Connexion à la GMAO</b>.</li>
+<li>Serveur (nom ou adresse), port (3306 en général), nom de la base.</li>
+<li><b>Compte de lecture</b> et son mot de passe : utilisé par tout le monde, automatiquement. Choisissez un compte qui ne peut <b>que lire</b> : c'est la vraie protection.</li>
+<li><b>Compte d'écriture</b> (facultatif) : seulement pour qu'AITEC crée ou modifie des FI, en mode administrateur, toujours après une simulation.</li>
+<li>Enregistrez : l'étiquette <b>GMAO</b> passe au vert sur tous les postes qui ouvrent ce fichier.</li>
+</ol>
+
+<script type="application/json" data-maquette>
+{ "titre": "Réglages › Connexion à la GMAO", "ratio": 46,
+  "blocs": [
+    [5,5,90,90,"","zone"], [8,9,40,8,"Connexion à la GMAO","texte"],
+    [8,22,40,9,"Serveur","champ"], [52,22,18,9,"Port","champ"], [73,22,19,9,"Base","champ"],
+    [8,37,40,9,"Compte de lecture","champ"], [52,37,40,9,"Mot de passe (••••)","champ"],
+    [8,52,40,9,"Compte d'écriture (facultatif)","champ"], [52,52,40,9,"Mot de passe (••••)","champ"],
+    [8,72,22,11,"Essayer","bouton"], [70,72,22,11,"Enregistrer","accent"]
+  ],
+  "reperes": [
+    [10,26,"Le serveur de la base de la GMAO, tel que le service informatique le donne."],
+    [10,41,"Le compte de lecture : un compte qui ne peut que lire.", true],
+    [10,56,"Le compte d'écriture : seulement si AITEC doit écrire des FI.", true],
+    [56,41,"Le mot de passe n'est jamais réaffiché : on peut seulement le remplacer."]
+  ] }
+</script>
+
+<h2>Questions fréquentes</h2>
+<details><summary>« Utilisateur ou mot de passe refusé »</summary><p class="admin">Le compte ou son mot de passe a changé côté base : l'administrateur les ressaisit dans les Réglages.</p></details>
+<details><summary>« Serveur injoignable »</summary><p>Vérifiez que le poste est bien sur le réseau de l'entreprise (VPN compris). Si tous les postes sont touchés, le serveur ou le port a changé : voir l'administrateur.</p></details>
+<details><summary>BiRTEC signale que le compte peut modifier la base</summary><p class="admin">Il n'écrit jamais, mais demandez au service informatique un compte en lecture seule : c'est la vraie protection.</p></details>
+
+<h2>Trucs et astuces</h2>
+<ul class="astuces">
+<li>La connexion est commune à toutes les applications : un seul réglage, et le mot de passe n'est jamais demandé aux utilisateurs.</li>
+<li>Sans connexion, beaucoup d'écrans restent consultables avec ce qui est gardé dans le fichier (structure, rapports, documents).</li>
+</ul>

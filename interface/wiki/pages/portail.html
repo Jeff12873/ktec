@@ -1,0 +1,42 @@
+<h1>Le portail K.NOVA</h1>
+<p class="but">La page d'accueil : les applications installées sur ce poste, l'état de la connexion et du fichier de connaissances, et les réglages communs.</p>
+
+<script type="application/json" data-maquette>
+{ "titre": "Le portail", "ratio": 58,
+  "blocs": [
+    [0,0,100,9,"","barre"], [62,2,9,5,"IA","bouton"], [72,2,10,5,"GMAO","bouton"], [83,2,9,5,"Fichier","bouton"], [93,2,6,5,"Admin","accent"],
+    [44,13,12,15,"logo","carte"], [38,30,24,5,"K.NOVA","texte"],
+    [14,40,22,24,"BiRTEC","carte"], [39,40,22,24,"PDRTEC","carte"], [64,40,22,24,"AITEC","carte"],
+    [30,41,6,4,"Eco+","accent"], [55,41,6,4,"Eco+","accent"], [80,41,5,4,"IA","accent"],
+    [14,69,72,14,"Vos informations restent chez vous","zone"],
+    [0,90,100,10,"","barre"], [40,92,13,6,"Pourquoi ?","bouton"], [55,92,10,6,"Wiki","bouton"], [67,92,10,6,"Message","bouton"], [79,92,10,6,"Réglages","bouton"], [90,92,9,6,"Arrêter","bouton"]
+  ],
+  "reperes": [
+    [61,5,"Les étiquettes d'état : l'IA du poste, la connexion à la GMAO, le fichier de connaissances. Un clic donne le détail."],
+    [95,5,"Passer en admin : pour modifier quand le fichier est protégé par un mot de passe.", true],
+    [25,52,"Une tuile par application : un clic l'ouvre."],
+    [33,43,"La pastille Eco+ télécharge la version « une seule page HTML » de l'application, pour un poste sans K.NOVA."],
+    [46,95,"« Pourquoi K.NOVA ? » rejoue l'animation de présentation."],
+    [60,95,"Le wiki (cette page)."],
+    [84,95,"Les réglages communs : connexion à la GMAO, ce poste, fichier, clé du site.", true]
+  ] }
+</script>
+
+<h2>Pas à pas</h2>
+<ol>
+<li>Lancez K.NOVA avec son raccourci : le portail s'ouvre dans le navigateur.</li>
+<li>Vérifiez les étiquettes en haut à droite : <b>GMAO</b> en vert veut dire que les applications lisent la base.</li>
+<li>Cliquez sur la tuile de l'application voulue. On revient au portail par le lien K.NOVA en haut du menu, et on passe d'une application à l'autre par le bas du menu.</li>
+</ol>
+
+<h2>Questions fréquentes</h2>
+<details><summary>Une tuile est grisée</summary><p>L'application n'est pas installée sur ce poste : « Installation et mises à jour » en bas du portail l'ajoute.</p></details>
+<details><summary>L'étiquette GMAO est rouge</summary><p>La connexion à la base n'est pas réglée ou le serveur ne répond pas. Voir <a href="#/ktec/connexion-gmao">Connexion à la GMAO</a>.</p></details>
+<details><summary>Je ne vois pas le bouton « Passer en admin »</summary><p>Le fichier de connaissances n'a pas de mot de passe : tout le monde peut modifier, la main se prend toute seule. Voir <a href="#/ktec/mode-admin">Consultation et mode administrateur</a>.</p></details>
+<details><summary>La page affiche « K.NOVA est arrêté »</summary><p>Le programme a été arrêté (bouton « Arrêter K.NOVA » ou poste redémarré) : relancez-le avec son raccourci.</p></details>
+
+<h2>Trucs et astuces</h2>
+<ul class="astuces">
+<li>Mettez le portail en favori dans le navigateur : l'adresse ne change jamais sur un poste.</li>
+<li>Un clic sur le logo rejoue la naissance de l'étoile : utile pour présenter K.NOVA à un collègue.</li>
+</ul>

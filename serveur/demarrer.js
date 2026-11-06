@@ -20,6 +20,7 @@ import { routes as routesPortail, presence } from './portail.js'
 import { routes as routesInstallation, travaux } from './installation/routes.js'
 import { routes as routesMessages } from './messages.js'
 import { routes as routesRequeteur } from './requeteur.js'
+import { routes as routesWiki } from './wiki.js'
 import { ktec } from './socle/ktec.js'
 import { publierMaintenant } from './socle/partage.js'
 import { arreterIA } from './socle/ia.js'
@@ -51,6 +52,7 @@ routes.get('/api/ping', () => ({ identifiant, presence: presence.derniere }))
 routesPortail(routes)
 routesInstallation(routes, { modeInstallation })
 routesMessages(routes)
+routesWiki(routes)
 routesRequeteur(routes)
 if (!modeInstallation) {
   await chargerApplis((id) => pourAppli(routes, id))

@@ -188,6 +188,7 @@ const corps = [
     h('span', {}, `K.NOVA ${etat.version}`),
     h('div', { style: { flex: 1 } }),
     h('button', { class: 'petit discret', title: 'Revoir l’animation qui explique K.NOVA', onclick: () => jouerRecit(() => intro(true)).then(arriveeTuiles) }, ic('etincelle', 14), 'Pourquoi K.NOVA ?'),
+    h('a', { class: 'bouton petit discret', href: '/wiki/', target: 'knova-wiki', title: 'Le guide de K.NOVA et de ses applications' }, ic('livre', 14), 'Wiki'),
     h('a', { class: 'bouton petit discret', href: '/installation/', title: 'Mettre à jour, ajouter ou désinstaller des applications' }, ic('telecharger', 14), 'Installation et mises à jour'),
     h('button', { class: 'petit discret', onclick: () => ouvrirMessage({ appli: 'ktec', ecran: 'Lanceur' }) }, ic('envoyer', 14), 'Message au développeur'),
     boutonMessages,

@@ -1,0 +1,47 @@
+<h1>Le fichier de connaissances (.ktec)</h1>
+<p class="but">Tout ce qui concerne votre site tient dans un seul fichier, d'extension .ktec. Le logiciel, lui, est une coquille vide : il ne contient aucune donnée de l'entreprise.</p>
+
+<h2>Ce qu'il contient</h2>
+<ul>
+<li>La structure de la base de la GMAO, les noms clairs et descriptions des tables (BiRTEC).</li>
+<li>Les rapports, indicateurs, requêtes et réglages de chaque application.</li>
+<li>Les documents, parcs, fiches et réglages d'AITEC ; les réglages de PDRTEC.</li>
+<li>La connexion à la GMAO, chiffrée ; les messages au développeur ; les notes du wiki.</li>
+</ul>
+
+<h2>Comment ça marche</h2>
+<ol>
+<li>Le fichier est rangé de préférence sur un lecteur réseau : tous les postes ouvrent le même.</li>
+<li>Chaque poste travaille sur une copie locale, rafraîchie toutes les 10 secondes : c'est rapide, et ça continue si le réseau coupe un instant (« vous consultez la dernière copie »).</li>
+<li>Un seul poste modifie à la fois. Ses modifications sont renvoyées vers le partage quelques secondes après chacune, d'un seul coup : le fichier n'est jamais à moitié écrit.</li>
+</ol>
+
+<script type="application/json" data-maquette>
+{ "titre": "Un fichier, plusieurs postes", "ratio": 38,
+  "blocs": [
+    [38,30,24,40,"connaissances.ktec (lecteur réseau)","accent"],
+    [3,10,22,26,"Poste 1 — modifie","carte"], [3,62,22,26,"Poste 2 — consulte","zone"],
+    [75,10,22,26,"Poste 3 — consulte","zone"], [75,62,22,26,"Poste éco+ (HTML seul)","zone"],
+    [26,22,11,3,"→","texte"], [63,22,11,3,"→","texte"]
+  ],
+  "reperes": [
+    [25,20,"Le poste qui a la main renvoie ses modifications vers le fichier partagé."],
+    [50,72,"Le fichier : une seule source pour tout le site, protégé par les droits du dossier et la clé du site."],
+    [86,58,"Les autres postes relisent le fichier toutes les 10 secondes ; une page éco+ reçoit seulement le schéma qu'on lui donne."]
+  ] }
+</script>
+
+<h2>Changer de fichier <span class="pastille-admin">Admin</span></h2>
+<p>Portail › <b>Réglages</b> › Fichier de connaissances : ouvrir un autre .ktec, ou en créer un nouveau. Le choix vaut pour ce poste.</p>
+
+<h2>Questions fréquentes</h2>
+<details><summary>« Le fichier partagé est inaccessible »</summary><p>Le lecteur réseau ne répond pas : vous consultez la dernière copie du poste. K.NOVA se remet à jour tout seul dès que le partage revient.</p></details>
+<details><summary>« X modifie en ce moment » alors que personne ne modifie</summary><p>Un poste a gardé la main. Le verrou se libère seul au bout de 10 minutes si ce poste est éteint ; sinon l'administrateur peut reprendre la main. Voir <a href="#/ktec/mode-admin">Mode administrateur</a>.</p></details>
+<details><summary>Puis-je copier le fichier sur une clé USB ?</summary><p>Oui, c'est un fichier ordinaire. Mais les réglages sensibles (connexion à la GMAO) sont chiffrés : sans la clé du site, ils restent illisibles. Voir <a href="#/ktec/cle-du-site">La clé du site</a>.</p></details>
+
+<h2>Trucs et astuces</h2>
+<ul class="astuces">
+<li>Rangez le fichier dans un dossier réseau réservé à l'équipe, pas dans un dossier ouvert à tous.</li>
+<li>Ne modifiez jamais le fichier à la main avec un autre logiciel : passez toujours par K.NOVA.</li>
+<li>Pour tester sans risque, travaillez sur une copie du fichier ouverte depuis un poste de test.</li>
+</ul>

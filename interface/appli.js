@@ -59,7 +59,18 @@ function routeActuelle() {
   return { bloc, id: reste.join('/') || null, query }
 }
 
+// L'aide est dans le wiki de K.NOVA (/wiki/), dans un onglet à part : l'écran en cours reste tel quel.
+function ouvrirWiki(page) {
+  window.open(`/wiki/#/${appli}/${page || 'premiers-pas'}`, 'knova-wiki')
+}
+
 async function afficherBloc() {
+  // Les anciens liens « #/aide/<page> » mènent au wiki.
+  const aide = location.hash.match(/^#\/aide(?:\/([\w-]+))?/)
+  if (aide) {
+    history.replaceState(null, '', location.pathname)
+    ouvrirWiki(aide[1])
+  }
   const { bloc, id, query } = routeActuelle()
   const memeEcran = routeAffichee === location.hash
   routeAffichee = location.hash
@@ -124,7 +135,7 @@ function dessinerBarre() {
     etiquetteFichier(p),
     boutonAdmin(p),
     h('button', { class: 'discret icone-seule', title: 'Message au développeur : proposer une amélioration', onclick: () => ouvrirMessage({ appli, ecran: routeActuelle().bloc.titre || '' }) }, ic('envoyer', 18)),
-    h('button', { class: 'discret icone-seule', title: 'Aide sur cet écran', onclick: () => (location.hash = `#/aide/${routeActuelle().bloc.aide || 'premiers-pas'}`) }, ic('aide', 19)),
+    h('button', { class: 'discret icone-seule', title: 'Aide sur cet écran (wiki)', onclick: () => ouvrirWiki(routeActuelle().bloc.aide) }, ic('aide', 19)),
   )
 }
 

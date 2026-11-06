@@ -1,0 +1,25 @@
+{
+  "sections": [
+    { "titre": "Commencer", "pages": [
+      { "id": "bienvenue", "titre": "Bienvenue dans le wiki", "mots": "accueil aide sommaire" },
+      { "id": "portail", "titre": "Le portail K.NOVA", "ecran": "/" , "mots": "tuiles applications accueil eco+ pourquoi" },
+      { "id": "cas-usage", "titre": "Cas d'usage", "mots": "exemples scénarios" }
+    ]},
+    { "titre": "Le fichier et la sécurité", "pages": [
+      { "id": "fichier-ktec", "titre": "Le fichier de connaissances (.ktec)", "mots": "partage réseau verrou copie" },
+      { "id": "mode-admin", "titre": "Consultation et mode administrateur", "admin": true, "mots": "mot de passe verrou main" },
+      { "id": "cle-du-site", "titre": "La clé du site et le chiffrement", "admin": true, "ecran": "/#reglages", "mots": "ktecclef ktecconf chiffrer" },
+      { "id": "sauvegardes", "titre": "Sauvegardes", "admin": true, "mots": "restaurer copie" }
+    ]},
+    { "titre": "Réglages", "pages": [
+      { "id": "connexion-gmao", "titre": "Connexion à la GMAO", "admin": true, "ecran": "/#reglages", "mots": "mysql serveur compte lecture écriture" },
+      { "id": "ce-poste", "titre": "Ce poste et l'IA", "admin": true, "ecran": "/#reglages", "mots": "modèle veille journal console" },
+      { "id": "installation", "titre": "Installation et mises à jour", "ecran": "/installation/", "mots": "kit hors ligne usb windows linux" }
+    ]},
+    { "titre": "Aide", "pages": [
+      { "id": "messages", "titre": "Écrire au développeur", "mots": "message amélioration contact outlook" },
+      { "id": "astuces", "titre": "Trucs et astuces", "mots": "conseils" },
+      { "id": "depannage", "titre": "Dépannage", "mots": "erreur problème journal" }
+    ]}
+  ]
+}

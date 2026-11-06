@@ -1,0 +1,93 @@
+/* Le wiki de K.NOVA (/wiki/) : sommaire à gauche, page à droite. */
+.wiki { min-height: 100vh; display: flex; flex-direction: column; }
+.wiki-entete { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 14px; padding: 10px 20px; background: #08100b; border-bottom: 1px solid var(--bord); }
+.wiki-titre { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--texte); }
+.wiki-titre img { width: 26px; height: 26px; }
+.wiki-titre > span:last-child { color: var(--texte-3); font-weight: 500; }
+.wiki-recherche { width: min(420px, 40vw); }
+.wiki-coin { display: flex; align-items: center; gap: 8px; }
+.wiki-corps { flex: 1; display: grid; grid-template-columns: 290px minmax(0, 1fr); }
+
+.wiki-sommaire { position: sticky; top: 53px; align-self: start; max-height: calc(100vh - 53px); overflow: auto; padding: 14px 10px 40px; border-right: 1px solid var(--bord); }
+.wiki-livre { margin-bottom: 6px; }
+.wiki-livre > summary { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-weight: 700; list-style: none; }
+.wiki-livre > summary::-webkit-details-marker { display: none; }
+.wiki-livre > summary:hover { background: var(--carte-2); }
+.wiki-livre > summary img { width: 20px; height: 20px; border-radius: 5px; object-fit: contain; }
+.wiki-section { display: grid; gap: 1px; padding: 0 0 6px 10px; }
+.wiki-section-titre { margin: 8px 10px 3px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--texte-3); }
+.wiki-section a { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 7px; font-size: 13.5px; color: var(--texte-2); }
+.wiki-section a > span:first-child { flex: 1; }
+.wiki-section a:hover { background: var(--carte-2); color: var(--texte); }
+.wiki-section a.actif { background: var(--accent-doux); color: var(--accent); }
+.wiki-section > button { justify-self: start; margin: 6px 10px; }
+
+.wiki-article { padding: 22px 40px 60px; min-width: 0; }
+.wiki-fil { display: flex; align-items: center; gap: 6px; max-width: 860px; margin-bottom: 14px; font-size: 13px; color: var(--texte-3); }
+.wiki-contenu { max-width: 860px; line-height: 1.6; }
+.wiki-contenu h1 { margin: 0 0 6px; font-size: 28px; }
+.wiki-contenu h2 { margin: 30px 0 10px; font-size: 19px; padding-bottom: 6px; border-bottom: 1px solid var(--bord); }
+.wiki-contenu h3 { margin: 20px 0 6px; font-size: 15.5px; }
+.wiki-contenu .but { font-size: 16px; color: var(--texte-2); margin-top: 0; }
+.wiki-contenu ol, .wiki-contenu ul { padding-left: 22px; }
+.wiki-contenu li { margin: 4px 0; }
+.wiki-contenu code { padding: 1px 5px; border-radius: 5px; background: var(--carte-2); font-size: 13px; }
+.wiki-contenu kbd { padding: 1px 6px; border: 1px solid var(--bord-fort); border-bottom-width: 2px; border-radius: 5px; font-size: 12px; background: var(--carte); }
+.wiki-contenu details { margin: 6px 0; padding: 8px 12px; border: 1px solid var(--bord); border-radius: 9px; background: var(--carte); }
+.wiki-contenu details > summary { cursor: pointer; font-weight: 600; }
+.wiki-contenu details[open] > summary { margin-bottom: 6px; }
+.wiki-contenu details > p:last-child { margin-bottom: 2px; }
+.wiki-contenu .astuces { list-style: none; padding: 0; display: grid; gap: 8px; }
+.wiki-contenu .astuces li { padding: 9px 12px 9px 38px; border-radius: 9px; background: color-mix(in srgb, #fbbf24 8%, var(--carte)); position: relative; }
+.wiki-contenu .astuces li::before { content: '💡'; position: absolute; left: 12px; top: 8px; }
+.wiki-contenu .attention { padding: 10px 14px; border-left: 3px solid #f59e0b; border-radius: 6px; background: color-mix(in srgb, #f59e0b 8%, transparent); }
+.wiki-contenu section.admin, .wiki-contenu div.admin { padding: 2px 14px 6px; border-left: 3px solid #f472b6; border-radius: 6px; background: color-mix(in srgb, #f472b6 5%, transparent); }
+
+/* La pastille « Admin » : ce cas se règle côté administrateur (rose, en biais comme la pastille Bêta). */
+.pastille-admin { display: inline-block; transform: rotate(-6deg); padding: 0 7px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; line-height: 17px; vertical-align: 2px; color: #2a0716; background: #f472b6; box-shadow: 0 2px 8px rgba(244, 114, 182, .3); white-space: nowrap; }
+
+/* Maquette annotée : l'écran en blocs, des repères numérotés, la légende dessous. */
+.maquette { margin: 18px 0; }
+.maquette figcaption { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12.5px; color: var(--texte-3); }
+.maquette-cadre { position: relative; width: 100%; border: 1px solid var(--bord-fort); border-radius: 10px; background: #0b1510; overflow: hidden; }
+.m-bloc { position: absolute; display: flex; align-items: center; justify-content: center; padding: 2px 4px; border-radius: 5px; font-size: 11px; color: var(--texte-3); text-align: center; overflow: hidden; }
+.m-bloc span { overflow: hidden; text-overflow: ellipsis; }
+.m-barre { background: #08100b; border-bottom: 1px solid var(--bord); border-radius: 0; justify-content: flex-start; padding-left: 10px; }
+.m-menu { background: #08100b; border-right: 1px solid var(--bord); border-radius: 0; align-items: flex-start; padding-top: 10px; }
+.m-zone { background: var(--carte); border: 1px solid var(--bord); }
+.m-carte { background: var(--carte-2); border: 1px solid var(--bord-fort); }
+.m-bouton { background: var(--carte-2); border: 1px solid var(--bord-fort); color: var(--texte-2); border-radius: 7px; }
+.m-accent { background: var(--accent-doux); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
+.m-champ { background: #050a07; border: 1px solid var(--bord-fort); justify-content: flex-start; padding-left: 8px; }
+.m-texte { color: var(--texte-2); justify-content: flex-start; }
+.m-graphe { background: repeating-linear-gradient(90deg, transparent 0 8%, color-mix(in srgb, var(--accent) 22%, transparent) 8% 13%), var(--carte); border: 1px solid var(--bord); align-items: flex-start; padding-top: 4px; }
+.m-repere { position: absolute; width: 24px; height: 24px; margin: -12px 0 0 -12px; display: grid; place-items: center; border-radius: 50%; font-size: 12px; font-weight: 800; color: #1a1205; background: #fbbf24; box-shadow: 0 0 0 3px rgba(251, 191, 36, .25), 0 2px 8px rgba(0, 0, 0, .5); }
+.maquette-legende { margin: 10px 0 0; padding-left: 0; list-style: none; counter-reset: repere; display: grid; gap: 4px; }
+.maquette-legende li { counter-increment: repere; display: flex; gap: 8px; align-items: baseline; font-size: 14px; }
+.maquette-legende li::before { content: counter(repere); flex: none; width: 20px; height: 20px; display: inline-grid; place-items: center; border-radius: 50%; font-size: 11px; font-weight: 800; color: #1a1205; background: #fbbf24; }
+
+/* Notes du site et pied de page */
+.wiki-notes { max-width: 860px; margin-top: 34px; }
+.wiki-notes h2 { font-size: 17px; padding-bottom: 6px; border-bottom: 1px solid var(--bord); }
+.wiki-note { margin: 10px 0; padding: 10px 14px; border: 1px solid var(--bord); border-left: 3px solid var(--accent); border-radius: 9px; background: var(--carte); }
+.wiki-note-titre { display: flex; align-items: center; gap: 8px; }
+.note-texte p { margin: 8px 0 0; }
+.wiki-pied { max-width: 860px; margin-top: 40px; display: grid; gap: 14px; }
+.wiki-contact { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px dashed var(--bord-fort); border-radius: 10px; font-size: 13.5px; color: var(--texte-2); }
+.wiki-contact > div { flex: 1; }
+.wiki-suite { display: flex; justify-content: space-between; font-size: 14px; }
+
+.wiki-resultat { display: block; max-width: 860px; margin: 10px 0; padding: 10px 14px; border: 1px solid var(--bord); border-radius: 9px; background: var(--carte); color: var(--texte); }
+.wiki-resultat:hover { border-color: var(--accent); }
+.wiki-resultat > div { display: flex; align-items: center; gap: 8px; }
+.wiki-resultat-livre { font-size: 12px; font-weight: 700; }
+.wiki-resultat p { margin: 4px 0 0; font-size: 13px; color: var(--texte-2); }
+.wiki-resultat mark { background: color-mix(in srgb, #fbbf24 35%, transparent); color: inherit; border-radius: 3px; }
+
+@media (max-width: 860px) {
+  .wiki-corps { grid-template-columns: 1fr; }
+  .wiki-sommaire { position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--bord); }
+  .wiki-article { padding: 18px 16px 50px; }
+  .wiki-recherche { width: 100%; }
+  .wiki-entete { flex-wrap: wrap; }
+}
