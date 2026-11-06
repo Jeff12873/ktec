@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.38",
+      "date": "2026-11-06",
+      "points": [
+        "Visites guidées : « Voir le cas d'usage » dans le wiki ouvre l'écran, assombrit tout sauf la zone utile et montre le cas pas à pas (Suivant / Entrée, Échap pour arrêter) ; moteur commun à toutes les applications (socle/visite.js)"
+      ]
+    },
+    {
       "version": "0.8.37",
       "date": "2026-11-06",
       "points": [

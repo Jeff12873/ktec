@@ -96,3 +96,7 @@
   .wiki-recherche { width: 100%; }
   .wiki-entete { flex-wrap: wrap; }
 }
+
+/* « Voir le cas d'usage » : lance une visite guidée sur le vrai écran. */
+.bouton-visite { display: inline-flex; align-items: center; gap: 8px; margin: 4px 0 8px; padding: 8px 14px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); background: var(--accent-doux); color: var(--accent); font-weight: 600; }
+.bouton-visite:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }

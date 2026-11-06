@@ -159,6 +159,11 @@ function preparer(contenu, livre) {
     const cible = e.tagName === 'DETAILS' ? e.querySelector('summary') : e
     cible?.prepend(pastilleAdmin(), ' ')
   }
+  // « Voir le cas d'usage » : la visite guidée sur le vrai écran, dans un onglet à part (socle/visite.js).
+  for (const b of contenu.querySelectorAll('[data-visite]')) {
+    const adresse = `/${livre.id}/#/${b.dataset.ecran || ''}?visite=${encodeURIComponent(b.dataset.visite)}`
+    b.replaceWith(h('button', { class: 'bouton-visite', title: 'K.NOVA ouvre l’écran et vous montre, étape par étape', onclick: () => window.open(adresse, 'knova-visite') }, ic('marche', 16), b.textContent || 'Voir le cas d’usage'))
+  }
   for (const s of contenu.querySelectorAll('script[data-maquette]')) {
     try {
       s.replaceWith(maquette(JSON.parse(s.textContent), livre))

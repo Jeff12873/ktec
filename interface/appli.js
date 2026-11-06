@@ -12,6 +12,7 @@ import { appli, api } from './socle/api.js'
 import { etiquetteIA, etiquetteMySQL } from './socle/connexion.js'
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
 import { ouvrirMessage } from './socle/message.js'
+import { visiteDemandee } from './socle/visite.js'
 
 const racine = document.getElementById('appli')
 const toutes = await api('/api/ktec/applis')
@@ -84,6 +85,7 @@ async function afficherBloc() {
     if ((bloc.menu === 'admin' || bloc.admin) && !modeAdmin()) throw new Error('Écran réservé à l’administrateur : passez en mode administrateur (en haut de l’écran).')
     await bloc.afficher(zone, { id, query })
     app.apresAffichage?.(zone, bloc) // l'application peut compléter l'écran (AITEC : le choix du parc sous le titre)
+    visiteDemandee(appli, query) // « ?visite=… » : une visite guidée du wiki (socle/visite.js)
   } catch (erreur) {
     vider(zone, h('div', { class: 'bandeau' }, ic('alerte'), erreur.message))
   }
