@@ -43,6 +43,11 @@
 .wiki-contenu .attention { padding: 10px 14px; border-left: 3px solid #f59e0b; border-radius: 6px; background: color-mix(in srgb, #f59e0b 8%, transparent); }
 .wiki-contenu section.admin, .wiki-contenu div.admin { padding: 2px 14px 6px; border-left: 3px solid #f472b6; border-radius: 6px; background: color-mix(in srgb, #f472b6 5%, transparent); }
 
+/* « Sur cette page » : le sommaire de la page, sous son introduction. */
+.wiki-sur-page { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 4px 0 18px; padding: 10px 14px; border: 1px solid var(--bord); border-radius: 10px; background: var(--carte); font-size: 13.5px; }
+.wiki-sur-page b { color: var(--texte-3); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.wiki-contenu h2 { scroll-margin-top: 70px; }
+
 /* La pastille « Admin » : ce cas se règle côté administrateur (rose, en biais comme la pastille Bêta). */
 .pastille-admin { display: inline-block; transform: rotate(-6deg); padding: 0 7px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; line-height: 17px; vertical-align: 2px; color: #2a0716; background: #f472b6; box-shadow: 0 2px 8px rgba(244, 114, 182, .3); white-space: nowrap; }
 

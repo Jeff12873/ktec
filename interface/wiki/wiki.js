@@ -146,8 +146,15 @@ async function afficherPage(page) {
   document.title = `${contenu.querySelector('h1')?.textContent || page.titre} — Wiki K.NOVA`
 }
 
-// Les pastilles « Admin », les maquettes annotées, et les liens vers les autres livres.
+// Les pastilles « Admin », les maquettes annotées, et le sommaire de la page.
 function preparer(contenu, livre) {
+  // « Sur cette page » : un lien par partie (titres h2), dès qu'il y en a trois.
+  const parties = [...contenu.querySelectorAll('h2')]
+  if (parties.length >= 3) {
+    const encart = h('nav', { class: 'wiki-sur-page' }, h('b', {}, 'Sur cette page'),
+      parties.map((t) => h('a', { href: '#', onclick: (e) => { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }) } }, t.textContent.replace(/^Admin\s*/, ''))))
+    ;(contenu.querySelector('.but') || contenu.querySelector('h1'))?.after(encart)
+  }
   for (const e of contenu.querySelectorAll('.admin')) {
     const cible = e.tagName === 'DETAILS' ? e.querySelector('summary') : e
     cible?.prepend(pastilleAdmin(), ' ')
