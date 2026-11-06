@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.8.39",
+      "date": "2026-11-06",
+      "points": [
+        "Wiki : l'installation d'un poste passe par le lien GitHub (KTEC.zip, dernière version), puis Installer KTEC.bat"
+      ]
+    },
+    {
       "version": "0.8.38",
       "date": "2026-11-06",
       "points": [

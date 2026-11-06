@@ -14,7 +14,7 @@
     { "titre": "Réglages", "pages": [
       { "id": "connexion-gmao", "titre": "Connexion à la GMAO", "admin": true, "ecran": "/#reglages", "mots": "mysql serveur compte lecture écriture" },
       { "id": "ce-poste", "titre": "Ce poste et l'IA", "admin": true, "ecran": "/#reglages", "mots": "modèle veille journal console" },
-      { "id": "installation", "titre": "Installation et mises à jour", "ecran": "/installation/", "mots": "kit hors ligne usb windows linux" }
+      { "id": "installation", "titre": "Installation et mises à jour", "ecran": "/installation/", "mots": "github télécharger zip windows linux" }
     ]},
     { "titre": "Aide", "pages": [
       { "id": "messages", "titre": "Écrire au développeur", "mots": "message amélioration contact outlook" },
