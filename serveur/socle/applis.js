@@ -4,6 +4,12 @@
 // Une application est décrite par son app.json :
 //   { "id": "birtec", "nom": "BiRTEC", "sousTitre": "Rapports BIRT", "description": "…",
 //     "icone": "interface/icone.svg", "besoins": ["java", "birt", "ia"] }
+// Elle peut ouvrir d'autres « portes » : une autre tuile du portail, avec son nom, sa couleur, son menu et son
+// wiki, sur le même code et les mêmes données (ex. PREVTEC, la réévaluation du plan de maintenance, dans AITEC) :
+//   "portes": [{ "id": "prevtec", "nom": "PREVTEC", "couleur": "…", "sousTitre": "…", "description": "…",
+//                "icone": "interface/icone-prevtec.svg", "menu": "interface/menu-prevtec.js",
+//                "wiki": "interface/wiki/sommaire-prevtec.json" }]
+// Une porte n'a pas de routes à elle : « /api/prevtec/… » est servi par celles de l'application (porteDe).
 // et contient :
 //   blocs/<nom>/serveur.js   → routes de l'API (rangées sous /api/<id>/…)
 //   blocs/<nom>/vue.js       → écrans
@@ -51,7 +57,12 @@ export function applis() {
     try {
       version = fs.readFileSync(path.join(dossier, 'VERSION'), 'utf8').trim()
     } catch {}
-    liste.set(description.id, { besoins: [], ...description, version, dossier: path.resolve(dossier) })
+    const { portes = [], ...propre } = description
+    liste.set(description.id, { besoins: [], ...propre, version, dossier: path.resolve(dossier) })
+    for (const porte of Array.isArray(portes) ? portes : []) {
+      if (!porte?.id || !/^[a-z0-9-]+$/.test(porte.id) || liste.has(porte.id)) continue
+      liste.set(porte.id, { besoins: propre.besoins || [], ...porte, version, dossier: path.resolve(dossier), porteDe: description.id })
+    }
   }
   return liste
 }
@@ -64,6 +75,7 @@ export function applisPubliques() {
 // Charge les routes de chaque bloc de chaque application.
 export async function chargerApplis(routesDe) {
   for (const appli of applis().values()) {
+    if (appli.porteDe) continue // ses routes sont celles de l'application qui l'ouvre
     const dossierBlocs = path.join(appli.dossier, 'blocs')
     if (!fs.existsSync(dossierBlocs)) continue
     const routes = routesDe(appli.id)

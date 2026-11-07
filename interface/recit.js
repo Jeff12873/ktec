@@ -23,15 +23,17 @@ const PHRASES = [
   { debut: 11000, texte: 'Toutes les données du site sont réunies dans un seul fichier, chiffré, rangé chez vous.' },
   { debut: 14300, texte: 'Il ne s’ouvre qu’avec la clé du site, gardée à part : copié ou volé, le fichier reste illisible.' },
   { debut: 19500, texte: 'BiRTEC : la puissance des requêtes, les données simplifiées.' },
-  { debut: 22000, texte: 'PDRTEC : une recherche de pièces performante et classée.' },
-  { debut: 24500, texte: 'AITEC : la maintenance de premier niveau, dynamique et évolutive.' },
+  { debut: 21300, texte: 'PDRTEC : une recherche de pièces performante et classée.' },
+  { debut: 23100, texte: 'AITEC : l’assistant du dépannage, la bonne réponse, vite.' },
+  { debut: 24900, texte: 'PREVTEC : un plan de maintenance qui va dans le bon sens.' },
   { debut: 27000, texte: 'Moins de temps à chercher, plus de temps pour décider.' },
 ]
 // Les mêmes couleurs et le même ordre que les orbites du logo.
 const APPLIS = [
-  { nom: 'BiRTEC', role: 'La puissance des requêtes, les données simplifiées', couleur: '#10b981', rayon: 118, angle: -35 },
-  { nom: 'PDRTEC', role: 'Une recherche de pièces performante et classée', couleur: '#a3e635', rayon: 182, angle: 205 },
-  { nom: 'AITEC', role: 'La maintenance de premier niveau, dynamique et évolutive', couleur: '#2dd4bf', rayon: 246, angle: 80 },
+  { nom: 'BiRTEC', role: 'La puissance des requêtes, les données simplifiées', couleur: '#10b981', rayon: 104, angle: -35 },
+  { nom: 'PDRTEC', role: 'Une recherche de pièces performante et classée', couleur: '#a3e635', rayon: 156, angle: 205 },
+  { nom: 'AITEC', role: 'L’assistant du dépannage, la bonne réponse, vite', couleur: '#2dd4bf', rayon: 208, angle: 80 },
+  { nom: 'PREVTEC', role: 'Un plan de maintenance qui va dans le bon sens', couleur: '#38bdf8', rayon: 260, angle: 320 },
 ]
 const SOLEIL = '#fde68a'
 const VERT = '#4ade80'
@@ -263,7 +265,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
     // Phase 3 : les applications sortent du soleil et prennent leur orbite. Phase 4 : elles tournent plus vite
     // et renvoient vers lui ce qu'elles trouvent (rien ne part ailleurs).
     APPLIS.forEach((a, i) => {
-      const debut = 19700 + i * 2500
+      const debut = 19700 + i * 1800
       if (t < debut) return
       const e = sortie(entre(t, debut, debut + 1500))
       const acceleration = Math.max(0, t - 27000) * 0.6
@@ -272,7 +274,7 @@ export function jouerRecit(creerLogo = () => Promise.resolve()) {
       // L'orbite se dessine en pointillés derrière la planète.
       ctx.globalAlpha = 0.6 * e * scene
       ctx.strokeStyle = a.couleur
-      ctx.lineWidth = (3 - i * 0.8) * u
+      ctx.lineWidth = Math.max(0.7, 3 - i * 0.7) * u
       ctx.setLineDash([(i === 0 ? 30 : i === 1 ? 18 : 6) * u, 12 * u])
       ctx.lineDashOffset = -t / 40
       ctx.beginPath()

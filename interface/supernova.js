@@ -1,14 +1,15 @@
-// Le logo de K.NOVA : une supernova, son soleil et trois planètes sur leurs orbites en pointillés.
+// Le logo de K.NOVA : une supernova, son soleil et quatre planètes sur leurs orbites en pointillés.
 // À l'ouverture du portail (une fois par lancement), une intro : le soleil explose au milieu de l'écran, les
 // planètes arrivent de loin en spirale à travers la page, les orbites se dessinent, puis le logo monte à sa place
 // et le menu apparaît. Un clic ou une touche passe l'intro ; rien ne bouge si le poste demande moins d'animations.
 
 const NS = 'http://www.w3.org/2000/svg'
-// Une orbite par application, dans sa couleur : BiRTEC, PDRTEC, AITEC (du centre vers l'extérieur).
+// Une orbite par application, dans sa couleur : BiRTEC, PDRTEC, AITEC, PREVTEC (du centre vers l'extérieur).
 const ORBITES = [
-  { rayon: 36, couleur: '#10b981', epaisseur: 3.5, pointilles: '40 10', planete: 4.2, angle: -30, depart: 135, duree: 70 },
-  { rayon: 56, couleur: '#a3e635', epaisseur: 2.5, pointilles: '24 16', planete: 4.8, angle: 150, depart: 45, duree: 110 },
-  { rayon: 78, couleur: '#2dd4bf', epaisseur: 1.5, pointilles: '6 14', planete: 3.6, angle: 250, depart: 100, duree: 160 },
+  { rayon: 32, couleur: '#10b981', epaisseur: 3.5, pointilles: '36 10', planete: 4.2, angle: -30, depart: 135, duree: 70 },
+  { rayon: 49, couleur: '#a3e635', epaisseur: 2.6, pointilles: '22 14', planete: 4.6, angle: 150, depart: 45, duree: 105 },
+  { rayon: 66, couleur: '#2dd4bf', epaisseur: 1.9, pointilles: '10 13', planete: 3.8, angle: 250, depart: 100, duree: 140 },
+  { rayon: 83, couleur: '#38bdf8', epaisseur: 1.3, pointilles: '4 12', planete: 3.4, angle: 20, depart: 200, duree: 185 },
 ]
 const calme = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 let numero = 0

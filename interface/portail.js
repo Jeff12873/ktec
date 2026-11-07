@@ -18,7 +18,9 @@ import { pointsNouveaux, encartNouveautes } from './socle/nouveautes.js'
 const SUITE = [
   { id: 'birtec', nom: 'BiRTEC', couleur: '#10b981', sousTitre: 'Rapports BIRT', description: 'Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs de la GMAO.', besoins: ['java', 'birt'] },
   { id: 'pdrtec', nom: 'PDRTEC', couleur: '#a3e635', sousTitre: 'Recherche de pièces', description: 'Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo.', besoins: ['java'] },
-  { id: 'aitec', nom: 'AITEC', couleur: '#2dd4bf', sousTitre: 'Maintenance de niveau 1', description: 'La maintenance de premier niveau, dynamique et évolutive : demandes, fiches et rapports d’intervention, indicateurs, avec une IA locale.', besoins: ['ia', 'java'] },
+  { id: 'aitec', nom: 'AITEC', couleur: '#2dd4bf', sousTitre: 'Assistant de dépannage', description: 'L’assistant IA du dépannage : une panne, une machine, la réponse vite, avec ses sources (historique, documents, pannes connues).', besoins: ['ia', 'java'] },
+  // PREVTEC est une porte d'AITEC (même code, mêmes données) : il s'installe avec lui.
+  { id: 'prevtec', nom: 'PREVTEC', couleur: '#38bdf8', sousTitre: 'Plan de maintenance', description: 'Réévaluer le plan de maintenance : le Pareto des pannes et son évolution, un préventif bien orienté, les fiches de niveau 1 et leur charge.', besoins: ['ia', 'java'], porteDe: 'aitec' },
 ]
 
 const racine = document.getElementById('portail')
@@ -72,11 +74,12 @@ const tuiles = [
     h('div', { class: 'tete' }, h('img', { src: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, alt: '' }),
       h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre || '')), h('span', { class: 'pastilles-appli' }, pastilleEco(a), pastilleIA(a))),
     h('p', {}, a.description || ''),
-    h('div', { class: 'pied-tuile' }, h('span', { class: 'version' }, `Version ${a.version}`), boutonDesinstaller(a)))),
+    // Une porte (PREVTEC) se désinstalle avec son application : pas de bouton à elle.
+    h('div', { class: 'pied-tuile' }, h('span', { class: 'version' }, a.porteDe ? `Avec ${applis.find((x) => x.id === a.porteDe)?.nom || a.porteDe} ${a.version}` : `Version ${a.version}`), a.porteDe ? null : boutonDesinstaller(a)))),
   ...SUITE.filter((a) => !installees.has(a.id)).map((a) => h('a', { class: 'tuile-appli absente', href: '/installation/', 'data-appli': a.id, style: { '--accent': a.couleur }, title: 'Pas encore installée sur ce poste : cliquer pour l’installer' },
     h('div', { class: 'tete' }, h('img', { src: '/icone.svg', alt: '' }), h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre)), h('span', { class: 'pastilles-appli' }, pastilleEco(a), pastilleIA(a))),
     h('p', {}, a.description),
-    h('span', { class: 'version' }, 'Pas encore installée — l’installer'))),
+    h('span', { class: 'version' }, a.porteDe ? `Vient avec ${SUITE.find((x) => x.id === a.porteDe)?.nom || a.porteDe} — l’installer` : 'Pas encore installée — l’installer'))),
 ]
 
 tuiles.forEach((t, i) => t.style.setProperty('--i', i))

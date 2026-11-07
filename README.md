@@ -6,7 +6,8 @@ K.NOVA (dépôt « ktec ») : le portail et le socle commun des applications de 
 |---|---|---|
 | **BiRTEC** | Rapports BIRT et indicateurs, construits par formulaire sur la base de la GMAO | [birtec](https://github.com/Jeff12873/birtec) |
 | **PDRTEC** | Recherche de pièces de rechange (caractéristiques, emplacement, photo), en direct sur la base | [pdrtec](https://github.com/Jeff12873/pdrtec) |
-| **AITEC** | L'assistant IA de l'atelier (ex IASSITEC) : parc et interventions synchronisés avec la GMAO, documents | [aitec](https://github.com/Jeff12873/aitec) |
+| **AITEC** | L'assistant IA du dépannage (ex IASSITEC) : parc et interventions synchronisés avec la GMAO, documents | [aitec](https://github.com/Jeff12873/aitec) |
+| **PREVTEC** | La réévaluation du plan de maintenance et le niveau 1 : une porte d'AITEC (même code, mêmes données) | [aitec](https://github.com/Jeff12873/aitec) |
 
 - **Un seul lanceur** (le raccourci « KTEC », ou `lancer-ktec.sh`) ouvre le portail dans sa propre fenêtre, comme
   une application, sans console : une tuile par application installée. On passe d'une application à l'autre par le

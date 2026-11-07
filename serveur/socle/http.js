@@ -70,6 +70,9 @@ async function traiter(routes, req, res) {
   const url = new URL(req.url, 'http://localhost')
   try {
     if (url.pathname.startsWith('/api/')) {
+      // Une porte (ex. /api/prevtec/…) parle aux routes de l'application qui l'ouvre (/api/aitec/…).
+      const porte = applis().get(url.pathname.split('/')[2])
+      if (porte?.porteDe) url.pathname = url.pathname.replace(`/api/${porte.id}/`, `/api/${porte.porteDe}/`)
       await traiterApi(routes, req, res, url)
     } else {
       envoyerFichierStatique(res, url.pathname)

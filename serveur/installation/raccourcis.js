@@ -33,7 +33,7 @@ export function creerRaccourcis(dossier, suivi = () => {}) {
 
   const lanceur = path.join(dossier, 'lancer-ktec.sh')
   fs.chmodSync(lanceur, 0o755)
-  const fiche = `[Desktop Entry]\nType=Application\nName=K.NOVA\nComment=Les applications de l'atelier (BiRTEC, PDRTec, AITEC)\nExec=sh "${lanceur}"\nIcon=${png}\nTerminal=false\nCategories=Office;Utility;\n`
+  const fiche = `[Desktop Entry]\nType=Application\nName=K.NOVA\nComment=Les applications de l'atelier (BiRTEC, PDRTEC, AITEC, PREVTEC)\nExec=sh "${lanceur}"\nIcon=${png}\nTerminal=false\nCategories=Office;Utility;\n`
   for (const dossierFiche of dossiersLinux()) {
     fs.mkdirSync(dossierFiche, { recursive: true })
     fs.writeFileSync(path.join(dossierFiche, 'ktec.desktop'), fiche, { mode: 0o755 })

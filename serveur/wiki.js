@@ -42,9 +42,11 @@ export function routes(r) {
   r.get('/api/ktec/wiki', (ctx) => ({
     livres: [
       { id: 'ktec', nom: 'K.NOVA', couleur: '#a855f7', icone: '/icone.svg', base: '/wiki/pages/', ...lireSommaire(path.join(chemins.interface, 'wiki', 'pages', 'sommaire.json')) },
+      // Une porte (ex. PREVTEC dans AITEC) a son sommaire à elle (« wiki » de app.json), dans le même dossier de pages.
       ...[...applis().values()]
-        .filter((a) => fs.existsSync(path.join(a.dossier, 'interface', 'wiki', 'sommaire.json')))
-        .map((a) => ({ id: a.id, nom: a.nom, couleur: a.couleur, icone: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, base: `/apps/${a.id}/interface/wiki/`, ...lireSommaire(path.join(a.dossier, 'interface', 'wiki', 'sommaire.json')) })),
+        .map((a) => ({ a, sommaire: path.join(a.dossier, a.wiki || path.join('interface', 'wiki', 'sommaire.json')) }))
+        .filter(({ sommaire }) => fs.existsSync(sommaire))
+        .map(({ a, sommaire }) => ({ id: a.id, nom: a.nom, couleur: a.couleur, icone: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, base: `/apps/${a.id}/${path.posix.dirname(a.wiki || 'interface/wiki/sommaire.json')}/`, ...lireSommaire(sommaire) })),
     ],
     notes: lireNotes(),
     modeAdmin: ctx.modeAdmin,

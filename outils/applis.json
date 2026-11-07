@@ -24,8 +24,8 @@
       "id": "aitec",
       "couleur": "#2dd4bf",
       "nom": "AITEC",
-      "sousTitre": "Assistant IA",
-      "description": "L’assistant IA de l’atelier : parc, historique des interventions et documents, réponses en français avec leurs sources.",
+      "sousTitre": "Assistant de dépannage, avec PREVTEC",
+      "description": "L’assistant IA du dépannage (parc, historique des interventions, documents, réponses avec leurs sources) ; apporte aussi PREVTEC, la réévaluation du plan de maintenance.",
       "depot": "Jeff12873/aitec",
       "besoins": ["ia", "java"]
     }

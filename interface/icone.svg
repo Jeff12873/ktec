@@ -1,16 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Icône de K.NOVA : une supernova en onde de choc, un cœur lumineux et trois anneaux qui s'éloignent,
-       un par application dans sa couleur (BiRTEC, PDRTEC, AITEC). -->
+  <!-- Icône de K.NOVA : une supernova en onde de choc, un cœur lumineux et quatre anneaux qui s'éloignent,
+       un par application dans sa couleur (BiRTEC, PDRTEC, AITEC, PREVTEC). -->
   <rect x="16" y="16" width="480" height="480" rx="112" fill="#0b1220" stroke="#1d3a2c" stroke-width="12"/>
   <g transform="translate(256 256)" fill="none" stroke-linecap="round">
-    <circle r="190" stroke="#2dd4bf" stroke-width="9" stroke-dasharray="20 44"/>
-    <circle r="144" stroke="#a3e635" stroke-width="15" stroke-dasharray="76 50"/>
-    <circle r="96" stroke="#10b981" stroke-width="21" stroke-dasharray="124 30"/>
+    <circle r="198" stroke="#38bdf8" stroke-width="7" stroke-dasharray="12 40"/>
+    <circle r="160" stroke="#2dd4bf" stroke-width="10" stroke-dasharray="34 40"/>
+    <circle r="120" stroke="#a3e635" stroke-width="14" stroke-dasharray="70 44"/>
+    <circle r="80" stroke="#10b981" stroke-width="19" stroke-dasharray="104 26"/>
   </g>
   <circle cx="420" cy="160" r="9" fill="#10b981"/>
   <circle cx="92" cy="324" r="8" fill="#a3e635"/>
   <circle cx="196" cy="74" r="7" fill="#ffffff"/>
   <circle cx="348" cy="424" r="9" fill="#2dd4bf"/>
-  <circle cx="256" cy="256" r="46" fill="#fde68a"/>
-  <circle cx="256" cy="256" r="22" fill="#ffffff"/>
+  <circle cx="440" cy="330" r="7" fill="#38bdf8"/>
+  <circle cx="256" cy="256" r="42" fill="#fde68a"/>
+  <circle cx="256" cy="256" r="20" fill="#ffffff"/>
 </svg>

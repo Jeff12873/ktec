@@ -21,7 +21,7 @@ if (!description) {
   location.href = '/'
   throw new Error(`Application inconnue : ${appli}`)
 }
-const app = await import(`/apps/${appli}/interface/menu.js`)
+const app = await import(`/apps/${appli}/${description.menu || 'interface/menu.js'}`)
 const BLOCS = app.blocs
 document.title = `${description.nom} — K.NOVA`
 // La teinte de vert de l'application (app.json « couleur ») : boutons, sélections, filtres actifs…

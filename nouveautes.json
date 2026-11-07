@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.8.41",
+      "date": "2026-11-07",
+      "points": [
+        "PREVTEC rejoint le portail : la réévaluation du plan de maintenance, une porte d'AITEC (même installation, mêmes données) avec sa tuile, sa couleur et son wiki",
+        "Le logo de K.NOVA passe à quatre orbites, une par application (BiRTEC, PDRTEC, AITEC, PREVTEC) : logo animé, intro, « Pourquoi K.NOVA ? », icône",
+        "Une application peut ouvrir plusieurs portes (app.json « portes ») : chacune a son menu et son wiki, et parle aux routes de l'application qui l'ouvre"
+      ]
+    },
+    {
       "version": "0.8.40",
       "date": "2026-11-07",
       "points": [
