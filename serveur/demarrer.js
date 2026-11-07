@@ -85,10 +85,13 @@ if (!sansNavigateur) {
 }
 
 // Plus aucune fenêtre ouverte depuis 3 minutes : K.NOVA s'arrête proprement (il tourne sans console, rien
-// d'autre ne permettrait de le fermer). Une fenêtre réduite donne encore signe de vie au moins une fois par minute.
+// d'autre ne permettrait de le fermer). Une fenêtre que le navigateur endort (réduite, poste verrouillé, veille)
+// ne donne plus signe de vie mais n'a pas été fermée : K.NOVA l'attend, 12 h au plus.
 if (!sansNavigateur && !modeInstallation) {
   setInterval(() => {
-    if (Date.now() - presence.derniere < 3 * 60_000) return
+    const silence = Date.now() - presence.derniere
+    for (const [id, vue] of presence.pages) if (Date.now() - vue > 12 * 3600_000) presence.pages.delete(id)
+    if (presence.pages.size || silence < 3 * 60_000) return
     journal('Plus aucune fenêtre de K.NOVA ouverte : arrêt')
     publierMaintenant()
     arreterIA()

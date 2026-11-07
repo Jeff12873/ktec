@@ -5,11 +5,13 @@
 <p>L'IA tourne sur le poste : rien n'est envoyé à l'extérieur. Le modèle <b>moyen</b> convient à un poste de bureau (16 Go de mémoire, ou une carte graphique de 8 Go). Le modèle <b>lourd</b> comprend mieux les schémas et les questions difficiles, mais demande beaucoup plus de mémoire. Le choix vaut pour ce poste et toutes ses applications.</p>
 
 <h2>La veille</h2>
-<p>L'IA se met en veille après un moment sans question, pour rendre la mémoire au poste. La première question suivante prend alors quelques secondes de plus.</p>
+<p>L'IA se met en veille après un moment sans question, pour rendre la mémoire au poste. La première question suivante prend alors quelques secondes de plus. Comptez 20 à 30 minutes : avec un délai très court, l'IA se recharge presque à chaque question.</p>
+<p>La veille de l'IA n'arrête pas K.NOVA. K.NOVA ne s'arrête tout seul que quelques minutes après la fermeture de sa dernière fenêtre : une fenêtre réduite, un poste verrouillé ou en veille ne le coupent pas.</p>
 
 <h2>Le journal <span class="pastille-admin">Admin</span></h2>
 <p>Réglages › Ce poste › <b>Console</b> : le journal de K.NOVA en direct (démarrage, connexion, moteur Java, IA, erreurs). Le fichier <code>journal.txt</code>, dans le dossier d'installation, garde les mêmes lignes : joignez-le à un message au développeur en cas de souci.</p>
 
 <h2>Questions fréquentes</h2>
 <details><summary>L'IA est lente</summary><p>Le premier chargement du modèle prend de quelques secondes à une minute ; ensuite les réponses sont plus rapides. Sans carte graphique, un modèle plus petit répond plus vite.</p></details>
+<details><summary>« K.NOVA ne répond plus » après un moment sans l'utiliser</summary><p>Jusqu'à la version 0.8.40, K.NOVA se croyait fermé quand le navigateur endormait sa fenêtre (réduite, poste verrouillé, veille) et s'arrêtait. C'est corrigé : il ne s'arrête plus qu'à la fermeture de la fenêtre. Si le message revient, relancez K.NOVA avec son raccourci et envoyez le <code>journal.txt</code> au développeur.</p></details>
 <details><summary>« IA non installée »</summary><p>L'installation n'est pas allée au bout : relancez-la depuis « Installation et mises à jour ». Les applications restent utilisables sans IA (consultation, recherche par mots).</p></details>

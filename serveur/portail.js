@@ -16,13 +16,33 @@ import { etatConnexion, testerCompte, oublierEssai, javaInstalle } from './socle
 import { applisPubliques } from './socle/applis.js'
 
 const DEMARRE_LE = new Date().toISOString()
-// La dernière fois qu'une page de K.NOVA a donné signe de vie (chaque page demande l'état toutes les 4 s) :
-// sans fenêtre ouverte depuis quelques minutes, K.NOVA s'arrête tout seul (demarrer.js).
-export const presence = { derniere: Date.now() }
+// La dernière fois qu'une page de K.NOVA a donné signe de vie (chaque page demande l'état toutes les 4 s) et les
+// pages ouvertes (identifiant → dernier signe). Une page ne sort de la liste que quand on la ferme vraiment : une
+// fenêtre endormie par le navigateur (réduite, poste verrouillé, veille) y reste. Plus aucune page depuis
+// quelques minutes : K.NOVA s'arrête tout seul (demarrer.js).
+export const presence = { derniere: Date.now(), pages: new Map() }
+const PAGES_MAX = 50
+const idPage = (ctx) => String(ctx.req.headers['x-page'] || '').slice(0, 64)
+
+function noterPage(ctx) {
+  presence.derniere = Date.now()
+  const id = idPage(ctx)
+  if (!id) return
+  presence.pages.delete(id)
+  presence.pages.set(id, presence.derniere)
+  if (presence.pages.size > PAGES_MAX) presence.pages.delete(presence.pages.keys().next().value) // la plus ancienne
+}
 
 export function routes(r) {
+  // La page se ferme (ou se recharge : elle revient alors aussitôt).
+  r.post('/api/ktec/fermeture', (ctx) => {
+    presence.pages.delete(idPage(ctx))
+    presence.derniere = Date.now()
+    return { ok: true }
+  })
+
   // Interrogé régulièrement par l'interface.
-  r.get('/api/ktec/etat', (ctx) => (presence.derniere = Date.now(), {
+  r.get('/api/ktec/etat', (ctx) => (noterPage(ctx), {
     version: version(),
     demarreLe: DEMARRE_LE, // l'intro animée du portail se joue une fois par lancement
     partage: etatPartage(ctx.cookie),

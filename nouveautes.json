@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.8.40",
+      "date": "2026-11-07",
+      "points": [
+        "K.NOVA ne s'arrête plus tout seul quand le navigateur endort sa fenêtre (réduite, poste verrouillé, veille) : seulement quelques minutes après la fermeture de sa dernière fenêtre (12 h sans aucun signe, en secours)",
+        "Passer en administrateur ou revenir en consultation recharge la page : chaque écran se redessine aussitôt avec les bons boutons"
+      ]
+    },
+    {
       "version": "0.8.39",
       "date": "2026-11-06",
       "points": [

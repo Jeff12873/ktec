@@ -3,7 +3,7 @@
 
 import { h, vider, ic, fenetre, formulaire, notifier, essayer, confirmer, heureFr } from './ui.js'
 import { api } from './api.js'
-import { etat, actualiserEtat } from './etat.js'
+import { etat } from './etat.js'
 
 // ---------------------------------------------------------------- explorateur de dossiers
 
@@ -117,8 +117,8 @@ export async function ouvrirModeAdmin() {
             if (!forcer) return false
             r = await api('/api/ktec/admin', { methode: 'POST', corps: { ...valeurs, forcer: true } })
           }
-          await actualiserEtat()
-          notifier('Mode administrateur : vos modifications sont enregistrées sur le partage automatiquement.')
+          // La page se recharge : chaque écran se redessine avec les boutons et les réglages de l'administrateur.
+          location.reload()
         },
       },
     ],
@@ -126,8 +126,7 @@ export async function ouvrirModeAdmin() {
 }
 
 export async function quitterModeAdmin() {
-  await essayer(() => api('/api/ktec/admin', { methode: 'DELETE' }), 'Retour en consultation. Vos modifications sont enregistrées.')
-  await actualiserEtat()
+  if (await essayer(() => api('/api/ktec/admin', { methode: 'DELETE' }))) location.reload()
 }
 
 // ---------------------------------------------------------------- barre du haut
