@@ -1,19 +1,21 @@
 <h1>Sauvegardes</h1>
-<p class="but">K.NOVA garde automatiquement des copies du fichier de connaissances, pour revenir en arrière après une erreur.</p>
+<p class="but">K.NOVA ne fait pas de sauvegarde automatique du fichier de connaissances : chaque copie emporterait toutes les données et la clé du site. Le fichier est protégé comme tout document du lecteur réseau.</p>
 
-<h2>Comment elles se font</h2>
-<p>À chaque prise de la main sur le fichier (une fois par heure au plus), K.NOVA le copie dans le dossier <code>KTEC-sauvegardes</code>, à côté du fichier. Les 5 dernières sont gardées ; la liste est dans les Réglages du portail.</p>
+<h2>Ce qui protège le fichier</h2>
+<ul>
+<li>La sauvegarde du lecteur réseau, faite par le service informatique : demandez-lui de revenir à une version d'avant si besoin.</li>
+<li>Avant un gros changement (import, réorganisation des parcs), faites vous-même une copie datée, rangée hors du partage, et effacez-la ensuite.</li>
+</ul>
 
-<h2>Revenir à une sauvegarde <span class="pastille-admin">Admin</span></h2>
+<h2>Revenir à une version d'avant <span class="pastille-admin">Admin</span></h2>
 <ol>
 <li>Demandez aux autres postes de fermer K.NOVA.</li>
 <li>Dans le dossier du fichier, renommez le fichier actuel (par exemple <code>connaissances-abime.ktec</code>).</li>
-<li>Copiez la sauvegarde voulue à côté, et renommez-la avec le nom d'origine (<code>connaissances.ktec</code>).</li>
+<li>Mettez la version d'avant à sa place, sous le nom d'origine (<code>connaissances.ktec</code>).</li>
 <li>Relancez K.NOVA.</li>
 </ol>
 
 <h2>Trucs et astuces</h2>
 <ul class="astuces">
-<li>Les sauvegardes du lecteur réseau, faites par le service informatique, protègent aussi le fichier : c'est un fichier ordinaire.</li>
-<li>Avant un gros changement (import, réorganisation des parcs), faites vous-même une copie datée du fichier.</li>
+<li>Un ancien dossier <code>KTEC-sauvegardes</code> (versions d'avant de K.NOVA) peut être supprimé : K.NOVA ne s'en sert plus.</li>
 </ul>

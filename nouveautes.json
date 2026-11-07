@@ -1,6 +1,18 @@
 {
   "versions": [
     {
+      "version": "0.9.0",
+      "date": "2026-11-07",
+      "points": [
+        "Tout le fichier de connaissances est chiffré : sans la clé du site, il ne s'ouvre pas. La clé n'est plus dans le fichier : elle est rangée sur chaque poste autorisé, donnée une fois (fichier .ktecclef)",
+        "« Nouvelle clé : couper les autres postes » (administrateur) : le fichier est rechiffré, les autres postes ne l'ouvrent plus et effacent leur copie",
+        "Un nouveau fichier est chiffré dès sa création, et K.NOVA fait exporter sa clé ; un ancien fichier se chiffre en entier depuis Réglages › Clé du site",
+        "Plus de sauvegardes automatiques (chaque copie emportait les données et la clé) : la sauvegarde du lecteur réseau suffit",
+        "Le journal note pourquoi le fichier partagé est inaccessible (code système), pour diagnostiquer un partage réseau",
+        "Connexion à la GMAO : chaque compte sur sa ligne, avec son mot de passe à côté"
+      ]
+    },
+    {
       "version": "0.8.41",
       "date": "2026-11-07",
       "points": [

@@ -23,7 +23,7 @@ K.NOVA (dépôt « ktec ») : le portail et le socle commun des applications de 
 - **Un seul fichier de connaissances `.ktec`** : la structure de la base, le dictionnaire, les liens, les conventions,
   les données et réglages de chaque application. Placé sur un lecteur réseau, il est **partagé** : chaque poste
   travaille sur une copie, un seul modifie à la fois (verrou, pris tout seul si le fichier n'a pas de mot de passe,
-  mode administrateur sinon), publication automatique, sauvegardes. Le programme est une « coquille vide » : aucune
+  mode administrateur sinon), publication automatique. Le programme est une « coquille vide » : aucune
   donnée de site dans ce dépôt.
 - Windows et Linux, installé dans le profil de l'utilisateur (aucun droit d'administrateur), IA locale (llama.cpp) :
   rien ne sort de l'entreprise.

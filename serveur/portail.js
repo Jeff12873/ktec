@@ -1,15 +1,15 @@
 // Les routes communes à toutes les applications, sous /api/ktec/… :
 // état général, applications installées, connexion à la GMAO (une seule pour tout KTEC, rangée dans le fichier),
-// fichier de connaissances .ktec (ouverture, création, mode administrateur, mot de passe, sauvegardes),
+// fichier de connaissances .ktec (ouverture, création, mode administrateur, mot de passe),
 // dossier de travail, réglages du poste.
 
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { ErreurHttp, ouvrirFlux, envoyerOctets } from './socle/http.js'
-import { cheminKtec, changerKtec, etatCle, chiffrerConfiguration, importerCle, enregistrerConnexion, exporterConfiguration, reprendreConfiguration } from './socle/ktec.js'
+import { cheminKtec, changerKtec, creerFichierChiffre, etatCle, chiffrerConfiguration, importerCle, enregistrerConnexion, exporterConfiguration, reprendreConfiguration } from './socle/ktec.js'
 import { fichierCle } from './socle/cle.js'
-import { etatPartage, entrerAdmin, quitterAdmin, cookieAdmin, verifierMotDePasse, motDePasseDefini, changerMotDePasse, listerSauvegardes, creerFichier, publierMaintenant } from './socle/partage.js'
+import { etatPartage, entrerAdmin, quitterAdmin, cookieAdmin, verifierMotDePasse, motDePasseDefini, changerMotDePasse, publierMaintenant } from './socle/partage.js'
 import { etatIA, arreterIA } from './socle/ia.js'
 import { version, reglagesPoste, modifierReglagesPoste, dossierTravail, journal, WINDOWS, chemins, lignesJournal, suivreJournal } from './socle/installation.js'
 import { etatConnexion, testerCompte, oublierEssai, javaInstalle } from './socle/mysql.js'
@@ -128,7 +128,7 @@ export function routes(r) {
   })
   r.post('/api/ktec/assistant/fini', () => modifierReglagesPoste({ assistantTermine: true }) && { ok: true })
 
-  // ---- clé du site : configuration chiffrée dans le fichier de connaissances
+  // ---- clé du site : tout le fichier partagé est chiffré ; la clé est rangée sur chaque poste autorisé
 
   r.get('/api/ktec/cle', () => etatCle())
   r.post('/api/ktec/cle/chiffrer', (ctx) => {
@@ -141,11 +141,10 @@ export function routes(r) {
     if (!etatCle().bonneCle) throw new ErreurHttp(404, 'La clé du site n’est pas dans ce fichier.')
     return { nom: 'cle-du-site.ktecclef', contenu: fichierCle() }
   })
-  r.post('/api/ktec/cle/importer', async (ctx) => {
-    ctx.exigerModeAdmin()
-    return importerCle((await ctx.octets()).toString('utf8'))
-  })
-  // Clé perdue (fichier chiffré avant KTEC 0.7) : nouvelle clé ; la configuration est à reprendre.
+  // Pas de mode administrateur : sans la clé, le fichier ne s'ouvre pas (ni son mot de passe) ; la bonne clé suffit.
+  r.post('/api/ktec/cle/importer', async (ctx) => importerCle((await ctx.octets()).toString('utf8')))
+  // Nouvelle clé : le fichier est rechiffré, les autres postes ne l'ouvrent plus sans elle (clé perdue, poste à
+  // couper). Le navigateur exporte ensuite la nouvelle clé.
   r.post('/api/ktec/cle/nouvelle', (ctx) => {
     ctx.exigerModeAdmin()
     return chiffrerConfiguration({ nouvelle: true })
@@ -198,7 +197,7 @@ export function routes(r) {
   r.post('/api/ktec/fichier/creer', async (ctx) => {
     const { dossier, nom } = await ctx.json()
     if (!dossier || !nom?.trim()) throw new ErreurHttp(400, 'Choisissez un dossier et un nom de fichier.')
-    creerFichier(path.join(dossier, nom.trim()))
+    creerFichierChiffre(path.join(dossier, nom.trim()))
     return etatPartage(ctx.cookie)
   })
 
@@ -258,7 +257,6 @@ export function routes(r) {
     return { motDePasse: Boolean(nouveau) }
   })
 
-  r.get('/api/ktec/sauvegardes', () => listerSauvegardes().map(({ nom, date, taille }) => ({ nom, date, taille })))
 }
 
 // Points de départ proposés dans l'explorateur.

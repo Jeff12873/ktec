@@ -27,11 +27,12 @@ export function carteMySQL(apres = () => {}) {
     [
       { nom: 'serveur', libelle: 'Serveur', obligatoire: true, aide: 'Nom ou adresse IP du serveur MySQL' },
       { nom: 'port', libelle: 'Port', type: 'nombre', defaut: 3306 },
-      { nom: 'base', libelle: 'Base de données', obligatoire: true },
+      { nom: 'base', libelle: 'Base de données', obligatoire: true, large: true },
+      // Chaque compte sur sa ligne, son mot de passe à côté.
       { nom: 'utilisateur', libelle: 'Compte de lecture', obligatoire: true, aide: 'Utilisé par tout le monde, automatiquement : un compte qui ne peut que lire' },
-      { nom: 'motDePasse', libelle: 'Mot de passe du compte de lecture', type: 'mot-de-passe', aide: dejaLecture },
+      { nom: 'motDePasse', libelle: 'Mot de passe', type: 'mot-de-passe', aide: dejaLecture },
       { nom: 'ecritureUtilisateur', libelle: 'Compte d’écriture (facultatif)', aide: 'Seulement pour créer ou modifier des FI depuis AITEC, en mode administrateur' },
-      { nom: 'ecritureMotDePasse', libelle: 'Mot de passe du compte d’écriture', type: 'mot-de-passe', aide: dejaEcriture },
+      { nom: 'ecritureMotDePasse', libelle: 'Mot de passe', type: 'mot-de-passe', aide: dejaEcriture },
     ],
     { serveur: c.serveur, port: c.port, base: c.base, utilisateur: c.utilisateur, ecritureUtilisateur: c.ecriture?.utilisateur || '' }, // jamais de mot de passe
   )
@@ -129,10 +130,6 @@ export function carteFichier(apres = () => {}) {
   const p = etat.partage || {}
   const admin = modeAdmin() // en consultation : le fichier et « Ouvrir un autre fichier », rien d'autre
   const ligne = (libelle, valeur) => h('div', { style: { display: 'flex', gap: '12px', padding: '6px 0', borderBottom: '1px solid var(--bord)' } }, h('span', { class: 'discret', style: { minWidth: '140px' } }, libelle), h('span', {}, valeur || '—'))
-  const sauvegardes = h('div')
-  if (admin) api('/api/ktec/sauvegardes').then((liste) => sauvegardes.replaceChildren(
-    liste.length ? h('ul', { style: { margin: '6px 0 0', paddingLeft: '18px' } }, liste.map((s) => h('li', { class: 'discret', style: { fontSize: '13px' } }, `${dateHeureFr(new Date(s.date).toISOString())} — ${tailleFr(s.taille)}`)))
-      : h('p', { class: 'discret', style: { fontSize: '13px' } }, 'Aucune pour l’instant (une à chaque prise de la main, une par heure au plus).'))).catch(() => {})
   return h(
     'div',
     { class: 'carte' },
@@ -147,8 +144,6 @@ export function carteFichier(apres = () => {}) {
       admin ? h('button', { class: 'discret', onclick: creerNouveauFichier }, ic('plus', 16), 'Créer un fichier') : null,
       admin ? h('button', { class: 'discret', onclick: () => changerMotDePasse(p.motDePasse).then(apres) }, ic('cadenas', 16), p.motDePasse ? 'Changer le mot de passe' : 'Protéger par un mot de passe') : null,
     ),
-    admin ? h('h3', { style: { margin: '16px 0 0', fontSize: '14px' } }, 'Sauvegardes (dossier KTEC-sauvegardes, à côté du fichier)') : null,
-    admin ? sauvegardes : null,
   )
 }
 
@@ -200,7 +195,7 @@ export function carteCle(apres = () => {}) {
     document.body.append(choix); choix.click(); choix.remove()
   }
   const importer = () => choisirFichier('.ktecclef,application/json', async (fichier) => {
-    await essayer(() => api('/api/ktec/cle/importer', { methode: 'POST', fichier }), 'Clé du site rangée dans le fichier : la configuration est lisible')
+    await essayer(() => api('/api/ktec/cle/importer', { methode: 'POST', fichier }), 'Clé du site rangée sur ce poste : le fichier est lisible')
     dessiner(); apres()
   })
   const nouvelle = async () => {
@@ -238,22 +233,32 @@ export function carteCle(apres = () => {}) {
       ],
     })
   })
+  // Tout le fichier chiffré : la clé sort du fichier, elle reste sur ce poste ; on l'exporte pour les autres postes.
   const chiffrer = async () => {
-    if (!(await confirmer('Chiffrer la configuration ? La clé du site est créée et rangée dans le fichier de connaissances : tous les postes qui l’ouvrent pourront la lire, sans rien installer.', { texte: 'Chiffrer' }))) return
-    await essayer(() => api('/api/ktec/cle/chiffrer', { methode: 'POST' }), 'Configuration chiffrée')
-    dessiner()
+    if (!(await confirmer('Chiffrer tout le fichier de connaissances ? Sans la clé du site, il ne s’ouvrira plus. La clé reste sur ce poste et va être exportée : donnez ce fichier (.ktecclef) aux autres postes, une fois chacun.', { texte: 'Chiffrer et exporter la clé' }))) return
+    if (await essayer(() => api('/api/ktec/cle/chiffrer', { methode: 'POST' }), 'Tout le fichier est chiffré')) await telechargerCle()
+    dessiner(); apres()
+  }
+  // Couper l'accès des autres postes : une nouvelle clé, le fichier est rechiffré avec elle.
+  const couper = async () => {
+    if (!(await confirmer('Créer une nouvelle clé ? Le fichier est rechiffré : tous les autres postes ne l’ouvrent plus et effacent leur copie. Seuls les postes à qui vous donnerez la nouvelle clé (exportée maintenant) y auront accès.', { texte: 'Nouvelle clé : couper les autres postes', danger: true }))) return
+    if (await essayer(() => api('/api/ktec/cle/nouvelle', { methode: 'POST' }), 'Nouvelle clé du site : les autres postes sont coupés')) await telechargerCle()
+    dessiner(); apres()
   }
   async function dessiner() {
     const e = await api('/api/ktec/cle').catch(() => null)
     if (!e) return vider(corps, h('p', { class: 'discret' }, 'État de la clé indisponible.'))
     const admin = modeAdmin()
     vider(corps,
-      h('p', { class: 'texte-2', style: { marginTop: 0 } }, e.chiffree
-        ? (e.bonneCle ? 'La configuration est chiffrée ; sa clé est rangée dans le fichier de connaissances : tous les postes la lisent.' : 'La configuration a été chiffrée avec une clé qui n’est pas dans ce fichier (version d’avant de K.NOVA).')
-        : 'La configuration (connexion à la GMAO, adresses, requêtes, réglages des applications) est en clair dans le fichier de connaissances. Elle est chiffrée d’office dès que les comptes de la GMAO sont enregistrés.'),
+      h('p', { class: 'texte-2', style: { marginTop: 0 } }, !e.chiffree
+        ? 'Ce fichier (créé par une version d’avant de K.NOVA) est en clair : chiffrez-le. Les nouveaux fichiers sont chiffrés dès leur création.'
+        : !e.bonneCle ? 'Le fichier a été chiffré avec une clé que ce poste n’a pas.'
+          : e.complet ? 'Tout le fichier est chiffré : sans la clé du site, il ne s’ouvre pas. La clé est rangée sur ce poste ; chaque autre poste la reçoit une fois (fichier .ktecclef).'
+            : 'Ancien format : seule la configuration est chiffrée, et sa clé est rangée dans le fichier lui-même. Chiffrez tout le fichier : la clé en sortira.'),
       e.chiffree && !e.bonneCle ? h('div', { class: 'bandeau' }, ic('cadenas'), admin ? 'Rangez la clé du site (.ktecclef) si vous l’avez ; sinon repartez d’une nouvelle clé, puis reprenez la configuration (.ktecconf) et ressaisissez la connexion.' : 'Sans la clé, les applications ne voient pas leurs réglages : voyez l’administrateur.') : null,
       admin ? h('div', { class: 'actions', style: { marginTop: '10px', flexWrap: 'wrap' } },
-        e.chiffree ? null : h('button', { class: 'principal', onclick: chiffrer }, ic('cadenas', 16), 'Chiffrer la configuration'),
+        !e.complet && (e.bonneCle || !e.chiffree) ? h('button', { class: 'principal', onclick: chiffrer }, ic('cadenas', 16), 'Chiffrer tout le fichier et exporter la clé') : null,
+        e.complet && e.bonneCle ? h('button', { class: 'danger', title: 'Le fichier est rechiffré : les autres postes ne l’ouvrent plus sans la nouvelle clé', onclick: couper }, ic('cle', 16), 'Nouvelle clé : couper les autres postes') : null,
         e.chiffree && !e.bonneCle ? h('button', { onclick: importer }, ic('dossier', 16), 'Ranger la clé (.ktecclef)') : null,
         e.chiffree && !e.bonneCle ? h('button', { class: 'danger', onclick: nouvelle }, ic('cle', 16), 'Nouvelle clé') : null,
         h('button', { onclick: reprendre }, ic('dossier', 16), 'Reprendre une configuration'),

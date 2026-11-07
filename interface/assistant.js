@@ -2,7 +2,8 @@
 // pendant que KTEC vérifie ce qu'on vient de lui donner.
 //   1. Bienvenue
 //   2. Le fichier de connaissances (en choisir un existant, ou en créer un)
-//   3. La clé du site (l'importer si la configuration est chiffrée ; sinon proposer de la chiffrer)
+//   3. La clé du site : l'importer (fichier chiffré, clé absente du poste) ; l'exporter (fichier qu'on vient de
+//      créer) ; chiffrer un ancien fichier encore en clair
 //   4. La connexion à la base de la GMAO (déjà dans le fichier, ou réglée ici : chiffrée dans le fichier)
 //   5. Récapitulatif
 // lancerAssistant({ seulementCle: true }) : seulement l'écran de la clé (poste sans la clé d'un fichier chiffré).
@@ -97,6 +98,7 @@ export function lancerAssistant({ seulementCle = false } = {}) {
               await chargement('Création du fichier de connaissances…', () => api('/api/ktec/fichier/creer', { methode: 'POST', corps: { dossier: ex.dossier(), nom: nomFichier } }))
               await relire()
               bilan.fichier = etat.fichier?.fichier
+              bilan.cree = true // chiffré dès sa création : sa clé est à exporter pour les autres postes
               cle()
             } catch (e) {
               fichier(e.message)
@@ -108,7 +110,7 @@ export function lancerAssistant({ seulementCle = false } = {}) {
     }
 
     // ---- 3. La clé du site
-    function cle(message = null) {
+    async function cle(message = null) {
       const c = etat?.cle || {}
       if (c.chiffree && !c.bonneCle) {
         const choix = h('input', { type: 'file', accept: '.ktecclef,application/json', style: { display: 'none' } })
@@ -127,39 +129,59 @@ export function lancerAssistant({ seulementCle = false } = {}) {
         return ecran({
           numero: 2,
           titre: 'Avez-vous la clé du site ?',
-          description: 'La configuration de ce fichier (connexion, adresses, requêtes, réglages) est chiffrée. La clé du site, un petit fichier .ktecclef exporté sur le premier poste, permet à K.NOVA de la lire. Elle n’est demandée qu’une fois sur ce poste.',
+          description: 'Ce fichier de connaissances est chiffré : sans la clé du site, il ne s’ouvre pas. La clé est un petit fichier .ktecclef, donné par l’administrateur. Elle n’est demandée qu’une fois sur ce poste (et de nouveau si l’administrateur en crée une nouvelle).',
           contenu: h('div', {}, message ? erreur(message) : null, choix),
           boutons: [
             bouton('Oui, je la choisis', () => choix.click(), 'principal'),
-            seulementCle ? bouton('Plus tard', () => fermer(), 'discret') : bouton('Plus tard (les réglages resteront invisibles)', () => { bilan.cle = 'absente'; connexion() }, 'discret'),
+            seulementCle ? bouton('Plus tard', () => fermer(), 'discret') : bouton('Plus tard (le fichier restera fermé)', () => { bilan.cle = 'absente'; connexion() }, 'discret'),
           ],
         })
       }
-      if (c.chiffree) {
+      // La clé quitte ce poste en fichier .ktecclef : seul moyen pour les autres postes d'ouvrir le fichier chiffré.
+      const exporter = async () => {
+        const r = await api('/api/ktec/cle/exporter', { methode: 'POST' })
+        const lien = h('a', { href: URL.createObjectURL(new Blob([r.contenu], { type: 'application/json' })), download: r.nom })
+        document.body.append(lien); lien.click(); lien.remove()
+      }
+      if (c.chiffree && !(bilan.cree && c.complet)) {
         bilan.cle = 'déjà sur ce poste'
         return seulementCle ? fin() : connexion()
       }
-      ecran({
-        numero: 2,
-        titre: 'Protéger la configuration ?',
-        description: 'K.NOVA peut chiffrer la configuration rangée dans le fichier (connexion à la base, adresses, requêtes, réglages des applications) : sans la clé du site, personne ne peut la lire, et aucun mot de passe n’est à taper. La clé est créée sur ce poste ; exportez-la ensuite et gardez-la en lieu sûr : les autres postes en auront besoin.',
-        contenu: message ? erreur(message) : null,
-        boutons: [
-          bouton('Oui, chiffrer et exporter la clé', async () => {
+      if (c.chiffree) {
+        // Un fichier qu'on vient de créer : chiffré par le serveur, sa clé est à exporter tout de suite.
+        return ecran({
+          numero: 2,
+          titre: 'Gardez la clé du site',
+          description: 'Le fichier de connaissances est chiffré : sans la clé du site, il ne s’ouvre pas. La clé est rangée sur ce poste. Exportez-la maintenant et gardez-la en lieu sûr (clé USB sous clé, coffre) : chaque autre poste la recevra une fois.',
+          contenu: message ? erreur(message) : null,
+          boutons: [bouton('Exporter la clé', async () => {
             try {
-              await chargement('Chiffrement de la configuration…', () => api('/api/ktec/cle/chiffrer', { methode: 'POST' }))
-              const r = await api('/api/ktec/cle/exporter', { methode: 'POST' })
-              const lien = h('a', { href: URL.createObjectURL(new Blob([r.contenu], { type: 'application/json' })), download: r.nom })
-              document.body.append(lien); lien.click(); lien.remove()
-              await relire()
+              await exporter()
               bilan.cle = 'créée et exportée'
               connexion()
             } catch (e) {
               cle(e.message)
             }
-          }, 'principal'),
-          bouton('Plus tard', () => { bilan.cle = 'configuration en clair'; connexion() }, 'discret'),
-        ],
+          }, 'principal')],
+        })
+      }
+      // Un ancien fichier encore en clair : on le chiffre (pas de fichier non chiffré), et on exporte sa clé.
+      return ecran({
+        numero: 2,
+        titre: 'Chiffrer le fichier de connaissances',
+        description: 'Ce fichier vient d’une version d’avant de K.NOVA : il est en clair. Une fois chiffré, il ne s’ouvrira plus sans la clé du site. La clé reste sur ce poste et va être exportée : gardez-la en lieu sûr, chaque autre poste la recevra une fois.',
+        contenu: message ? erreur(message) : null,
+        boutons: [bouton('Chiffrer et exporter la clé', async () => {
+          try {
+            await chargement('Chiffrement du fichier…', () => api('/api/ktec/cle/chiffrer', { methode: 'POST' }))
+            await exporter()
+            await relire()
+            bilan.cle = 'fichier chiffré, clé exportée'
+            seulementCle ? fin() : connexion()
+          } catch (e) {
+            cle(`${e.message} — seul l’administrateur peut chiffrer ce fichier (Réglages › Clé du site).`)
+          }
+        }, 'principal')],
       })
     }
 

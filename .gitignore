@@ -21,3 +21,5 @@
 *.birtec
 *.datassitec
 !/nouveautes.json
+*.ktecclef
+*.ktecconf

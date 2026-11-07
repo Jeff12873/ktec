@@ -13,8 +13,11 @@
 //   · Fichier avec mot de passe : il faut passer en mode administrateur (barre du haut).
 // - Chaque modification est publiée quelques secondes plus tard : la copie locale est envoyée
 //   sous un nom temporaire puis renommée d'un coup, pour qu'aucun poste ne lise un fichier à moitié écrit.
-// - Une sauvegarde du fichier est faite à chaque prise du verrou (une par heure au plus, 5 gardées,
-//   dans KTEC-sauvegardes à côté du fichier).
+// - Fichier chiffré (clé du site, voir cle.js) : la copie locale est déchiffrée avec la clé rangée sur ce poste, et
+//   chaque publication rechiffre tout. Sans la bonne clé (jamais reçue, ou « Nouvelle clé » faite ailleurs), rien
+//   ne s'ouvre et la copie locale est effacée : le portail demande la clé.
+// - Pas de sauvegarde automatique : chaque copie emporterait les données et la clé du site. La sauvegarde du
+//   lecteur réseau (service informatique) protège le fichier, comme tout document.
 //
 // Les applications déclarent leurs tables avec ajouterStructure() : elles sont créées à chaque ouverture.
 
@@ -25,11 +28,11 @@ import crypto from 'node:crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { DatabaseSync } from 'node:sqlite'
 import { RACINE, chemins, reglagesPoste, modifierReglagesPoste, journal } from './installation.js'
+import { cleDuPoste, empreinteDuFichier, chiffrerFichier, dechiffrerFichier } from './cle.js'
 
 const DELAI_PUBLICATION = 3_000          // on regroupe les modifications rapprochées
 const VERROU_ABANDONNE = 10 * 60_000     // verrou non rafraîchi depuis 10 min = poste planté
 const ADMIN_INACTIF = 30 * 60_000        // on rend le verrou après 30 min sans modification
-const SAUVEGARDES_GARDEES = 5
 export const FORMAT = 1                  // structure commune du fichier (voir ktec.js)
 
 const etat = {
@@ -41,6 +44,7 @@ const etat = {
   aPublier: false,
   publication: { derniere: null, erreur: null },
   avertissement: null,
+  cleManquante: null,    // empreinte de la clé du fichier partagé, quand ce poste ne l'a pas
 }
 let connexion = null
 let lectureSeule = true
@@ -88,9 +92,13 @@ export const baseOuverte = () => Boolean(connexion)
 
 // La base ouverte (copie locale). Ouvre le fichier du poste au premier appel.
 export function db() {
-  if (!connexion) ouvrirFichier(cheminParDefaut())
+  if (!connexion && !etat.cleManquante) ouvrirFichier(cheminParDefaut())
+  if (!connexion) throw erreur(423, 'Le fichier de connaissances est chiffré : la clé du site manque sur ce poste.')
   return connexion
 }
+
+// L'empreinte de la clé qui manque à ce poste pour ouvrir le fichier (null : rien ne manque).
+export const empreinteManquante = () => etat.cleManquante
 
 let cheminParDefaut = () => {
   throw erreur(409, 'Aucun fichier .ktec ouvert')
@@ -128,9 +136,15 @@ export function ouvrirFichier(fichier) {
   if (etat.admin) quitterAdmin()
   etat.fichier = fichier
   etat.signature = null
+  etat.cleManquante = null
   try {
     copierDepuisLePartage()
   } catch (e) {
+    // Clé du site absente ou changée : le fichier reste fermé, le portail demande la clé.
+    if (etat.cleManquante) {
+      if (reglagesPoste().fichierKtec !== fichier) modifierReglagesPoste({ fichierKtec: fichier })
+      return fichier
+    }
     // Réseau coupé : on travaille sur la dernière copie, en consultation.
     if (!fs.existsSync(copieLocale())) throw e
     ouvrirBase(copieLocale(), { lectureSeule: true })
@@ -167,7 +181,18 @@ function copierDepuisLePartage() {
   if (signature === etat.signature && connexion) return false
   fs.mkdirSync(chemins.cache, { recursive: true })
   const temporaire = copieLocale() + '.copie'
-  fs.copyFileSync(etat.fichier, temporaire)
+  const empreinte = empreinteDuFichier(etat.fichier)
+  if (empreinte) {
+    const c = cleDuPoste(empreinte)
+    try {
+      if (!c) throw erreur(423, 'La clé du site manque sur ce poste.')
+      dechiffrerFichier(etat.fichier, temporaire, c)
+    } catch (e) {
+      fs.rmSync(temporaire, { force: true })
+      fermerSansCle(empreinte)
+      throw e
+    }
+  } else fs.copyFileSync(etat.fichier, temporaire)
   connexion?.close()
   connexion = null
   fs.renameSync(temporaire, copieLocale())
@@ -176,7 +201,25 @@ function copierDepuisLePartage() {
   etat.copieDu = new Date().toISOString()
   etat.version++
   etat.avertissement = null
+  etat.cleManquante = null
   return true
+}
+
+// Ce poste n'a pas (ou plus) la clé du fichier : on ferme, et on efface la copie locale en clair.
+function fermerSansCle(empreinte) {
+  if (etat.cleManquante !== empreinte) journal('Clé du site absente ou changée : fichier de connaissances fermé, copie locale effacée')
+  etat.cleManquante = empreinte
+  if (etat.admin) {
+    if (lireVerrou()?.jeton === etat.admin.jeton) fs.rmSync(cheminVerrou(), { force: true })
+    etat.admin = null
+    etat.aPublier = false
+  }
+  connexion?.close()
+  connexion = null
+  fs.rmSync(copieLocale(), { force: true })
+  etat.signature = null
+  etat.version++
+  etat.avertissement = null
 }
 
 // Toutes les 10 secondes : en consultation, on suit les changements faits par un autre poste.
@@ -184,10 +227,18 @@ setInterval(() => {
   if (!etat.fichier || etat.admin) return
   try {
     if (copierDepuisLePartage()) journal('Nouvelle version du fichier de connaissances chargée')
-  } catch {
+    if (derniereErreurLecture) journal('Fichier partagé de nouveau accessible')
+    derniereErreurLecture = null
+  } catch (e) {
+    if (etat.cleManquante) return // le portail demande la clé
     etat.avertissement = 'Le fichier partagé est inaccessible : vous consultez la dernière copie enregistrée sur ce poste.'
+    // La cause (code système : EBUSY, EPERM, ENOENT…) dans le journal, une fois par panne : pour diagnostiquer un partage réseau.
+    const cause = `${e.code || ''} ${e.message}`.trim()
+    if (cause !== derniereErreurLecture) journal(`Lecture du fichier partagé impossible : ${cause}`)
+    derniereErreurLecture = cause
   }
 }, 10_000).unref()
+let derniereErreurLecture = null
 
 // ---------------------------------------------------------------- mot de passe administrateur
 
@@ -262,7 +313,6 @@ export function entrerAdmin(nom, { forcer = false, auto = false } = {}) {
   try {
     etat.signature = null
     copierDepuisLePartage() // on repart de la toute dernière version, cette fois en écriture
-    sauvegarder()
   } catch (e) {
     quitterAdmin()
     throw e
@@ -383,7 +433,7 @@ function publierPlusTard() {
     publier()
   } catch (e) {
     etat.publication.erreur = e.message
-    journal(`Publication impossible : ${e.message} (nouvel essai dans 30 s)`)
+    journal(`Publication impossible : ${e.code ? `${e.code} ` : ''}${e.message} (nouvel essai dans 30 s)`)
     minuterie = setTimeout(publierPlusTard, 30_000)
   }
 }
@@ -392,7 +442,13 @@ function publier() {
   if (!etat.admin || !etat.aPublier) return
   if (lireVerrou()?.jeton !== etat.admin.jeton) throw new Error('le verrou ne nous appartient plus')
   const envoi = `${etat.fichier}.envoi-${os.hostname()}`
-  fs.copyFileSync(copieLocale(), envoi)
+  // Fichier chiffré (marque « complet » de la clé du site) : tout part chiffré ; sinon (ancien fichier) tel quel.
+  const marque = marqueLocale()
+  if (marque?.complet) {
+    const c = cleDuPoste(marque.empreinte)
+    if (!c) throw new Error('la clé du site manque sur ce poste')
+    chiffrerFichier(copieLocale(), envoi, c)
+  } else fs.copyFileSync(copieLocale(), envoi)
   remplacer(envoi, etat.fichier)
   const infos = fs.statSync(etat.fichier)
   etat.signature = `${infos.size}-${infos.mtimeMs}`
@@ -402,6 +458,15 @@ function publier() {
   if (etat.admin.pourTous) setTimeout(() => {
     if (etat.admin?.pourTous && !etat.aPublier && Date.now() - etat.admin.derniereAction >= 110_000) quitterAdmin()
   }, 120_000).unref()
+}
+
+// La marque de la clé du site dans la copie locale (écrite par ktec.js) : { empreinte, depuis, complet }.
+function marqueLocale() {
+  try {
+    return JSON.parse(connexion.prepare("SELECT valeur FROM infos WHERE cle = 'ktec.cle'").get()?.valeur || 'null')
+  } catch {
+    return null
+  }
 }
 
 // Publie tout de suite (avant l'arrêt de KTEC).
@@ -426,34 +491,6 @@ function remplacer(source, destination) {
   }
 }
 
-// ---------------------------------------------------------------- sauvegardes
-
-const dossierSauvegardes = () => path.join(path.dirname(etat.fichier), 'KTEC-sauvegardes')
-
-function sauvegarder() {
-  const base = path.basename(etat.fichier, '.ktec')
-  fs.mkdirSync(dossierSauvegardes(), { recursive: true })
-  const existantes = listerSauvegardes()
-  if (existantes[0] && Date.now() - existantes[0].date < 3_600_000) return // une par heure au plus
-  const horodatage = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', 'h')
-  fs.copyFileSync(etat.fichier, path.join(dossierSauvegardes(), `${base}-${horodatage}.ktec`))
-  for (const ancienne of listerSauvegardes().slice(SAUVEGARDES_GARDEES)) fs.rmSync(ancienne.chemin, { force: true })
-}
-
-export function listerSauvegardes() {
-  if (!etat.fichier || !fs.existsSync(dossierSauvegardes())) return []
-  const base = path.basename(etat.fichier, '.ktec')
-  return fs
-    .readdirSync(dossierSauvegardes())
-    .filter((nom) => nom.startsWith(base + '-') && nom.endsWith('.ktec'))
-    .map((nom) => {
-      const chemin = path.join(dossierSauvegardes(), nom)
-      const infos = fs.statSync(chemin)
-      return { nom, chemin, date: infos.mtimeMs, taille: infos.size }
-    })
-    .sort((a, b) => b.date - a.date)
-}
-
 // ---------------------------------------------------------------- état pour l'interface
 
 export function etatPartage(cookie) {
@@ -476,6 +513,7 @@ export function etatPartage(cookie) {
     aPublier: etat.aPublier,
     publication: etat.publication,
     avertissement: etat.avertissement,
+    cleManquante: Boolean(etat.cleManquante),
   }
 }
 

@@ -21,8 +21,8 @@ import path from 'node:path'
 import os from 'node:os'
 import { reglagesPoste, modifierReglagesPoste, dossierTravail, journal, lireJson, dossierInstallationParDefaut, definirConnexionPartagee } from './installation.js'
 import { definirIdentifiants } from './mysql.js'
-import { cleDuSite, chiffrer, dechiffrer, estChiffre, empreinteCle, nouvelleCle, emballerCle, lireFichierCle, definirMarque } from './cle.js'
-import { db, ajouterStructure, definirCheminParDefaut, ouvrirFichier, creerFichier, exigerEcriture, noterModification, transaction, etatPartage, FORMAT, baseOuverte } from './partage.js'
+import { cleDuSite, cleDuPoste, rangerCle, oublierCle, chiffrer, dechiffrer, estChiffre, empreinteCle, nouvelleCle, lireFichierCle, definirMarque } from './cle.js'
+import { db, ajouterStructure, definirCheminParDefaut, ouvrirFichier, creerFichier, exigerEcriture, noterModification, transaction, etatPartage, FORMAT, baseOuverte, empreinteManquante } from './partage.js'
 
 // Le fichier partagé lui-même (verrou, publication, mode administrateur) : voir partage.js.
 export { db, transaction, exigerEcriture, noterModification, ajouterStructure }
@@ -37,9 +37,17 @@ export function cheminKtec() {
 definirCheminParDefaut(() => {
   const chemin = cheminKtec()
   if (!fs.existsSync(chemin)) reprendreAncienBirtec(chemin)
-  if (!fs.existsSync(chemin)) creerFichier(chemin)
+  if (!fs.existsSync(chemin)) creerFichierChiffre(chemin)
   return chemin
 })
+
+// Un nouveau fichier de connaissances est chiffré dès sa création : pas de fichier en clair. Sa clé du site est
+// rangée dans le fichier lui-même (emballée), tous les postes qui l'ouvrent la lisent sans rien installer.
+export function creerFichierChiffre(chemin) {
+  const etat = creerFichier(chemin)
+  chiffrerConfiguration()
+  return etat
+}
 
 // La base (copie locale du fichier partagé), en lecture. Pour écrire : les fonctions ci-dessous, ou
 // exigerEcriture() avant et noterModification() après.
@@ -69,7 +77,7 @@ export function changerKtec(chemin) {
     journal(`Ancien fichier ${chemin} converti en ${converti}`)
     chemin = converti
   }
-  return fs.existsSync(chemin) ? ouvrirFichier(chemin) : creerFichier(chemin)
+  return fs.existsSync(chemin) ? ouvrirFichier(chemin) : creerFichierChiffre(chemin)
 }
 
 // Premier lancement de KTEC sur un poste où BiRTEC était installé : on reprend son fichier .birtec
@@ -151,10 +159,11 @@ function ecrireInfoBrut(cle, valeur) {
 
 // ---------------------------------------------------------------- configuration chiffrée (clé du site)
 //
-// Une fois la configuration chiffrée, la marque « ktec.cle » (en clair) porte l'empreinte de la clé et la clé
-// elle-même, emballée (voir cle.js). Restent en clair : le format et la date de création du fichier.
-// (Avant KTEC 0.7, la clé était sur chaque poste, protégée par Windows : un fichier chiffré ainsi n'a pas la clé
-// dans sa marque. L'administrateur repart alors d'une nouvelle clé et reprend la configuration exportée.)
+// La marque « ktec.cle » (en clair) : { empreinte, depuis, complet: true }. « complet » : tout le fichier partagé
+// est chiffré (partage.js) avec la clé rangée sur chaque poste autorisé (cle.js) ; la clé n'est plus dans le fichier.
+// Dans la copie locale, les valeurs de configuration restent chiffrées aussi (« ENC1: »).
+// Anciens fichiers : la marque portait la clé emballée (« cle ») ; ou, avant KTEC 0.7, ni l'une ni l'autre (la clé
+// était sur le poste). « Chiffrer tout le fichier » les met au format complet.
 
 const EN_CLAIR = new Set(['format', 'cree', 'ktec.cle', 'mot_de_passe'])
 function marqueCle() {
@@ -167,6 +176,12 @@ function marqueCle() {
 }
 definirMarque(() => (baseOuverte() ? marqueCle() : null))
 
+// Le fichier partagé est chiffré, mais ce poste n'a pas sa clé : rien n'est ouvert (partage.js).
+const sansCle = () => {
+  const empreinte = empreinteManquante()
+  return empreinte ? { chiffree: true, complet: true, cleDansLeFichier: false, cleSurLePoste: false, bonneCle: false, empreinte } : null
+}
+
 // Pour les applications qui ont leurs propres réglages (AITEC) : chiffrer en écrivant, déchiffrer en lisant.
 export function protegerTexte(texte, cle = '') {
   return typeof texte === 'string' && !EN_CLAIR.has(cle) && marqueCle() ? chiffrer(texte) : texte
@@ -174,34 +189,43 @@ export function protegerTexte(texte, cle = '') {
 export const lireTexteProtege = (texte) => (estChiffre(texte) ? dechiffrer(texte) : texte)
 
 export function etatCle() {
+  const manque = sansCle()
+  if (manque) return manque
   const marque = marqueCle()
   const c = cleDuSite()
   const bonneCle = Boolean(marque && c && empreinteCle(c) === marque.empreinte)
-  // cleSurLePoste : gardé pour les écrans d'avant (la clé est désormais dans le fichier).
-  return { chiffree: Boolean(marque), cleDansLeFichier: bonneCle, cleSurLePoste: bonneCle, bonneCle, empreinte: marque?.empreinte || null }
+  return { chiffree: Boolean(marque), complet: Boolean(marque?.complet), cleDansLeFichier: Boolean(marque?.cle), cleSurLePoste: Boolean(cleDuPoste(marque?.empreinte)), bonneCle, empreinte: marque?.empreinte || null }
 }
 
-// Chiffre toute la configuration du fichier, avec sa clé (créée au besoin). Un fichier chiffré dont la clé est
-// perdue repart d'une nouvelle clé : ce qui était chiffré avec l'ancienne reste illisible, à reprendre.
+// Chiffre tout le fichier avec la clé du site, rangée sur ce poste (créée au besoin) ; la clé sort du fichier.
+// nouvelle : une nouvelle clé (« couper les autres postes ») ; la configuration est rechiffrée avec elle et
+// l'ancienne est oubliée sur ce poste : plus aucun autre poste n'ouvre le fichier sans la nouvelle clé.
+// Un fichier chiffré dont la clé est perdue repart aussi d'une nouvelle clé : ce qui était chiffré avec
+// l'ancienne reste illisible, à reprendre.
 export function chiffrerConfiguration({ nouvelle = false } = {}) {
   return ecrire((db) => {
     const marque = marqueCle()
-    let c = etatCle().bonneCle ? cleDuSite() : null
-    if (marque && !c && !nouvelle) throw Object.assign(new Error('La clé de ce fichier est introuvable : repartez d’une nouvelle clé, puis reprenez la configuration.'), { statut: 409 })
-    if (!c) {
-      c = nouvelleCle()
-      journal(marque ? 'Nouvelle clé du site (l’ancienne est introuvable)' : 'Clé du site créée')
+    const ancienne = etatCle().bonneCle ? cleDuSite() : null
+    if (marque && !ancienne && !nouvelle) throw Object.assign(new Error('La clé de ce fichier est introuvable : repartez d’une nouvelle clé, puis reprenez la configuration.'), { statut: 409 })
+    const c = nouvelle || !ancienne ? nouvelleCle() : ancienne
+    // Une valeur déjà chiffrée passe à la nouvelle clé ; une valeur en clair est chiffrée.
+    const proteger = (valeur) => {
+      if (!estChiffre(valeur)) return chiffrer(valeur, c)
+      if (!ancienne || ancienne === c) return valeur
+      const texte = dechiffrer(valeur, ancienne)
+      return texte === null ? valeur : chiffrer(texte, c)
     }
+    rangerCle(c) // avant d'écrire : la publication chiffre avec elle
     db.exec('BEGIN')
     try {
-      db.prepare("INSERT OR REPLACE INTO infos VALUES ('ktec.cle', ?)").run(JSON.stringify({ empreinte: empreinteCle(c), depuis: new Date().toISOString(), cle: emballerCle(c) }))
+      db.prepare("INSERT OR REPLACE INTO infos VALUES ('ktec.cle', ?)").run(JSON.stringify({ empreinte: empreinteCle(c), depuis: new Date().toISOString(), complet: true }))
       for (const { cle, valeur } of db.prepare('SELECT cle, valeur FROM infos').all()) {
-        if (!EN_CLAIR.has(cle) && !estChiffre(valeur)) db.prepare('UPDATE infos SET valeur = ? WHERE cle = ?').run(chiffrer(valeur, c), cle)
+        if (!EN_CLAIR.has(cle) && typeof valeur === 'string') db.prepare('UPDATE infos SET valeur = ? WHERE cle = ?').run(proteger(valeur), cle)
       }
       // Les réglages d'AITEC (table à part), s'il y en a : seulement les textes.
       if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'reglages'").get()) {
         for (const { cle, valeur } of db.prepare('SELECT cle, valeur FROM reglages').all()) {
-          if (typeof valeur === 'string' && valeur && !EN_CLAIR.has(cle) && !estChiffre(valeur)) db.prepare('UPDATE reglages SET valeur = ? WHERE cle = ?').run(chiffrer(valeur, c), cle)
+          if (typeof valeur === 'string' && valeur && !EN_CLAIR.has(cle)) db.prepare('UPDATE reglages SET valeur = ? WHERE cle = ?').run(proteger(valeur), cle)
         }
       }
       db.exec('COMMIT')
@@ -209,19 +233,22 @@ export function chiffrerConfiguration({ nouvelle = false } = {}) {
       db.exec('ROLLBACK')
       throw erreur
     }
-    journal('Configuration du fichier de connaissances chiffrée')
+    if (ancienne && ancienne !== c) oublierCle(empreinteCle(ancienne))
+    journal(nouvelle ? 'Nouvelle clé du site : les autres postes devront la recevoir' : marque?.complet ? 'Fichier de connaissances chiffré' : 'Tout le fichier de connaissances est désormais chiffré (clé sortie du fichier)')
     return etatCle()
   })
 }
 
-// Range une clé exportée (.ktecclef) dans ce fichier ; refuse une clé qui n'est pas la sienne.
+// Range une clé reçue (.ktecclef) sur ce poste, puis rouvre le fichier ; refuse une clé qui n'est pas la sienne.
+// Pas besoin du mode administrateur : avoir la bonne clé est l'autorisation.
 export function importerCle(texte) {
   const c = lireFichierCle(texte)
-  const marque = marqueCle()
-  if (marque && empreinteCle(c) !== marque.empreinte) throw Object.assign(new Error('Cette clé n’ouvre pas ce fichier de connaissances : ce n’est pas celle de ce site.'), { statut: 400 })
-  ecrire((db) => db.prepare("INSERT OR REPLACE INTO infos VALUES ('ktec.cle', ?)").run(JSON.stringify({ empreinte: empreinteCle(c), depuis: marque?.depuis || new Date().toISOString(), cle: emballerCle(c) })))
-  journal('Clé du site rangée dans le fichier de connaissances')
-  return marque ? etatCle() : chiffrerConfiguration()
+  const attendue = empreinteManquante() || marqueCle()?.empreinte
+  if (attendue && empreinteCle(c) !== attendue) throw Object.assign(new Error('Cette clé n’ouvre pas ce fichier de connaissances : ce n’est pas celle de ce site, ou l’administrateur en a créé une nouvelle depuis.'), { statut: 400 })
+  rangerCle(c)
+  journal('Clé du site rangée sur ce poste')
+  if (empreinteManquante()) ouvrirFichier(cheminKtec())
+  return etatCle()
 }
 
 // ---------------------------------------------------------------- configuration exportée (.ktecconf)

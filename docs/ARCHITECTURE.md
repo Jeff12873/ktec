@@ -50,8 +50,8 @@ Documents/KTEC/            (dossier de travail)
   **verrou** (`connaissances.ktec.verrou`, à côté du fichier) : un seul poste à la fois. Sans mot de passe sur le
   fichier, il est pris tout seul à la première écriture (`exigerEcriture`) ; avec, il faut le mode administrateur
   (cookie de ce navigateur, `ctx.exigerAdmin()`). Chaque écriture est publiée quelques secondes plus tard (copie sous
-  un nom temporaire puis renommage) ; sauvegarde à chaque prise du verrou (`KTEC-sauvegardes`, une par heure au plus,
-  5 gardées). Les applications déclarent leurs tables avec `ajouterStructure()`.
+  un nom temporaire puis renommage). Pas de sauvegarde automatique (elle copierait
+  les données et la clé du site) : celle du lecteur réseau suffit. Les applications déclarent leurs tables avec `ajouterStructure()`.
 - **Connaissances** (`serveur/socle/ktec.js`) : tables communes `tables_base`, `liens`, `dictionnaire`, `liens_dico`,
   `notes`, `requetes`, `infos`, et `indicateurs`, `fichiers` (BiRTEC) ; chaque écriture passe par le verrou puis la
   publication. Au premier lancement, l'ancien `.birtec` de BiRTEC est copié en `.ktec` (l'original reste en place).

@@ -1,36 +1,38 @@
 <h1>La clé du site et le chiffrement</h1>
-<p class="but">La configuration sensible (connexion à la GMAO, adresses, requêtes, réglages) est chiffrée dans le fichier de connaissances. La clé du site permet de la lire : copié ou volé sans elle, le fichier ne livre rien de sensible.</p>
+<p class="but">Tout le fichier de connaissances est chiffré : sans la clé du site, il ne s'ouvre pas. La clé est rangée sur chaque poste autorisé, jamais dans le fichier : un fichier copié ou volé sans elle ne livre rien. Aucun mot de passe à taper au quotidien.</p>
 
 <h2>Pas à pas <span class="pastille-admin">Admin</span></h2>
 <ol>
-<li>Portail › <b>Réglages</b> › carte <b>Clé du site</b>.</li>
-<li><b>Chiffrer la configuration</b> : la clé est créée. La configuration est chiffrée d'office dès que les comptes de la GMAO sont enregistrés.</li>
-<li><b>Exporter la clé</b> : un fichier .ktecclef à garder en lieu sûr (coffre, clé USB rangée).</li>
-<li><b>Exporter la configuration</b> : un fichier .ktecconf, pour la reprendre sur un nouveau fichier de connaissances.</li>
+<li><b>Premier poste</b> : un nouveau fichier est chiffré dès sa création ; K.NOVA fait exporter la clé (un petit fichier <b>.ktecclef</b>). Gardez-la en lieu sûr.</li>
+<li><b>Chaque autre poste</b> : au premier lancement, K.NOVA demande la clé ; donnez-lui le .ktecclef, une fois. Elle est rangée dans le dossier de K.NOVA du poste.</li>
+<li><b>Couper l'accès des autres postes</b> : Réglages › carte <b>Clé du site</b> › <b>Nouvelle clé : couper les autres postes</b>. Le fichier est rechiffré : les autres postes ne l'ouvrent plus et effacent leur copie. Donnez la nouvelle clé aux seuls postes à garder.</li>
+<li><b>Un ancien fichier</b> (version d'avant de K.NOVA, configuration seule chiffrée) : <b>Chiffrer tout le fichier et exporter la clé</b>.</li>
 </ol>
 
 <script type="application/json" data-maquette>
 { "titre": "Réglages › Clé du site", "ratio": 40,
   "blocs": [
     [5,6,90,88,"","zone"], [8,10,30,10,"Clé du site","texte"],
-    [8,26,84,18,"État : configuration chiffrée, clé rangée dans le fichier","carte"],
-    [8,52,26,12,"Chiffrer la configuration","accent"], [37,52,26,12,"Exporter la clé","bouton"], [66,52,26,12,"Exporter la configuration","bouton"],
-    [8,72,26,12,"Ranger la clé (.ktecclef)","bouton"], [37,72,26,12,"Reprendre une configuration","bouton"], [66,72,26,12,"Nouvelle clé","bouton"]
+    [8,26,84,18,"Tout le fichier est chiffré ; la clé est rangée sur ce poste","carte"],
+    [8,52,40,12,"Nouvelle clé : couper les autres postes","bouton"], [52,52,40,12,"Exporter la clé","bouton"],
+    [8,72,40,12,"Reprendre une configuration","bouton"], [52,72,40,12,"Exporter la configuration","bouton"]
   ],
   "reperes": [
-    [10,35,"L'état dit si la configuration est chiffrée et si ce poste peut la lire."],
-    [50,58,"Exporter la clé : à faire une fois, et à garder hors du réseau.", true],
-    [21,78,"Ranger la clé : quand un fichier a été chiffré avec une clé qu'il ne contient pas.", true],
-    [79,78,"Nouvelle clé : en dernier recours ; il faut ensuite reprendre la configuration et ressaisir la connexion.", true]
+    [10,35,"L'état dit si tout le fichier est chiffré et si ce poste a la clé."],
+    [28,58,"Nouvelle clé : la manœuvre de sécurité ; seuls les postes qui reçoivent la nouvelle clé gardent l'accès.", true],
+    [72,58,"Exporter la clé : pour un nouveau poste, ou pour la garder hors du réseau.", true]
   ] }
 </script>
 
 <h2>Questions fréquentes</h2>
-<details><summary>« Sans la clé, les applications ne voient pas leurs réglages »</summary><p>Ce fichier a été chiffré avec une clé qu'il ne contient pas. L'administrateur range la clé (.ktecclef) ; sinon il repart d'une nouvelle clé, reprend la configuration (.ktecconf) et ressaisit la connexion.</p></details>
-<details><summary>Les mots de passe de la GMAO sont-ils visibles ?</summary><p>Non. Ils sont chiffrés dans le fichier, et aucun écran ne les réaffiche : on peut seulement les remplacer.</p></details>
+<details><summary>Un poste demande la clé alors qu'il l'avait</summary><p>L'administrateur a créé une nouvelle clé : ce poste est coupé, sa copie du fichier a été effacée. S'il doit garder l'accès, l'administrateur lui donne la nouvelle clé.</p></details>
+<details><summary>J'ai perdu la clé</summary><p>Si un poste l'a encore, exportez-la depuis ce poste (Réglages › Clé du site). Sinon, le fichier ne peut plus être ouvert : repartez d'un nouveau fichier et reprenez la configuration exportée (.ktecconf).</p></details>
+<details><summary>Les mots de passe de la GMAO sont-ils visibles ?</summary><p>Non. Ils sont chiffrés, et aucun écran ne les réaffiche : on peut seulement les remplacer.</p></details>
+<details><summary>Ce que le chiffrement ne fait pas</summary><p>La clé est rangée en clair dans le dossier de K.NOVA de chaque poste autorisé : elle protège le fichier du réseau (copié, volé), pas un poste dont quelqu'un aurait pris le contrôle. La protection de la GMAO reste un compte de lecture qui ne peut que lire.</p></details>
 
 <h2>Trucs et astuces</h2>
 <ul class="astuces">
-<li>Gardez deux copies de la clé à deux endroits différents : sans elle, il faut tout ressaisir.</li>
+<li>Gardez deux copies de la clé à deux endroits différents, hors du réseau (clé USB sous clé, coffre du service informatique).</li>
 <li>Ne joignez jamais la clé à un mail ni à un message au développeur : il n'en a jamais besoin.</li>
+<li>Le fichier .ktecconf (configuration exportée) est en clair, mots de passe compris : rangez-le comme la clé, ou ne le gardez pas.</li>
 </ul>
