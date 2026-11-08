@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.9.4",
+      "date": "2026-11-08",
+      "points": [
+        "Présentation guidée : maintenir le clic hors de la bulle remplit un anneau et passe la présentation"
+      ]
+    },
+    {
       "version": "0.9.3",
       "date": "2026-11-08",
       "points": [

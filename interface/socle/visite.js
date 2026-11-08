@@ -17,6 +17,8 @@ import { h, ic, fenetre } from './ui.js'
 
 const ATTENTE_MAX = 20_000
 const MARGE = 10
+const AVANT_MAINTIEN = 250 // un simple clic n'affiche rien
+const MAINTIEN = 1200
 
 const pause = (ms) => new Promise((ok) => setTimeout(ok, ms))
 
@@ -69,8 +71,10 @@ export async function lancerVisite(visite) {
   }
 
   return new Promise((terminer) => {
+    let enlever = () => {}
     const arreter = () => {
       fini = true
+      enlever()
       voile.remove()
       document.removeEventListener('keydown', surTouche)
       terminer()
@@ -81,6 +85,31 @@ export async function lancerVisite(visite) {
     }
     document.addEventListener('keydown', surTouche)
     quitter.onclick = arreter
+
+    // Maintenir le clic hors de la bulle : un anneau se remplit, et la présentation s'arrête quand il est plein.
+    let attente = null
+    let anneau = null
+    const relacher = () => {
+      clearTimeout(attente)
+      anneau?.remove()
+      anneau = null
+    }
+    const surAppui = (e) => {
+      if (e.button !== 0 || bulle.contains(e.target)) return
+      relacher()
+      attente = setTimeout(() => {
+        anneau = h('div', { class: 'visite-maintien', style: { left: `${e.clientX}px`, top: `${e.clientY}px` } }, h('i'), h('span', {}, 'Maintenez pour passer la présentation'))
+        document.body.append(anneau)
+        attente = setTimeout(arreter, MAINTIEN)
+      }, AVANT_MAINTIEN)
+    }
+    document.addEventListener('pointerdown', surAppui, true)
+    for (const fin of ['pointerup', 'pointercancel', 'blur']) window.addEventListener(fin, relacher, true)
+    enlever = () => {
+      relacher()
+      document.removeEventListener('pointerdown', surAppui, true)
+      for (const fin of ['pointerup', 'pointercancel', 'blur']) window.removeEventListener(fin, relacher, true)
+    }
 
     const montrer = async (i) => {
       const e = visite.etapes[i]
