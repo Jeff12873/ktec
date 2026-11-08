@@ -7,6 +7,7 @@
 //     texte    : texte de la bulle (ou fonction → texte, lue après « avant »)
 //     avant    : async () => …, ce que la visite fait à la place de l'utilisateur avant de montrer l'étape
 //     attendre : sélecteur à attendre (écran qui se charge, aperçu qui se calcule), 20 s au plus
+//     zoom     : grossit la zone montrée, le temps de l'étape (2 : deux fois plus grande)
 // On la lance par l'adresse : /<appli>/#/<écran>?visite=<id> (le bouton « Voir le cas d'usage » du wiki).
 //
 // La présentation d'une application enchaîne ses visites dans un ordre logique : export const presentation = ['id', …]
@@ -72,8 +73,14 @@ export async function lancerVisite(visite) {
 
   return new Promise((terminer) => {
     let enlever = () => {}
+    let zoomee = null
+    const sansZoom = () => {
+      if (zoomee) Object.assign(zoomee.style, { transform: '', zIndex: '', position: '', transition: '' })
+      zoomee = null
+    }
     const arreter = () => {
       fini = true
+      sansZoom()
       enlever()
       voile.remove()
       document.removeEventListener('keydown', surTouche)
@@ -113,6 +120,7 @@ export async function lancerVisite(visite) {
 
     const montrer = async (i) => {
       const e = visite.etapes[i]
+      sansZoom()
       suivant.disabled = true
       suivant.textContent = 'Un instant…'
       compteur.textContent = `${i + 1} / ${visite.etapes.length}`
@@ -125,7 +133,11 @@ export async function lancerVisite(visite) {
         console.warn('Visite guidée :', erreur)
       }
       if (fini) return
-      cible?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      cible?.scrollIntoView({ block: 'center', inline: e.zoom ? 'center' : 'nearest', behavior: 'smooth' })
+      if (e.zoom && cible) {
+        zoomee = cible
+        Object.assign(cible.style, { position: 'relative', zIndex: 3, transition: 'transform .35s cubic-bezier(.2,.7,.2,1)', transform: `scale(${e.zoom})` })
+      }
       titre.textContent = e.titre || ''
       nomVisite.textContent = e.chapitre || visite.titre || 'Visite guidée'
       texte.textContent = typeof e.texte === 'function' ? e.texte() : e.texte || ''
