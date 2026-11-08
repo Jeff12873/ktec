@@ -59,7 +59,9 @@ export function nomAppli(nom, couleur = null) {
 }
 
 export function ic(nom, taille = 18) {
-  return svg(icone(nom, taille))
+  const element = svg(icone(nom, taille))
+  element.dataset.icone = nom
+  return element
 }
 
 // ---------------------------------------------------------------- notifications

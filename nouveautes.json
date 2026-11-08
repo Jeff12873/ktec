@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.9.1",
+      "date": "2026-11-08",
+      "points": [
+        "Les boutons qui font appel à l'IA ont un liseré défilant ; ils changent de couleur quand une action IA est à faire"
+      ]
+    },
+    {
       "version": "0.9.0",
       "date": "2026-11-07",
       "points": [

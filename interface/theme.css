@@ -570,3 +570,21 @@ body.recit-en-cours { overflow: hidden; }
 .visite-tete { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent); font-weight: 700; }
 .visite-compteur { margin-left: auto; color: var(--texte-3); font-weight: 500; }
 .visite-boutons { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; }
+
+/* Boutons avec interaction IA (l'icône étincelle) : un liseré qui défile, lent quand tout est à jour ;
+   « ia-a-faire » (jamais faite, ou obsolète) : le bouton change de couleur et le liseré s'accélère. */
+@property --angle-ia { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes tourne-ia { to { --angle-ia: 360deg; } }
+button:has(> svg[data-icone="etincelle"]):not(.pas-ia), a.bouton:has(> svg[data-icone="etincelle"]):not(.pas-ia) { position: relative; --ia: #a78bfa; }
+button:has(> svg[data-icone="etincelle"]):not(.pas-ia)::before, a.bouton:has(> svg[data-icone="etincelle"]):not(.pas-ia)::before {
+  content: ''; position: absolute; inset: -1.5px; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--angle-ia), transparent 0 50%, var(--ia) 78%, #fff 92%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: tourne-ia 5s linear infinite;
+}
+button.ia-a-faire, a.bouton.ia-a-faire { --ia: #fbbf24; background: color-mix(in srgb, #f59e0b 28%, var(--carte-2)); border-color: color-mix(in srgb, #f59e0b 60%, transparent); color: var(--texte); }
+button.ia-a-faire:hover { background: color-mix(in srgb, #f59e0b 40%, var(--carte-2)); }
+button.ia-a-faire::before, a.bouton.ia-a-faire::before { animation-duration: 1.5s !important; }
+button:disabled::before { animation-play-state: paused; opacity: .4; }
+@media (prefers-reduced-motion: reduce) { button::before, a.bouton::before { animation: none !important; } }
