@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.9.3",
+      "date": "2026-11-08",
+      "points": [
+        "Une présentation guidée est proposée au premier lancement de chaque application, avec un bouton pour la relancer"
+      ]
+    },
+    {
       "version": "0.9.2",
       "date": "2026-11-08",
       "points": [

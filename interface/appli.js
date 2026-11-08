@@ -12,7 +12,7 @@ import { appli, api } from './socle/api.js'
 import { etiquetteIA, etiquetteMySQL } from './socle/connexion.js'
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
 import { ouvrirMessage } from './socle/message.js'
-import { visiteDemandee } from './socle/visite.js'
+import { visiteDemandee, lancerVisite, chargerPresentation, proposerPresentation } from './socle/visite.js'
 
 const racine = document.getElementById('appli')
 const toutes = await api('/api/ktec/applis')
@@ -48,8 +48,11 @@ window.addEventListener('hashchange', afficherBloc)
 
 await app.auDemarrage?.(etat)
 dessinerMenu()
+const presentation = await chargerPresentation(appli)
 dessinerBarre()
-afficherBloc()
+afficherBloc().then(() => {
+  if (presentation && !routeActuelle().query.visite) proposerPresentation(appli, description.nom, presentation)
+})
 
 // ---------------------------------------------------------------- écrans
 
@@ -137,6 +140,7 @@ function dessinerBarre() {
     etiquetteFichier(p),
     boutonAdmin(p),
     h('button', { class: 'discret icone-seule', title: 'Message au développeur : proposer une amélioration', onclick: () => ouvrirMessage({ appli, ecran: routeActuelle().bloc.titre || '' }) }, ic('envoyer', 18)),
+    presentation ? h('button', { class: 'discret icone-seule', 'data-presentation': '1', title: 'Revoir la présentation guidée', onclick: () => lancerVisite(presentation) }, ic('lecture', 19)) : null,
     h('button', { class: 'discret icone-seule', title: 'Aide sur cet écran (wiki)', onclick: () => ouvrirWiki(routeActuelle().bloc.aide) }, ic('aide', 19)),
   )
 }

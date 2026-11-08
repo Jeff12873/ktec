@@ -8,8 +8,12 @@
 //     avant    : async () => …, ce que la visite fait à la place de l'utilisateur avant de montrer l'étape
 //     attendre : sélecteur à attendre (écran qui se charge, aperçu qui se calcule), 20 s au plus
 // On la lance par l'adresse : /<appli>/#/<écran>?visite=<id> (le bouton « Voir le cas d'usage » du wiki).
+//
+// La présentation d'une application enchaîne ses visites dans un ordre logique : export const presentation = ['id', …]
+// (ou presentations = { appli: [...] } quand plusieurs applications partagent le fichier). Elle est proposée au premier
+// lancement sur ce poste, et se relance par le bouton de la barre du haut.
 
-import { h, ic } from './ui.js'
+import { h, ic, fenetre } from './ui.js'
 
 const ATTENTE_MAX = 20_000
 const MARGE = 10
@@ -34,10 +38,11 @@ export async function lancerVisite(visite) {
   const titre = h('b')
   const texte = h('p')
   const compteur = h('span', { class: 'visite-compteur' })
+  const nomVisite = h('span', {}, visite.titre || 'Visite guidée')
   const suivant = h('button', { class: 'principal petit' })
   const quitter = h('button', { class: 'discret petit' }, 'Quitter la visite')
   const bulle = h('div', { class: 'visite-bulle', role: 'dialog' },
-    h('div', { class: 'visite-tete' }, ic('etincelle', 16), h('span', {}, visite.titre || 'Visite guidée'), compteur),
+    h('div', { class: 'visite-tete' }, ic('etincelle', 16), nomVisite, compteur),
     titre, texte,
     h('div', { class: 'visite-boutons' }, quitter, suivant))
   const voile = h('div', { class: 'visite' }, trou, bulle)
@@ -93,6 +98,7 @@ export async function lancerVisite(visite) {
       if (fini) return
       cible?.scrollIntoView({ block: 'center', behavior: 'smooth' })
       titre.textContent = e.titre || ''
+      nomVisite.textContent = e.chapitre || visite.titre || 'Visite guidée'
       texte.textContent = typeof e.texte === 'function' ? e.texte() : e.texte || ''
       const derniere = i === visite.etapes.length - 1
       suivant.disabled = false
@@ -116,4 +122,34 @@ export async function visiteDemandee(appli, query) {
   } catch (erreur) {
     console.warn('Visite guidée introuvable :', id, erreur)
   }
+}
+
+// ---------------------------------------------------------------- la présentation d'une application
+
+export async function chargerPresentation(appli) {
+  try {
+    const m = await import(`/apps/${appli}/interface/visites.js`)
+    const ids = m.presentations?.[appli] ?? m.presentation
+    if (!ids?.length) return null
+    return { titre: 'Présentation', etapes: ids.flatMap((id) => (m.visites[id]?.etapes || []).map((e) => ({ ...e, chapitre: m.visites[id].titre }))) }
+  } catch {
+    return null // pas de présentation pour cette application
+  }
+}
+
+// Au premier lancement sur ce poste, on propose la présentation (une seule fois, même si on refuse).
+export async function proposerPresentation(appli, nom, presentation) {
+  const cle = `knova-presentation-${appli}`
+  try {
+    if (localStorage.getItem(cle)) return
+    localStorage.setItem(cle, new Date().toISOString())
+  } catch {
+    return // sans mémoire, on ne la proposerait à chaque ouverture
+  }
+  const oui = await fenetre({
+    titre: `Bienvenue dans ${nom}`,
+    contenu: h('p', { style: { margin: 0 } }, `Une présentation guidée vous montre les cas d’usage, sur le vrai écran, dans l’ordre. Elle ne modifie rien, se quitte à tout moment et se relance avec le bouton `, ic('lecture', 14), ` en haut de l’écran.`),
+    boutons: [{ texte: 'Plus tard', classe: 'discret', valeur: false }, { texte: 'Commencer', classe: 'principal', valeur: true }],
+  })
+  if (oui) await lancerVisite(presentation)
 }
