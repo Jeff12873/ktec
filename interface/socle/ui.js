@@ -64,6 +64,47 @@ export function ic(nom, taille = 18) {
   return element
 }
 
+// ---------------------------------------------------------------- bulles d'aide
+
+// Les « title » s'affichent dans une bulle aux couleurs de K.NOVA, et non dans celle du système : la bulle prend le
+// texte au survol (le code peut continuer à écrire element.title).
+let bulle = null
+let cibleBulle = null
+let attenteBulle = null
+
+function cacherBulle() {
+  clearTimeout(attenteBulle)
+  cibleBulle = null
+  bulle?.remove()
+  bulle = null
+}
+
+function montrerBulle(cible) {
+  if (!cible.isConnected) return
+  bulle = h('div', { class: 'bulle-ktec', role: 'tooltip' }, cible.dataset.bulle)
+  document.body.append(bulle)
+  const r = cible.getBoundingClientRect()
+  const b = bulle.getBoundingClientRect()
+  const haut = r.top - b.height - 8
+  bulle.style.top = `${haut >= 6 ? haut : Math.min(r.bottom + 8, innerHeight - b.height - 6)}px`
+  bulle.style.left = `${Math.max(6, Math.min(r.left + r.width / 2 - b.width / 2, innerWidth - b.width - 6))}px`
+}
+
+document.addEventListener('pointerover', (e) => {
+  const cible = e.target.closest?.('[title], [data-bulle]')
+  if (cible instanceof SVGElement) return
+  if (cible?.hasAttribute('title')) {
+    cible.dataset.bulle = cible.getAttribute('title')
+    cible.removeAttribute('title')
+  }
+  if (cible === cibleBulle && cible) return
+  cacherBulle()
+  if (!cible?.dataset.bulle) return
+  cibleBulle = cible
+  attenteBulle = setTimeout(() => montrerBulle(cible), 280)
+})
+for (const evenement of ['pointerdown', 'keydown', 'wheel']) document.addEventListener(evenement, cacherBulle, { passive: true, capture: true })
+
 // ---------------------------------------------------------------- notifications
 
 export function notifier(message, type = 'info') {
