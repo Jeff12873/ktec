@@ -151,7 +151,7 @@ export function fenetre({ titre, contenu, boutons = [], large = false }) {
               bouton.disabled = true
               try {
                 const resultat = b.action ? await b.action() : b.valeur
-                if (resultat !== false) fermer(resultat === undefined ? b.valeur : resultat)
+                if (!b.action || resultat !== false) fermer(resultat === undefined ? b.valeur : resultat)
               } catch (erreur) {
                 notifier(erreur.message, 'erreur')
               } finally {

@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.9.6",
+      "date": "2026-11-09",
+      "points": [
+        "Fenêtres : les boutons « Plus tard » et « Annuler » ferment bien la fenêtre"
+      ]
+    },
+    {
       "version": "0.9.5",
       "date": "2026-11-08",
       "points": [
