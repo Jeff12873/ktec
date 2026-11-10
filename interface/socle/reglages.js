@@ -249,6 +249,10 @@ export function carteCle(apres = () => {}) {
     const e = await api('/api/ktec/cle').catch(() => null)
     if (!e) return vider(corps, h('p', { class: 'discret' }, 'État de la clé indisponible.'))
     const admin = modeAdmin()
+    // Tout va bien : on n'en parle pas. La carte reste repliée, et n'existe que pour l'administrateur.
+    const enOrdre = e.chiffree && e.bonneCle && e.complet
+    carte.open = !enOrdre
+    carte.hidden = enOrdre && !admin
     vider(corps,
       h('p', { class: 'texte-2', style: { marginTop: 0 } }, !e.chiffree
         ? 'Ce fichier (créé par une version d’avant de K.NOVA) est en clair : chiffrez-le. Les nouveaux fichiers sont chiffrés dès leur création.'
@@ -265,6 +269,7 @@ export function carteCle(apres = () => {}) {
         !e.chiffree || e.bonneCle ? h('button', { class: 'discret', onclick: exporterConfiguration }, ic('telecharger', 16), 'Exporter la configuration') : null,
         e.bonneCle ? h('button', { class: 'discret', onclick: telechargerCle }, ic('telecharger', 16), 'Exporter la clé') : null) : null)
   }
+  const carte = h('details', { class: 'carte carte-repliable', hidden: true }, h('summary', { class: 'carte-entete' }, h('h2', {}, ic('cadenas', 18), 'Clé du site')), corps)
   dessiner()
-  return h('div', { class: 'carte' }, h('div', { class: 'carte-entete' }, h('h2', {}, ic('cadenas', 18), 'Clé du site')), corps)
+  return carte
 }
