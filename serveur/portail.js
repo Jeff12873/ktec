@@ -14,8 +14,22 @@ import { etatIA, arreterIA } from './socle/ia.js'
 import { version, reglagesPoste, modifierReglagesPoste, dossierTravail, journal, WINDOWS, chemins, lignesJournal, suivreJournal } from './socle/installation.js'
 import { etatConnexion, testerCompte, oublierEssai, javaInstalle } from './socle/mysql.js'
 import { applisPubliques } from './socle/applis.js'
+import { etatCompte, demanderAcces, noterOuverture, importerLicence, vueAdministrateur, reglerCompte, refuserDemande, couperCompte } from './socle/comptes.js'
 
 const DEMARRE_LE = new Date().toISOString()
+
+// Le compte de ce poste (null sans licence). Sans accès ni demande : la demande part toute seule, à la première ouverture.
+function compteDuPoste() {
+  try {
+    const e = etatCompte()
+    if (!e) return null
+    if (Object.keys(e.acces).length) noterOuverture()
+    else if (!e.admin && !e.coupe && !e.demande) e.demande = demanderAcces()
+    return e
+  } catch {
+    return null
+  }
+}
 // La dernière fois qu'une page de K.NOVA a donné signe de vie (chaque page demande l'état toutes les 4 s) et les
 // pages ouvertes (identifiant → dernier signe). Une page ne sort de la liste que quand on la ferme vraiment : une
 // fenêtre endormie par le navigateur (réduite, poste verrouillé, veille) y reste. Plus aucune page depuis
@@ -54,7 +68,19 @@ export function routes(r) {
     dossierTravail: dossierTravail(),
     fichierKtec: cheminKtec(),
     poste: reglagesPoste(),
+    compte: compteDuPoste(),
   }))
+
+  // ---- licence et comptes (sans licence, rien de tout cela ne sert)
+
+  // La licence : son fichier suffit, la personne qui l'importe devient administrateur.
+  r.post('/api/ktec/licence', async (ctx) => importerLicence((await ctx.octets()).toString('utf8'), { nom: ctx.query.nom || '' }))
+  // Sans accès : le nom de la personne, pour que l'administrateur la reconnaisse ; ou redemander après un refus.
+  r.post('/api/ktec/comptes/demande', async (ctx) => demanderAcces({ nom: String((await ctx.json()).nom || '') }))
+  r.get('/api/ktec/comptes', () => vueAdministrateur())
+  r.post('/api/ktec/comptes/regler', async (ctx) => reglerCompte(await ctx.json()))
+  r.post('/api/ktec/comptes/refuser', async (ctx) => refuserDemande((await ctx.json()).login))
+  r.post('/api/ktec/comptes/couper', async (ctx) => couperCompte((await ctx.json()).login))
 
   r.get('/api/ktec/applis', () => applisPubliques())
 

@@ -344,9 +344,23 @@ export function estAdmin(cookie) {
   return Boolean(etat.admin && cookie && etat.admin.cookie === cookie)
 }
 
+// Avec une licence, les comptes (comptes.js) décident : qui est administrateur, qui peut modifier quoi.
+// Sans licence, ces contrôles ne répondent rien et tout fonctionne comme avant.
+const controles = {}
+export function definirControles(c) {
+  Object.assign(controles, c)
+}
+const licenceActive = () => Boolean(controles.actif?.())
+// Le niveau du compte de ce poste pour une application (null : pas de licence).
+export const accesAppli = (id) => controles.acces?.(id) ?? null
+// Avant une écriture dans la GMAO : il faut le droit d'écriture sur l'application (pas de verrou à prendre).
+export const exigerDroitEcriture = () => controles.ecriture?.({})
+
 // Réglages, SQL et comptes MySQL : réservés à ce mode (navigateur administrateur, ou fichier sans mot de passe).
 export function modeAdmin(cookie) {
   try {
+    const licence = controles.admin?.()
+    if (licence !== null && licence !== undefined) return licence
     return !motDePasseDefini() || estAdmin(cookie)
   } catch {
     return true // pas de fichier ouvert : il faut pouvoir en choisir un
@@ -365,14 +379,16 @@ export function cookieAdmin() {
 export function exigerEcriture({ pourTous = false } = {}) {
   db()
   const requete = requeteEnCours.getStore()
-  if (motDePasseDefini() && !pourTous) {
+  // Licence : les droits du compte Windows remplacent le mot de passe (refus levé par le contrôle).
+  const licence = Boolean(controles.ecriture?.({ pourTous }))
+  if (motDePasseDefini() && !pourTous && !licence) {
     if (etat.admin && (!requete || requete.cookie === etat.admin.cookie)) return
     throw erreur(403, 'Modification réservée au mode administrateur : cliquez sur « Consultation » en haut de l’écran.')
   }
   if (etat.admin) return
   const resultat = entrerAdmin(reglagesPoste().nomAgent || os.userInfo().username, { auto: true })
   // Main prise pour un utilisateur sur un fichier protégé : rendue peu après la publication (voir publier).
-  if (!resultat.occupe && motDePasseDefini()) etat.admin.pourTous = true
+  if (!resultat.occupe && (motDePasseDefini() || licence)) etat.admin.pourTous = true
   if (resultat.occupe) {
     const depuis = new Date(resultat.occupe.depuis).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     throw erreur(423, `${resultat.occupe.nom} (poste ${resultat.occupe.poste}) modifie le fichier de connaissances depuis ${depuis} : réessayez plus tard.`)
@@ -507,7 +523,7 @@ export function etatPartage(cookie) {
     ouvert: Boolean(connexion),
     version: etat.version,
     copieDu: etat.copieDu,
-    motDePasse: connexion ? motDePasseDefini() : false,
+    motDePasse: connexion ? motDePasseDefini() && !licenceActive() : false,
     admin: etat.admin ? { nom: etat.admin.nom, depuis: etat.admin.depuis, auto: etat.admin.auto, ceNavigateur: estAdmin(cookie) } : null,
     autreAdmin,
     aPublier: etat.aPublier,

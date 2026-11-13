@@ -20,7 +20,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { chemins, journal } from './installation.js'
 import { applis } from './applis.js'
-import { requeteEnCours, estAdmin, modeAdmin, exigerEcriture, noterActiviteAdmin } from './partage.js'
+import { requeteEnCours, estAdmin, modeAdmin, exigerEcriture, noterActiviteAdmin, accesAppli } from './partage.js'
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -71,9 +71,12 @@ async function traiter(routes, req, res) {
   try {
     if (url.pathname.startsWith('/api/')) {
       // Une porte (ex. /api/prevtec/…) parle aux routes de l'application qui l'ouvre (/api/aitec/…).
-      const porte = applis().get(url.pathname.split('/')[2])
+      // Les droits du compte (licence) se lisent pour l'application d'origine : PREVTEC, pas AITEC.
+      const appli = url.pathname.split('/')[2]
+      if (appli !== 'ktec' && accesAppli(appli) === 'aucun') throw new ErreurHttp(403, 'Votre compte n’a pas accès à cette application : demandez-le à l’administrateur.')
+      const porte = applis().get(appli)
       if (porte?.porteDe) url.pathname = url.pathname.replace(`/api/${porte.id}/`, `/api/${porte.porteDe}/`)
-      await traiterApi(routes, req, res, url)
+      await traiterApi(routes, req, res, url, appli)
     } else {
       envoyerFichierStatique(res, url.pathname)
     }
@@ -85,7 +88,7 @@ async function traiter(routes, req, res) {
   }
 }
 
-async function traiterApi(routes, req, res, url) {
+async function traiterApi(routes, req, res, url, appli) {
   // Protection contre les autres sites web ouverts dans le navigateur de l'agent :
   // - l'adresse demandée doit être celle de ce poste (parade au « DNS rebinding ») ;
   // - toute requête qui modifie quelque chose doit porter l'en-tête X-KTEC, qu'une page
@@ -123,7 +126,7 @@ async function traiterApi(routes, req, res, url) {
       },
     }
     // Le cookie suit la requête jusqu'aux écritures (même après des await).
-    const resultat = await requeteEnCours.run({ cookie }, () => route.action(ctx))
+    const resultat = await requeteEnCours.run({ cookie, appli }, () => route.action(ctx))
     if (!res.headersSent && !res.writableEnded) envoyerJson(res, 200, resultat ?? { ok: true })
     return
   }

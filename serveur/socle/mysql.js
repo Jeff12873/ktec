@@ -12,6 +12,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import crypto from 'node:crypto'
 import { installation, reglagesPoste, journal } from './installation.js'
+import { exigerDroitEcriture } from './partage.js'
 
 // La connexion complète, mots de passe compris : fournie par le fichier de connaissances (ktec.js).
 let lireConnexion = () => null
@@ -100,6 +101,7 @@ export function executerRequete(sql, limite = 200) {
 // ou SET seulement ; « ? » pour chaque valeur), exécutées dans une transaction annulée à la fin (simulation),
 // ou validée si valider = true. Renvoie { valide, resultats }.
 export function ecrireDansLaBase(instructions, { valider = false } = {}) {
+  exigerDroitEcriture() // licence : il faut le droit d'écriture sur l'application
   const { ecriture } = identifiants()
   if (!ecriture.utilisateur || !ecriture.motDePasse) throw Object.assign(new Error('Aucun compte d’écriture réglé : l’administrateur doit le renseigner (Réglages › Connexion à la GMAO).'), { statut: 409 })
   const b64 = (t) => Buffer.from(String(t), 'utf8').toString('base64')
