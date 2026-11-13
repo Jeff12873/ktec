@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.11.0",
+      "date": "2026-11-13",
+      "points": [
+        "Licence : avec le fichier .licence du développeur, la personne qui l'importe devient administrateur (Réglages › Licence) ; sans licence, rien ne change",
+        "Comptes Windows : chacun est reconnu par sa session, sans mot de passe ; l'administrateur règle Aucun, Lecture ou Écriture par application, et les lignes permises",
+        "Accueil en lecture à l'import de la licence : personne n'est bloqué ; ensuite, les nouvelles personnes demandent l'accès et l'administrateur les accepte",
+        "En acceptant un nouveau poste, l'administrateur lui transmet la clé du site : plus de fichier .ktecclef à donner"
+      ]
+    },
+    {
       "version": "0.10.1",
       "date": "2026-11-13",
       "points": [
