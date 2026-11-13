@@ -11,11 +11,12 @@
 //   · Fichier sans mot de passe : le verrou est pris tout seul à la première modification (un poste seul,
 //     ou une équipe qui se fait confiance) ;
 //   · Fichier avec mot de passe : il faut passer en mode administrateur (barre du haut).
-// - Chaque modification est publiée quelques secondes plus tard : la copie locale est envoyée
-//   sous un nom temporaire puis renommée d'un coup, pour qu'aucun poste ne lise un fichier à moitié écrit.
-// - Fichier chiffré (clé du site, voir cle.js) : la copie locale est déchiffrée avec la clé rangée sur ce poste, et
-//   chaque publication rechiffre tout. Sans la bonne clé (jamais reçue, ou « Nouvelle clé » faite ailleurs), rien
-//   ne s'ouvre et la copie locale est effacée : le portail demande la clé.
+// - Chaque modification est publiée quelques secondes plus tard. Seuls les blocs qui ont changé voyagent, dans les
+//   deux sens, et jamais un poste ne lit un fichier à moitié écrit (voir synchro.js). Les transferts tournent dans
+//   un fil de travail : K.NOVA reste utilisable pendant ce temps.
+// - Fichier chiffré (clé du site, voir cle.js) : la copie locale est déchiffrée avec la clé rangée sur ce poste.
+//   Sans la bonne clé (jamais reçue, ou « Nouvelle clé » faite ailleurs), rien ne s'ouvre et les copies locales
+//   sont effacées : le portail demande la clé.
 // - Pas de sauvegarde automatique : chaque copie emporterait les données et la clé du site. La sauvegarde du
 //   lecteur réseau (service informatique) protège le fichier, comme tout document.
 //
@@ -26,9 +27,11 @@ import path from 'node:path'
 import os from 'node:os'
 import crypto from 'node:crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
+import { Worker, MessageChannel, receiveMessageOnPort } from 'node:worker_threads'
 import { DatabaseSync } from 'node:sqlite'
 import { RACINE, chemins, reglagesPoste, modifierReglagesPoste, journal } from './installation.js'
-import { cleDuPoste, empreinteDuFichier, chiffrerFichier, dechiffrerFichier } from './cle.js'
+import { cleDuPoste, empreinteDuFichier } from './cle.js'
+import { empreinteCle, signatureDe } from './synchro.js'
 
 const DELAI_PUBLICATION = 3_000          // on regroupe les modifications rapprochées
 const VERROU_ABANDONNE = 10 * 60_000     // verrou non rafraîchi depuis 10 min = poste planté
@@ -57,6 +60,9 @@ export const requeteEnCours = new AsyncLocalStorage()
 const IDENTIFIANT_INSTALLATION = crypto.createHash('sha256').update(os.hostname() + RACINE).digest('hex').slice(0, 16)
 
 const copieLocale = () => path.join(chemins.cache, 'base.ktec')
+const miroir = () => path.join(chemins.cache, 'miroir.ktec')          // le fichier partagé tel quel, en clair
+const cheminEtatMiroir = () => path.join(chemins.cache, 'miroir.json')
+const cheminBaseDe = () => path.join(chemins.cache, 'base.json')     // de quel miroir vient la copie locale
 const cheminVerrou = () => etat.fichier + '.verrou'
 const erreur = (statut, message) => Object.assign(new Error(message), { statut })
 
@@ -134,11 +140,22 @@ export function ouvrirFichier(fichier) {
   fichier = path.resolve(fichier)
   if (!fs.existsSync(fichier)) throw erreur(404, `Fichier introuvable : ${fichier}`)
   if (etat.admin) quitterAdmin()
+  attendreTache()
   etat.fichier = fichier
   etat.signature = null
   etat.cleManquante = null
   try {
-    copierDepuisLePartage()
+    const cle = cleDuPartage()
+    const em = lireJson(cheminEtatMiroir())
+    const de = lireJson(cheminBaseDe())
+    if (em?.fichier === fichier && em.empreinte === (cle ? empreinteCle(cle) : null) && de?.fichier === fichier && de.de === em.generation && fs.existsSync(copieLocale())) {
+      // La copie de ce poste date du dernier passage : ouverte tout de suite, les nouveautés suivent en arrière-plan.
+      ouvrirBase(copieLocale(), { lectureSeule: true })
+      etat.signature = em.signature
+      etat.copieDu = fs.statSync(copieLocale()).mtime.toISOString()
+      etat.version++
+      setTimeout(suivre, 100)
+    } else rafraichirMaintenant({ forcerCopie: true })
   } catch (e) {
     // Clé du site absente ou changée : le fichier reste fermé, le portail demande la clé.
     if (etat.cleManquante) {
@@ -174,38 +191,128 @@ export function creerFichier(fichier) {
   return ouvrirFichier(fichier)
 }
 
-// Copie le fichier partagé dans le cache s'il a changé. Renvoie true s'il a été recopié.
-function copierDepuisLePartage() {
-  const infos = fs.statSync(etat.fichier)
-  const signature = `${infos.size}-${infos.mtimeMs}`
-  if (signature === etat.signature && connexion) return false
-  fs.mkdirSync(chemins.cache, { recursive: true })
-  const temporaire = copieLocale() + '.copie'
-  const empreinte = empreinteDuFichier(etat.fichier)
-  if (empreinte) {
-    const c = cleDuPoste(empreinte)
-    try {
-      if (!c) throw erreur(423, 'La clé du site manque sur ce poste.')
-      dechiffrerFichier(etat.fichier, temporaire, c)
-    } catch (e) {
-      fs.rmSync(temporaire, { force: true })
-      fermerSansCle(empreinte)
-      throw e
-    }
-  } else fs.copyFileSync(etat.fichier, temporaire)
-  connexion?.close()
-  connexion = null
-  fs.renameSync(temporaire, copieLocale())
-  ouvrirBase(copieLocale(), { lectureSeule: !etat.admin })
-  etat.signature = signature
-  etat.copieDu = new Date().toISOString()
-  etat.version++
-  etat.avertissement = null
-  etat.cleManquante = null
-  return true
+const lireJson = (chemin) => {
+  try {
+    return JSON.parse(fs.readFileSync(chemin, 'utf8'))
+  } catch {
+    return null
+  }
+}
+const ecrireJson = (chemin, valeur) => {
+  fs.mkdirSync(path.dirname(chemin), { recursive: true })
+  fs.writeFileSync(chemin, JSON.stringify(valeur))
 }
 
-// Ce poste n'a pas (ou plus) la clé du fichier : on ferme, et on efface la copie locale en clair.
+// ---------------------------------------------------------------- transferts (fil de travail)
+
+// Un transfert à la fois (synchro.js, dans synchro-tache.js). traiter(valeur, erreur) tourne ici, une seule fois,
+// quand il se termine. tache.promesse → { valeur } ou { erreur } ; tache.attendre() : l'attend sans rendre la main
+// (ouverture, prise du verrou, arrêt), et lève l'erreur.
+let tacheEnCours = null
+function lancerTache(operation, donnees, traiter) {
+  const { port1, port2 } = new MessageChannel()
+  const drapeau = new Int32Array(new SharedArrayBuffer(4))
+  const travailleur = new Worker(new URL('./synchro-tache.js', import.meta.url), { workerData: { operation, donnees, port: port2, drapeau }, transferList: [port2] })
+  let resultat = null
+  const tache = {
+    operation,
+    finir(message) {
+      if (resultat) return resultat
+      port1.close()
+      if (tacheEnCours === tache) tacheEnCours = null
+      try {
+        if (!message?.ok) throw Object.assign(new Error(message?.message || 'transfert interrompu'), { code: message?.code, statut: message?.statut })
+        resultat = { valeur: traiter(message.valeur, null) }
+      } catch (e) {
+        try {
+          traiter(null, e)
+        } catch {}
+        resultat = { erreur: e }
+      }
+      return resultat
+    },
+    attendre() {
+      if (!resultat) {
+        if (Atomics.wait(drapeau, 0, 0, 30 * 60_000) === 'timed-out') travailleur.terminate()
+        tache.finir(receiveMessageOnPort(port1)?.message)
+      }
+      if (resultat.erreur) throw resultat.erreur
+      return resultat.valeur
+    },
+  }
+  tache.promesse = new Promise((ok) => {
+    port1.on('message', (m) => ok(tache.finir(m)))
+    travailleur.on('error', (e) => ok(tache.finir({ ok: false, message: e.message })))
+  })
+  tacheEnCours = tache
+  return tache
+}
+const attendreTache = () => {
+  try {
+    tacheEnCours?.attendre()
+  } catch {}
+}
+
+// La clé pour lire le fichier partagé (null : fichier en clair). Ce poste ne l'a pas : fichier fermé, erreur 423.
+function cleDuPartage() {
+  const empreinte = empreinteDuFichier(etat.fichier)
+  if (!empreinte) return null
+  const c = cleDuPoste(empreinte)
+  if (c) return c
+  fermerSansCle(empreinte)
+  throw erreur(423, 'La clé du site manque sur ce poste.')
+}
+
+// Met la copie locale à jour depuis le partage (seuls les blocs changés voyagent).
+function lancerRafraichissement({ forcerCopie = false } = {}) {
+  const cle = cleDuPartage()
+  const verrou = lireVerrou()
+  // Un envoi interrompu se rejoue seulement par le poste qui a le verrou, ou si personne ne l'a plus.
+  const peutReparer = Boolean(etat.admin) || !verrou || Date.now() - verrou.vu > VERROU_ABANDONNE
+  fs.mkdirSync(chemins.cache, { recursive: true })
+  const donnees = { fichier: etat.fichier, miroir: miroir(), cheminEtat: cheminEtatMiroir(), cle, copie: copieLocale() + '.copie', forcerCopie, peutReparer }
+  return lancerTache('rafraichir', donnees, recevoir)
+}
+
+function recevoir(valeur, erreur) {
+  if (erreur) {
+    // Bloc illisible sans envoi en cours : mauvaise clé ou fichier abîmé.
+    if (erreur.statut === 423) {
+      try {
+        fermerSansCle(empreinteDuFichier(etat.fichier) || 'inconnue')
+      } catch {}
+    }
+    throw erreur
+  }
+  if (valeur.occupe) return valeur
+  if (valeur.copie) {
+    connexion?.close()
+    connexion = null
+    fs.renameSync(valeur.copie, copieLocale())
+    ouvrirBase(copieLocale(), { lectureSeule: !etat.admin })
+    ecrireJson(cheminBaseDe(), { fichier: etat.fichier, de: valeur.etat.generation })
+    etat.version++
+  }
+  if (!connexion) ouvrirBase(copieLocale(), { lectureSeule: !etat.admin })
+  etat.signature = valeur.etat.signature
+  etat.copieDu = new Date().toISOString()
+  etat.avertissement = null
+  etat.cleManquante = null
+  return valeur
+}
+
+// Le même, attendu sur place (ouverture, prise du verrou). Un autre poste en plein envoi : on réessaie un peu.
+function rafraichirMaintenant(options) {
+  attendreTache()
+  for (let essai = 1; ; essai++) {
+    const r = lancerRafraichissement(options).attendre()
+    if (!r.occupe) return r
+    if (essai >= 10) throw erreur(503, 'Un autre poste est en train d’enregistrer le fichier partagé : réessayez dans un instant.')
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000)
+  }
+}
+
+// Ce poste n'a pas (ou plus) la clé du fichier : on ferme, et on efface les copies locales en clair.
 function fermerSansCle(empreinte) {
   if (etat.cleManquante !== empreinte) journal('Clé du site absente ou changée : fichier de connaissances fermé, copie locale effacée')
   etat.cleManquante = empreinte
@@ -216,29 +323,41 @@ function fermerSansCle(empreinte) {
   }
   connexion?.close()
   connexion = null
-  fs.rmSync(copieLocale(), { force: true })
+  for (const chemin of [copieLocale(), miroir(), cheminEtatMiroir(), cheminBaseDe()]) fs.rmSync(chemin, { force: true })
   etat.signature = null
   etat.version++
   etat.avertissement = null
 }
 
 // Toutes les 10 secondes : en consultation, on suit les changements faits par un autre poste.
-setInterval(() => {
-  if (!etat.fichier || etat.admin) return
+function suivre() {
+  if (!etat.fichier || etat.admin || tacheEnCours) return
   try {
-    if (copierDepuisLePartage()) journal('Nouvelle version du fichier de connaissances chargée')
-    if (derniereErreurLecture) journal('Fichier partagé de nouveau accessible')
-    derniereErreurLecture = null
+    if (connexion && signatureDe(etat.fichier) === etat.signature) return lectureRetablie()
+    lancerRafraichissement().promesse.then(({ valeur, erreur }) => {
+      if (erreur) return lectureImpossible(erreur)
+      if (valeur.change) journal(`Nouvelle version du fichier de connaissances chargée (${valeur.transferes ?? 'tous les'} blocs reçus)`)
+      if (!valeur.occupe) lectureRetablie()
+    })
   } catch (e) {
-    if (etat.cleManquante) return // le portail demande la clé
-    etat.avertissement = 'Le fichier partagé est inaccessible : vous consultez la dernière copie enregistrée sur ce poste.'
-    // La cause (code système : EBUSY, EPERM, ENOENT…) dans le journal, une fois par panne : pour diagnostiquer un partage réseau.
-    const cause = `${e.code || ''} ${e.message}`.trim()
-    if (cause !== derniereErreurLecture) journal(`Lecture du fichier partagé impossible : ${cause}`)
-    derniereErreurLecture = cause
+    lectureImpossible(e)
   }
-}, 10_000).unref()
+}
+setInterval(suivre, 10_000).unref()
 let derniereErreurLecture = null
+
+function lectureRetablie() {
+  if (derniereErreurLecture) journal('Fichier partagé de nouveau accessible')
+  derniereErreurLecture = null
+}
+function lectureImpossible(e) {
+  if (etat.cleManquante) return // le portail demande la clé
+  etat.avertissement = 'Le fichier partagé est inaccessible : vous consultez la dernière copie enregistrée sur ce poste.'
+  // La cause (code système : EBUSY, EPERM, ENOENT…) dans le journal, une fois par panne : pour diagnostiquer un partage réseau.
+  const cause = `${e.code || ''} ${e.message}`.trim()
+  if (cause !== derniereErreurLecture) journal(`Lecture du fichier partagé impossible : ${cause}`)
+  derniereErreurLecture = cause
+}
 
 // ---------------------------------------------------------------- mot de passe administrateur
 
@@ -311,8 +430,14 @@ export function entrerAdmin(nom, { forcer = false, auto = false } = {}) {
   // « jeton » identifie le verrou (il est lisible sur le partage) ; « cookie » ne quitte jamais ce poste.
   etat.admin = { nom, jeton: verrou.jeton, cookie: nouveauJeton(), depuis: verrou.depuis, derniereAction: Date.now(), auto }
   try {
-    etat.signature = null
-    copierDepuisLePartage() // on repart de la toute dernière version, cette fois en écriture
+    // On repart de la toute dernière version du partage, cette fois en écriture.
+    attendreTache()
+    const em = lireJson(cheminEtatMiroir())
+    const de = lireJson(cheminBaseDe())
+    const aJour = connexion && em && de?.fichier === etat.fichier && de.de === em.generation && signatureDe(etat.fichier) === etat.signature && !fs.existsSync(etat.fichier + '.maj')
+    if (!aJour) rafraichirMaintenant({ forcerCopie: true })
+    ouvrirBase(copieLocale(), { lectureSeule: false })
+    ecrireJson(cheminBaseDe(), { fichier: etat.fichier, de: null }) // la copie va diverger du miroir
   } catch (e) {
     quitterAdmin()
     throw e
@@ -323,8 +448,10 @@ export function entrerAdmin(nom, { forcer = false, auto = false } = {}) {
 
 export function quitterAdmin() {
   if (!etat.admin) return
+  clearTimeout(minuterie)
   try {
-    if (etat.aPublier) publier()
+    attendreTache()
+    if (etat.aPublier) lancerPublication()?.attendre()
   } catch (e) {
     journal(`Publication impossible en rendant la main : ${e.message}`)
   }
@@ -332,9 +459,19 @@ export function quitterAdmin() {
   if (verrou?.jeton === etat.admin.jeton) fs.rmSync(cheminVerrou(), { force: true })
   journal(`Fin des modifications : ${etat.admin.nom}`)
   etat.admin = null
+  revenirEnConsultation()
+}
+
+// Tout est publié : la copie locale est celle du miroir. Sinon (partage inaccessible, verrou repris), les
+// modifications non publiées sont perdues : on repart du partage.
+function revenirEnConsultation({ reconstruire = etat.aPublier } = {}) {
+  etat.aPublier = false
   try {
-    etat.signature = null
-    copierDepuisLePartage()
+    if (reconstruire) rafraichirMaintenant({ forcerCopie: true })
+    else {
+      ouvrirBase(copieLocale(), { lectureSeule: true })
+      ecrireJson(cheminBaseDe(), { fichier: etat.fichier, de: lireJson(cheminEtatMiroir())?.generation ?? null })
+    }
   } catch {
     ouvrirBase(copieLocale(), { lectureSeule: true })
   }
@@ -409,9 +546,9 @@ setInterval(() => {
     journal('Verrou repris par un autre poste')
     avertirUnMoment(`${verrou?.nom || 'Un autre poste'} a repris la main : vous repassez en consultation.`)
     etat.admin = null
-    etat.aPublier = false
-    etat.signature = null
-    try { copierDepuisLePartage() } catch { /* réseau coupé : on garde la copie */ }
+    clearTimeout(minuterie)
+    attendreTache()
+    revenirEnConsultation({ reconstruire: true })
     return
   }
   if (Date.now() - etat.admin.derniereAction > ADMIN_INACTIF) {
@@ -445,35 +582,67 @@ export function noterActiviteAdmin() {
 }
 
 function publierPlusTard() {
-  try {
-    publier()
-  } catch (e) {
-    etat.publication.erreur = e.message
-    journal(`Publication impossible : ${e.code ? `${e.code} ` : ''}${e.message} (nouvel essai dans 30 s)`)
-    minuterie = setTimeout(publierPlusTard, 30_000)
+  if (!etat.admin || !etat.aPublier) return
+  if (tacheEnCours) {
+    minuterie = setTimeout(publierPlusTard, 1000)
+    return
   }
+  let tache
+  try {
+    // La base change sans cesse pendant la lecture (long calcul) : la quatrième fois, on publie sur place.
+    if (refaits >= 3) {
+      refaits = 0
+      return lancerPublication()?.attendre()
+    }
+    tache = lancerPublication()
+  } catch (e) {
+    return echecPublication(e)
+  }
+  tache?.promesse.then(({ valeur, erreur }) => {
+    if (erreur) return echecPublication(erreur)
+    if (valeur.aRefaire) {
+      refaits++
+      clearTimeout(minuterie)
+      minuterie = setTimeout(publierPlusTard, 1000)
+    } else refaits = 0
+  })
+}
+let refaits = 0
+
+function echecPublication(e) {
+  etat.publication.erreur = e.message
+  journal(`Publication impossible : ${e.code ? `${e.code} ` : ''}${e.message} (nouvel essai dans 30 s)`)
+  clearTimeout(minuterie)
+  minuterie = setTimeout(publierPlusTard, 30_000)
 }
 
-function publier() {
-  if (!etat.admin || !etat.aPublier) return
+// Envoie la copie locale sur le partage (seuls les blocs changés voyagent), dans le fil de travail.
+function lancerPublication() {
+  if (!etat.admin || !etat.aPublier) return null
   if (lireVerrou()?.jeton !== etat.admin.jeton) throw new Error('le verrou ne nous appartient plus')
-  const envoi = `${etat.fichier}.envoi-${os.hostname()}`
   // Fichier chiffré (marque « complet » de la clé du site) : tout part chiffré ; sinon (ancien fichier) tel quel.
   const marque = marqueLocale()
+  let cle = null
   if (marque?.complet) {
-    const c = cleDuPoste(marque.empreinte)
-    if (!c) throw new Error('la clé du site manque sur ce poste')
-    chiffrerFichier(copieLocale(), envoi, c)
-  } else fs.copyFileSync(copieLocale(), envoi)
-  remplacer(envoi, etat.fichier)
-  const infos = fs.statSync(etat.fichier)
-  etat.signature = `${infos.size}-${infos.mtimeMs}`
-  etat.aPublier = false
-  etat.publication = { derniere: new Date().toISOString(), erreur: null }
-  // Main prise pour un utilisateur : rendue après 2 minutes sans écriture (une analyse en cours écrit souvent).
-  if (etat.admin.pourTous) setTimeout(() => {
-    if (etat.admin?.pourTous && !etat.aPublier && Date.now() - etat.admin.derniereAction >= 110_000) quitterAdmin()
-  }, 120_000).unref()
+    cle = cleDuPoste(marque.empreinte)
+    if (!cle) throw new Error('la clé du site manque sur ce poste')
+  }
+  etat.aPublier = false // une modification pendant l'envoi le remet, et relance une publication
+  const donnees = { fichier: etat.fichier, base: copieLocale(), miroir: miroir(), cheminEtat: cheminEtatMiroir(), cle, poste: os.hostname() }
+  return lancerTache('publier', donnees, (valeur, erreur) => {
+    if (erreur || valeur.aRefaire) {
+      etat.aPublier = true
+      if (erreur) throw erreur
+      return valeur
+    }
+    etat.signature = valeur.etat.signature
+    etat.publication = { derniere: new Date().toISOString(), erreur: null }
+    // Main prise pour un utilisateur : rendue après 2 minutes sans écriture (une analyse en cours écrit souvent).
+    if (etat.admin?.pourTous) setTimeout(() => {
+      if (etat.admin?.pourTous && !etat.aPublier && Date.now() - etat.admin.derniereAction >= 110_000) quitterAdmin()
+    }, 120_000).unref()
+    return valeur
+  })
 }
 
 // La marque de la clé du site dans la copie locale (écrite par ktec.js) : { empreinte, depuis, complet }.
@@ -489,22 +658,6 @@ function marqueLocale() {
 export function publierMaintenant() {
   clearTimeout(minuterie)
   if (etat.admin) quitterAdmin()
-}
-
-// Sous Windows, le renommage échoue si un autre poste est en train de copier le fichier : on réessaie.
-function remplacer(source, destination) {
-  for (let essai = 1; ; essai++) {
-    try {
-      fs.renameSync(source, destination)
-      return
-    } catch (e) {
-      if (essai >= 10) {
-        fs.rmSync(source, { force: true })
-        throw e
-      }
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 300) // pause de 300 ms
-    }
-  }
 }
 
 // ---------------------------------------------------------------- état pour l'interface
@@ -530,6 +683,7 @@ export function etatPartage(cookie) {
     publication: etat.publication,
     avertissement: etat.avertissement,
     cleManquante: Boolean(etat.cleManquante),
+    transfert: tacheEnCours ? (tacheEnCours.operation === 'publier' ? 'envoi' : 'reception') : null,
   }
 }
 

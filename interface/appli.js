@@ -136,7 +136,7 @@ function dessinerMenu() {
 function dessinerBarre() {
   const c = etat.connexion
   const p = etat.partage || {}
-  const cle = JSON.stringify([etat.ia, c, p.nomFichier, p.avertissement, p.aPublier, p.publication, p.autreAdmin, p.admin, p.motDePasse])
+  const cle = JSON.stringify([etat.ia, c, p.nomFichier, p.avertissement, p.aPublier, p.transfert, p.publication, p.autreAdmin, p.admin, p.motDePasse])
   if (cle === contenuBarre) return
   contenuBarre = cle
   vider(

@@ -142,6 +142,8 @@ export function etiquetteFichier(p = {}) {
   } else if (p.admin && p.publication?.erreur) {
     detail = ' — partage inaccessible, nouvel essai bientôt'
     classe = 'rouge'
+  } else if (p.transfert === 'envoi') {
+    detail = ' — envoi au partage…'
   } else if (p.admin && p.aPublier) {
     detail = ' — enregistrement…'
   } else if (p.admin && p.publication?.derniere) {
@@ -149,6 +151,8 @@ export function etiquetteFichier(p = {}) {
   } else if (p.autreAdmin) {
     detail = ` — ${p.autreAdmin.nom} modifie en ce moment`
     classe = 'violet'
+  } else if (p.transfert === 'reception') {
+    detail = ' — mise à jour depuis le partage…'
   }
   return h('span', { class: `etiquette ${classe}`, title: (p.fichier || '') + detail }, ic('livre', 15), p.nomFichier + detail)
 }
