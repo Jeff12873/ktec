@@ -365,6 +365,8 @@ td.nombre, th.nombre { text-align: right; font-variant-numeric: tabular-nums; }
 body.intro-en-cours { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .supernova .orbite, .supernova .soleil { animation: none !important; } }
 .tuiles-applis { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+.tuiles-applis.centrees { display: flex; flex-wrap: wrap; justify-content: center; }
+.tuiles-applis.centrees > .tuile-appli { flex: 0 1 340px; min-width: 280px; }
 .tuile-appli {
   display: flex; flex-direction: column; gap: 12px; padding: 22px; text-decoration: none; color: var(--texte);
   background: var(--carte); border: 1px solid var(--bord); border-radius: var(--rayon-carte);

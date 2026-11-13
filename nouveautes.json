@@ -1,6 +1,13 @@
 {
   "versions": [
     {
+      "version": "0.10.1",
+      "date": "2026-11-13",
+      "points": [
+        "Portail : seules les applications installées ont une tuile, centrées"
+      ]
+    },
+    {
       "version": "0.10.0",
       "date": "2026-11-13",
       "points": [
