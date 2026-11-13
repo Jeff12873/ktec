@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "version": "0.10.0",
+      "date": "2026-11-13",
+      "points": [
+        "Poste léger : AITEC et PREVTEC s'installent quand même, au choix avec une IA légère (après avertissement) ou sans IA",
+        "PREVTEC a sa propre tuile dans l'installation",
+        "Pastille « Bêta » sur AITEC et PREVTEC",
+        "L'étiquette de l'IA indique quand elle est légère"
+      ]
+    },
+    {
       "version": "0.9.7",
       "date": "2026-11-10",
       "points": [

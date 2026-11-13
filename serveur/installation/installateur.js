@@ -134,9 +134,11 @@ export function etat() {
 // ---------------------------------------------------------------- installation
 
 let enCours = false
+const RAM_IA_LEGERE = 4 // Go : en dessous, même le plus petit modèle serait trop pénible
 
 // { dossier, applis: [id], modele: 'auto' | code, raccourcis: true } — suivi(type, données) pour l'avancement.
-export async function installer({ dossier, applis = [], modele = 'auto', raccourcis = true }, suivi) {
+// ia : 'auto', ou sur un poste trop juste pour l'IA conseillée, 'legere' ou 'sans'.
+export async function installer({ dossier, applis = [], modele = 'auto', raccourcis = true, ia = 'auto' }, suivi) {
   if (enCours) throw new Error('Une installation est déjà en cours.')
   enCours = true
   try {
@@ -152,10 +154,16 @@ export async function installer({ dossier, applis = [], modele = 'auto', raccour
     const ancien = registre(dossier) || { composants: {}, applis: {} }
     const reg = { ...ancien, composants: { ...ancien.composants }, applis: { ...ancien.applis } }
     const config = lireJson(path.join(dossier, 'installation.json'), {})
-    // Sans le modèle d'IA « moyen » conseillé pour ce poste, pas d'application qui a besoin de l'IA (sans exception).
+    // Poste trop juste pour le modèle d'IA « moyen » conseillé : au choix, une IA légère (un modèle plus petit, plus
+    // lent et moins juste : l'utilisateur est prévenu) ou pas d'IA du tout. Sous 4 Go de mémoire : sans IA seulement.
     const avecIA = choisies.filter((a) => (a.besoins || []).includes('ia'))
     const capacite = composants.capaciteIA({ vramConnue: config.poste?.vramGo, carteConnue: config.poste?.carte })
-    if (avecIA.length && !capacite.ia) throw new Error(`${avecIA.map((a) => a.nom).join(' et ')} ne peu${avecIA.length > 1 ? 'vent' : 't'} pas être installé${avecIA.length > 1 ? 's' : ''} sur ce poste. ${capacite.raison}`)
+    const faible = avecIA.length > 0 && !capacite.ia
+    const noms = avecIA.map((a) => a.nom).join(' et ')
+    if (faible && !['legere', 'sans'].includes(ia)) throw new Error(`Ce poste est juste pour l'IA de ${noms} (${capacite.raison}) : choisissez « IA légère » ou « Sans IA ».`)
+    if (faible && ia === 'legere' && capacite.ramGo < RAM_IA_LEGERE) throw new Error(`Ce poste n'a que ${capacite.ramGo} Go de mémoire : ${noms} s'installe sans IA seulement.`)
+    if (ia === 'sans') besoins.delete('ia')
+    if (besoins.has('ia')) config.iaLegere = faible
     const etapes = 3 + (besoins.has('ia') ? 2 : 0) + (besoins.has('java') ? 1 : 0) + (raccourcis ? 1 : 0)
     let numero = 0
     const etape = (titre) => suivi('etape', { numero: ++numero, total: etapes, titre })
@@ -177,7 +185,7 @@ export async function installer({ dossier, applis = [], modele = 'auto', raccour
       carte = composants.choisirCarte(appareils)
       // Seconde vérification, avec la carte vue par le moteur d'IA lui-même.
       const vue = composants.capaciteIA({ vramConnue: carte?.memoireGo, carteConnue: carte?.nom })
-      if (avecIA.length && !vue.ia) throw new Error(`${avecIA.map((a) => a.nom).join(' et ')} ne peu${avecIA.length > 1 ? 'vent' : 't'} pas être installé${avecIA.length > 1 ? 's' : ''} sur ce poste. ${vue.raison}`)
+      if (avecIA.length && !vue.ia && ia !== 'legere') throw new Error(`${avecIA.map((a) => a.nom).join(' et ')} ne peu${avecIA.length > 1 ? 'vent' : 't'} pas être installé${avecIA.length > 1 ? 's' : ''} sur ce poste. ${vue.raison}`)
       Object.assign(config, { llama, appareil: carte ? carte.code : 'none', appareilNom: carte ? carte.nom : 'processeur' })
       reg.composants.llama = v
       suivi('message', `L'IA utilisera : ${carte ? `${carte.nom} (${carte.memoireGo} Go)` : 'le processeur seul'}`)

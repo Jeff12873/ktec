@@ -25,8 +25,9 @@ export function etiquetteMySQL(c, lienConfiguration) {
 
 export function etiquetteIA(ia = {}) {
   if (!ia.installee) return h('span', { class: 'etiquette rouge', title: 'Le moteur d’IA n’est pas installé sur ce poste' }, h('span', { class: 'point' }), 'IA non installée')
-  const titre = `${ia.modele} sur ${ia.appareil}`
-  if (ia.chat === 'démarrage') return h('span', { class: 'etiquette orange', title: titre }, h('span', { class: 'point anime' }), "Chargement de l'IA…")
-  if (ia.chat === 'prêt') return h('span', { class: 'etiquette accent', title: titre }, h('span', { class: 'point' }), 'IA prête')
-  return h('span', { class: 'etiquette', title: titre }, h('span', { class: 'point' }), 'IA en veille')
+  const titre = `${ia.modele} sur ${ia.appareil}${ia.legere ? ' — IA légère : ce poste est juste, les réponses sont plus lentes et moins justes' : ''}`
+  const leg = ia.legere ? ' (légère)' : ''
+  if (ia.chat === 'démarrage') return h('span', { class: 'etiquette orange', title: titre }, h('span', { class: 'point anime' }), `Chargement de l'IA${leg}…`)
+  if (ia.chat === 'prêt') return h('span', { class: 'etiquette accent', title: titre }, h('span', { class: 'point' }), `IA prête${leg}`)
+  return h('span', { class: 'etiquette', title: titre }, h('span', { class: 'point' }), `IA en veille${leg}`)
 }

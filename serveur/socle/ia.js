@@ -33,6 +33,7 @@ export function etatIA() {
   return {
     installee: iaInstallee(),
     modele: config?.modele?.nom || null,
+    legere: Boolean(config?.iaLegere), // poste léger : plus petit modèle que conseillé, l'utilisateur a été prévenu
     appareil: config?.appareilNom || 'processeur',
     chat: moteurs.chat.etat,
     recherche: moteurs.recherche.etat,
