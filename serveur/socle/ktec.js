@@ -22,7 +22,7 @@ import os from 'node:os'
 import { reglagesPoste, modifierReglagesPoste, dossierTravail, journal, lireJson, dossierInstallationParDefaut, definirConnexionPartagee } from './installation.js'
 import { definirIdentifiants } from './mysql.js'
 import { cleDuSite, cleDuPoste, rangerCle, oublierCle, chiffrer, dechiffrer, estChiffre, empreinteCle, nouvelleCle, lireFichierCle, definirMarque } from './cle.js'
-import { db, ajouterStructure, definirCheminParDefaut, ouvrirFichier, creerFichier, exigerEcriture, noterModification, transaction, etatPartage, FORMAT, baseOuverte, empreinteManquante } from './partage.js'
+import { db, ajouterStructure, definirCheminParDefaut, ouvrirFichier, changerFichier, creerFichier, exigerEcriture, noterModification, transaction, etatPartage, FORMAT, baseOuverte, empreinteManquante } from './partage.js'
 
 // Le fichier partagé lui-même (verrou, publication, mode administrateur) : voir partage.js.
 export { db, transaction, exigerEcriture, noterModification, ajouterStructure }
@@ -65,7 +65,7 @@ function ecrire(travail) {
 
 // Ouvre (ou crée) un autre fichier .ktec et le retient pour les prochaines ouvertures.
 // Un ancien fichier .birtec est converti : copié à côté sous le même nom en .ktec (l'original est gardé).
-export function changerKtec(chemin) {
+export async function changerKtec(chemin) {
   chemin = path.resolve(chemin)
   const extension = path.extname(chemin).toLowerCase()
   if (!['.ktec', '.birtec'].includes(extension)) throw Object.assign(new Error('Le fichier doit avoir l’extension .ktec'), { statut: 400 })
@@ -77,7 +77,7 @@ export function changerKtec(chemin) {
     journal(`Ancien fichier ${chemin} converti en ${converti}`)
     chemin = converti
   }
-  return fs.existsSync(chemin) ? ouvrirFichier(chemin) : creerFichierChiffre(chemin)
+  return fs.existsSync(chemin) ? changerFichier(chemin) : creerFichierChiffre(chemin)
 }
 
 // Premier lancement de KTEC sur un poste où BiRTEC était installé : on reprend son fichier .birtec

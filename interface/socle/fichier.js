@@ -48,14 +48,20 @@ function joindre(dossier, nom) {
 
 export function ouvrirAutreFichier() {
   return new Promise((termine) => {
+    // Pendant l'ouverture (un fichier sur un partage lent peut prendre quelques minutes la première fois).
+    const attente = h('div', { class: 'chargement-assistant', hidden: true }, h('div', { class: 'rond-chargement' }), h('p', {}, 'Ouverture du fichier… Depuis un dossier partagé, la première fois peut prendre quelques minutes.'))
     const choix = explorateur('fichier', async (chemin) => {
+      choix.element.hidden = true
+      attente.hidden = false
       const ok = await essayer(() => api('/api/ktec/fichier/ouvrir', { methode: 'POST', corps: { chemin } }), 'Fichier ouvert')
-      if (ok !== undefined) location.reload()
+      if (ok !== undefined) return location.reload()
+      choix.element.hidden = false
+      attente.hidden = true
     }, '.ktec,.birtec')
     fenetre({
       titre: 'Ouvrir un fichier de connaissances',
       large: true,
-      contenu: h('div', {}, h('p', { class: 'texte-2' }, 'Parcourez les dossiers jusqu’au fichier .ktec (sur le lecteur réseau partagé, en général), puis cliquez dessus. Un ancien fichier .birtec est converti en .ktec à côté (l’original est gardé).'), choix.element),
+      contenu: h('div', {}, h('p', { class: 'texte-2' }, 'Parcourez les dossiers jusqu’au fichier .ktec (sur le lecteur réseau partagé, en général), puis cliquez dessus. Un ancien fichier .birtec est converti en .ktec à côté (l’original est gardé).'), choix.element, attente),
       boutons: [{ texte: 'Annuler', classe: 'discret' }],
     }).then(termine)
   })

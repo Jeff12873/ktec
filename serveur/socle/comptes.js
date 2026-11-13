@@ -16,13 +16,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { RACINE, journal } from './installation.js'
-import { etatPartage, ouvrirFichier, requeteEnCours, definirControles } from './partage.js'
+import { etatPartage, fichierOuvert, ouvrirFichier, requeteEnCours, definirControles } from './partage.js'
 import { cleDuPoste, empreinteDuFichier, chiffrer, dechiffrer, rangerCle } from './cle.js'
 import { lireLicence, problemeLicence } from './licence.js'
 
 export const ACCES = ['aucun', 'lecture', 'ecriture']
 const erreur = (statut, message) => Object.assign(new Error(message), { statut })
-const fichierPartage = () => etatPartage().fichier
+const fichierPartage = fichierOuvert
 const chemins = () => {
   const f = fichierPartage()
   return f ? { comptes: `${f}.comptes`, info: `${f}.comptes-info`, demandes: `${f}.demandes`, acces: `${f}.acces` } : null

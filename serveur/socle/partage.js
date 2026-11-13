@@ -48,6 +48,7 @@ const etat = {
   publication: { derniere: null, erreur: null },
   avertissement: null,
   cleManquante: null,    // empreinte de la clé du fichier partagé, quand ce poste ne l'a pas
+  ouverture: false,      // un autre fichier arrive (changerFichier)
 }
 let connexion = null
 let lectureSeule = true
@@ -95,9 +96,12 @@ function ouvrirBase(chemin, { lectureSeule: seule }) {
 
 // Le fichier est-il déjà ouvert ? (sans l'ouvrir : sert à lire la connexion partagée sans effet de bord)
 export const baseOuverte = () => Boolean(connexion)
+// Le chemin du fichier partagé (sans calculer tout l'état : les contrôles de licence s'en servent).
+export const fichierOuvert = () => etat.fichier
 
 // La base ouverte (copie locale). Ouvre le fichier du poste au premier appel.
 export function db() {
+  if (!connexion && etat.ouverture) throw erreur(503, 'Le fichier de connaissances arrive depuis le partage : patientez un instant.')
   if (!connexion && !etat.cleManquante) ouvrirFichier(cheminParDefaut())
   if (!connexion) throw erreur(423, 'Le fichier de connaissances est chiffré : la clé du site manque sur ce poste.')
   return connexion
@@ -167,6 +171,49 @@ export function ouvrirFichier(fichier) {
     ouvrirBase(copieLocale(), { lectureSeule: true })
     etat.copieDu = fs.statSync(copieLocale()).mtime.toISOString()
     etat.avertissement = 'Le fichier partagé est inaccessible : vous consultez la dernière copie enregistrée sur ce poste.'
+  }
+  if (reglagesPoste().fichierKtec !== fichier) modifierReglagesPoste({ fichierKtec: fichier })
+  journal(`Fichier de connaissances : ${fichier}`)
+  return fichier
+}
+
+// Changer de fichier depuis l'écran. Un fichier pas encore reçu sur ce poste (souvent sur un partage lent)
+// arrive en arrière-plan : K.NOVA continue de répondre. En cas d'échec, l'ancien fichier est rouvert.
+export async function changerFichier(fichier) {
+  fichier = path.resolve(fichier)
+  if (!fs.existsSync(fichier)) throw erreur(404, `Fichier introuvable : ${fichier}`)
+  if (etat.ouverture) throw erreur(409, 'Un fichier est déjà en cours d’ouverture : patientez un instant.')
+  if (lireJson(cheminEtatMiroir())?.fichier === fichier) return ouvrirFichier(fichier) // déjà sur ce poste
+  const ancien = etat.fichier
+  if (etat.admin) quitterAdmin()
+  attendreTache()
+  journal(`Ouverture du fichier de connaissances : ${fichier}`)
+  connexion?.close()
+  connexion = null
+  Object.assign(etat, { fichier, signature: null, cleManquante: null, avertissement: null, ouverture: true })
+  etat.version++
+  try {
+    for (let essai = 1; ; essai++) {
+      const { valeur, erreur: e } = await lancerRafraichissement({ forcerCopie: true }).promesse
+      if (e) throw e
+      if (!valeur.occupe) break
+      if (essai >= 10) throw erreur(503, 'Un autre poste est en train d’enregistrer ce fichier : réessayez dans un instant.')
+      await new Promise((ok) => setTimeout(ok, 1000))
+    }
+  } catch (e) {
+    // Clé du site absente : le fichier est retenu, le portail demande la clé.
+    if (!etat.cleManquante) {
+      journal(`Ouverture impossible de ${fichier} : ${`${e.code || ''} ${e.message}`.trim()}`)
+      etat.ouverture = false
+      if (ancien && ancien !== fichier) {
+        try {
+          ouvrirFichier(ancien)
+        } catch {}
+      }
+      throw erreur(e.statut || 500, `Impossible d’ouvrir ce fichier : ${e.message}`)
+    }
+  } finally {
+    etat.ouverture = false
   }
   if (reglagesPoste().fichierKtec !== fichier) modifierReglagesPoste({ fichierKtec: fichier })
   journal(`Fichier de connaissances : ${fichier}`)
@@ -331,7 +378,7 @@ function fermerSansCle(empreinte) {
 
 // Toutes les 10 secondes : en consultation, on suit les changements faits par un autre poste.
 function suivre() {
-  if (!etat.fichier || etat.admin || tacheEnCours) return
+  if (!etat.fichier || etat.admin || tacheEnCours || etat.ouverture) return
   try {
     if (connexion && signatureDe(etat.fichier) === etat.signature) return lectureRetablie()
     lancerRafraichissement().promesse.then(({ valeur, erreur }) => {

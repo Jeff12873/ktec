@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "version": "0.12.1",
+      "date": "2026-11-13",
+      "points": [
+        "Changer de fichier de connaissances fonctionne de nouveau : le nouveau chemin est bien pris (un fichier protégé par mot de passe bloquait l'état de K.NOVA depuis la 0.11)",
+        "Ouvrir un fichier sur un dossier partagé ne fige plus K.NOVA : une attente s'affiche pendant la première réception",
+        "Si le fichier choisi ne s'ouvre pas, un message dit pourquoi et le fichier précédent reste ouvert"
+      ]
+    },
+    {
       "version": "0.12.0",
       "date": "2026-11-13",
       "points": [

@@ -218,7 +218,7 @@ export function routes(r) {
 
   r.post('/api/ktec/fichier/ouvrir', async (ctx) => {
     const { chemin } = await ctx.json()
-    changerKtec(chemin)
+    await changerKtec(chemin)
     return etatPartage(ctx.cookie)
   })
 
