@@ -42,6 +42,14 @@ const defilables = () => [document.scrollingElement, zone, ...ancetres(zone)].fi
 const autresApplis = toutes.filter((a) => a.id !== appli)
 
 await suivreEtat()
+// Licence installée et ce compte n'a pas accès à cette application : un message à la place, retour au portail.
+if (etat.compte?.licence && !etat.compte.admin && !etat.compte.acces?.[appli]) {
+  vider(racine, h('div', { class: 'ecran-sans-acces' }, h('img', { src: '/icone.svg', alt: '', class: 'logo-sans-acces' }),
+    h('h1', {}, `Pas d’accès à ${description.nom}`),
+    h('p', { class: 'texte-2' }, `Votre compte n’a pas accès à cette application. Demandez-le à l’administrateur${etat.compte.admins?.length ? ` (${etat.compte.admins.join(', ')})` : ''}.`),
+    h('a', { class: 'bouton principal', href: '/' }, 'Retour au portail')))
+  await new Promise(() => {}) // la coquille de l'application ne se dessine pas
+}
 vider(racine, h('div', { class: 'appli' }, menu, h('div', { class: 'zone-principale' }, barre, zone)))
 surChangement(quandEtatChange)
 window.addEventListener('hashchange', afficherBloc)

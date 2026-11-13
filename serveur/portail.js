@@ -14,15 +14,16 @@ import { etatIA, arreterIA } from './socle/ia.js'
 import { version, reglagesPoste, modifierReglagesPoste, dossierTravail, journal, WINDOWS, chemins, lignesJournal, suivreJournal } from './socle/installation.js'
 import { etatConnexion, testerCompte, oublierEssai, javaInstalle } from './socle/mysql.js'
 import { applisPubliques } from './socle/applis.js'
-import { etatCompte, demanderAcces, noterOuverture, importerLicence, vueAdministrateur, reglerCompte, refuserDemande, couperCompte } from './socle/comptes.js'
+import { etatCompte, demanderAcces, noterOuverture, importerLicence, vueAdministrateur, reglerCompte, refuserDemande, couperCompte, accueillir, changerAccueil } from './socle/comptes.js'
 
 const DEMARRE_LE = new Date().toISOString()
 
 // Le compte de ce poste (null sans licence). Sans accès ni demande : la demande part toute seule, à la première ouverture.
 function compteDuPoste() {
   try {
-    const e = etatCompte()
+    let e = etatCompte()
     if (!e) return null
+    if (!e.admin && !Object.keys(e.acces).length && !e.coupe && accueillir()) e = etatCompte()
     if (Object.keys(e.acces).length) noterOuverture()
     else if (!e.admin && !e.coupe && !e.demande) e.demande = demanderAcces()
     return e
@@ -81,6 +82,7 @@ export function routes(r) {
   r.post('/api/ktec/comptes/regler', async (ctx) => reglerCompte(await ctx.json()))
   r.post('/api/ktec/comptes/refuser', async (ctx) => refuserDemande((await ctx.json()).login))
   r.post('/api/ktec/comptes/couper', async (ctx) => couperCompte((await ctx.json()).login))
+  r.post('/api/ktec/comptes/accueil', async (ctx) => changerAccueil((await ctx.json()).actif))
 
   r.get('/api/ktec/applis', () => applisPubliques())
 

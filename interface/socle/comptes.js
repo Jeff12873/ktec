@@ -113,11 +113,16 @@ const resume = (c, lignes) => [
 export async function ouvrirComptes() {
   const v0 = await essayer(() => api('/api/ktec/comptes'))
   if (!v0) return
+  // Les lignes sont celles d'AITEC (Administration › Lignes) : elles ne servent que dans AITEC et PREVTEC.
   let lignes = []
-  try {
-    const r = await api('/api/aitec/parcs')
-    lignes = (Array.isArray(r) ? r : r.parcs || []).filter((p) => !p.nonClasse && p.id).map((p) => ({ id: p.id, nom: p.nom }))
-  } catch {}
+  const aitecIci = (await api('/api/ktec/applis').catch(() => [])).some((a) => a.id === 'aitec')
+  const avecLignes = (v0.licence.applis || []).some((a) => ['aitec', 'prevtec'].includes(a))
+  if (aitecIci) {
+    try {
+      const r = await api('/api/aitec/parcs')
+      lignes = (Array.isArray(r) ? r : r.parcs || []).filter((p) => !p.nonClasse && p.id).map((p) => ({ id: p.id, nom: p.nom }))
+    } catch {}
+  }
   const corps = h('div', { class: 'ecran-comptes' })
   const regler = async (valeur, message) => {
     const v = await essayer(() => api('/api/ktec/comptes/regler', { methode: 'POST', corps: valeur }), message)
@@ -138,6 +143,12 @@ export async function ouvrirComptes() {
     vider(corps,
       h('p', { class: 'texte-2', style: { marginTop: 0 } }, `Licence ${v.licence.client} · ${(v.licence.applis || []).map(nomDe).join(', ')} · ${v.licence.fin ? `jusqu’au ${dateFr(v.licence.fin)}` : 'sans date de fin'}`),
       v.licence.probleme ? h('div', { class: 'bandeau' }, ic('alerte'), v.licence.probleme) : null,
+      avecLignes && !aitecIci ? h('div', { class: 'bandeau' }, ic('alerte'), 'Installez AITEC sur ce poste pour régler les lignes : en attendant, chaque compte voit toutes les lignes.') : null,
+      h('div', { class: 'actions accueil-comptes' },
+        h('span', { style: { flex: 1 } }, v.accueil
+          ? h('span', {}, h('b', {}, 'Accueil en lecture actif : '), 'chaque personne qui ouvre l’outil reçoit la lecture et apparaît ci-dessous.')
+          : h('span', { class: 'discret' }, 'Accueil en lecture coupé : les nouvelles personnes demandent l’accès.')),
+        h('button', { class: 'petit', onclick: async () => { const r = await essayer(() => api('/api/ktec/comptes/accueil', { methode: 'POST', corps: { actif: !v.accueil } })); if (r) dessiner(r) } }, v.accueil ? 'Couper l’accueil' : 'Rouvrir l’accueil')),
       h('h3', {}, v.demandes.filter((d) => d.statut === 'en_attente').length ? `Demandes (${v.demandes.filter((d) => d.statut === 'en_attente').length})` : 'Demandes'),
       v.demandes.filter((d) => d.statut === 'en_attente').length
         ? v.demandes.filter((d) => d.statut === 'en_attente').map((d) => {
@@ -158,7 +169,7 @@ export async function ouvrirComptes() {
         h('tbody', {}, v.comptes.map((c) => {
           const [acces, lignesTexte] = resume(c, lignes)
           return h('tr', { class: c.coupe ? 'compte-coupe' : '' },
-            h('td', {}, h('b', {}, c.nom || c.login), c.admin ? h('span', { class: 'etiquette' }, 'admin') : null, h('div', { class: 'discret petit-texte' }, c.login)),
+            h('td', {}, h('b', {}, c.nom || c.login), c.admin ? h('span', { class: 'etiquette' }, 'admin') : null, c.accueil ? h('span', { class: 'etiquette orange', title: 'Arrivé par l’accueil en lecture : à régler' }, 'accueil') : null, h('div', { class: 'discret petit-texte' }, `${c.login}${c.poste ? ` · ${c.poste}` : ''}`)),
             h('td', {}, c.coupe ? 'Coupé' : acces), h('td', {}, lignesTexte), h('td', {}, c.vu ? dateFr(c.vu) : '—'),
             h('td', { class: 'actions' }, h('button', { class: 'petit', onclick: () => modifier(v, c) }, 'Modifier'), c.admin || c.coupe ? null : h('button', { class: 'petit discret danger', onclick: () => couper(c) }, 'Couper')))
         })))))

@@ -49,19 +49,25 @@ function cleSite() {
   return memoCle.cle
 }
 
-// { existe, lisible, donnees } ; relu seulement quand le fichier change.
-let memo = { signature: null, valeur: null }
+// { existe, lisible, donnees } ; relu seulement quand le fichier change, et regardé au plus toutes les 2 secondes
+// (chaque requête le consulte : le dossier réseau ne doit pas ralentir l'outil).
+let memo = { signature: null, valeur: null, chemin: null, vu: 0 }
 function lireComptes() {
   const c = chemins()
   if (!c) return { existe: false }
+  if (memo.chemin === c.comptes && memo.valeur && Date.now() - memo.vu < 2000) return memo.valeur
+  const garder = (valeur, signature = null) => {
+    memo = { signature, valeur, chemin: c.comptes, vu: Date.now() }
+    return valeur
+  }
   let infos
   try {
     infos = fs.statSync(c.comptes)
   } catch {
-    return { existe: false }
+    return garder({ existe: false })
   }
   const signature = `${c.comptes}|${infos.size}|${infos.mtimeMs}`
-  if (memo.signature === signature) return memo.valeur
+  if (memo.signature === signature) return garder(memo.valeur, signature)
   let valeur
   try {
     const texte = fs.readFileSync(c.comptes, 'utf8')
@@ -69,8 +75,7 @@ function lireComptes() {
   } catch {
     valeur = { existe: true, lisible: false }
   }
-  memo = { signature, valeur }
-  return valeur
+  return garder(valeur, signature)
 }
 
 // Écrit le fichier des comptes (chiffré si le fichier de connaissances l'est), et son résumé public pour les postes
@@ -85,7 +90,7 @@ function ecrireComptes(donnees) {
   }
   ecrire(c.comptes, cle ? chiffrer(JSON.stringify(donnees), cle) : JSON.stringify(donnees))
   ecrire(c.info, JSON.stringify({ client: donnees.licence?.client || '', admins: donnees.admins.map((a) => donnees.comptes[a]?.nom || a) }))
-  memo = { signature: null, valeur: null }
+  memo = { signature: null, valeur: null, chemin: null, vu: 0 }
 }
 
 const lireInfoPublique = () => {
@@ -107,7 +112,8 @@ export function importerLicence(texte, { nom = '' } = {}) {
   const avant = lireComptes()
   if (avant.existe && !avant.lisible) throw erreur(423, 'Le fichier des comptes ne se lit pas sur ce poste : il faut la clé du site.')
   const { login } = identite()
-  const d = avant.donnees || { admins: [], comptes: {} }
+  // Première licence : « accueil en lecture » (ceux qui utilisent déjà l'outil gardent l'accès, en lecture).
+  const d = avant.donnees || { admins: [], comptes: {}, accueil: true }
   d.licence = { ...contenu, texte: String(texte) }
   if (!d.admins.includes(login)) d.admins.push(login)
   d.comptes[login] = { ...(d.comptes[login] || {}), nom: String(nom || d.comptes[login]?.nom || login).slice(0, 80) }
@@ -144,8 +150,29 @@ export function etatCompte() {
     admins: d.admins.map((a) => d.comptes[a]?.nom || a),
     coupe: Boolean(compte?.coupe),
     demande: admin || compte ? null : demande(login),
-    demandes: admin ? listerDemandes().filter((x) => x.statut === 'en_attente').length : 0,
+    demandes: admin ? demandesEnAttente(d).length : 0,
+    accueil: Boolean(d.accueil),
   }
+}
+
+// Accueil en lecture : un compte Windows qui ouvre l'outil pour la première fois reçoit la lecture sur toutes les
+// applications de la licence, et apparaît dans la liste de l'administrateur, qui le règle ou le coupe ensuite.
+export function accueillir() {
+  const lu = lireComptes()
+  const { login, poste } = identite()
+  if (!lu.lisible || !lu.donnees.accueil || lu.donnees.comptes[login] || lu.donnees.admins.includes(login)) return false
+  const d = structuredClone(lu.donnees)
+  d.comptes[login] = { nom: demande(login)?.nom || '', applis: Object.fromEntries((d.licence?.applis || []).map((a) => [a, 'lecture'])), lignes: null, accueil: true, poste, le: new Date().toISOString() }
+  ecrireComptes(d)
+  fs.rmSync(path.join(chemins().demandes, `${nomSur(login)}.json`), { force: true })
+  return true
+}
+
+export function changerAccueil(actif) {
+  const d = exigerAdministrateur()
+  d.accueil = Boolean(actif)
+  ecrireComptes(d)
+  return vueAdministrateur()
 }
 
 // Le niveau du compte de ce poste pour une application : 'ecriture', 'lecture' ou 'aucun' ; null sans licence.
@@ -205,6 +232,9 @@ export function demanderAcces({ nom } = {}) {
   return d
 }
 
+// Les demandes à traiter : pas celles d'un administrateur ou d'un compte déjà réglé (restées d'avant).
+const demandesEnAttente = (d) => listerDemandes().filter((x) => x.statut === 'en_attente' && !d.admins.includes(x.login) && !(d.comptes[x.login] && !d.comptes[x.login].coupe))
+
 export function listerDemandes() {
   const c = chemins()
   try {
@@ -235,8 +265,9 @@ export function vueAdministrateur() {
   return {
     licence: { client: l.client, applis: l.applis, emise: l.emise, fin: l.fin, numero: l.numero, probleme: problemeLicence(l) },
     moi: identite().login,
-    comptes: Object.entries(d.comptes).map(([login, c]) => ({ login, nom: c.nom || '', admin: d.admins.includes(login), applis: c.applis || {}, lignes: c.lignes ?? null, vu: c.vu || null, coupe: Boolean(c.coupe) })).sort((a, b) => Number(b.admin) - Number(a.admin) || a.nom.localeCompare(b.nom)),
-    demandes: listerDemandes(),
+    accueil: Boolean(d.accueil),
+    comptes: Object.entries(d.comptes).map(([login, c]) => ({ login, nom: c.nom || '', admin: d.admins.includes(login), applis: c.applis || {}, lignes: c.lignes ?? null, vu: c.vu || null, coupe: Boolean(c.coupe), accueil: Boolean(c.accueil), poste: c.poste || '' })).sort((a, b) => Number(b.admin) - Number(a.admin) || a.nom.localeCompare(b.nom)),
+    demandes: demandesEnAttente(d),
   }
 }
 
@@ -249,7 +280,7 @@ export function reglerCompte({ login, nom, applis, lignes = null, admin = false 
   const cle = String(login || '').toUpperCase()
   if (!cle) throw erreur(400, 'Compte inconnu.')
   const avant = d.comptes[cle] || {}
-  d.comptes[cle] = { ...avant, nom: String(nom ?? avant.nom ?? cle).trim().slice(0, 80) || cle, applis: propreAcces(applis, d.licence || {}), lignes: propresLignes(lignes), coupe: false, par: identite().login, le: new Date().toISOString() }
+  d.comptes[cle] = { ...avant, nom: String(nom ?? avant.nom ?? cle).trim().slice(0, 80) || cle, applis: propreAcces(applis, d.licence || {}), lignes: propresLignes(lignes), coupe: false, accueil: false, par: identite().login, le: new Date().toISOString() }
   if (admin && !d.admins.includes(cle)) d.admins.push(cle)
   if (!admin && d.admins.includes(cle)) {
     if (d.admins.length === 1) throw erreur(400, 'Il faut garder au moins un administrateur.')

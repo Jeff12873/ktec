@@ -1,7 +1,7 @@
 // L'état général, demandé au serveur toutes les 4 secondes : fichier ouvert, mode administrateur,
 // état de l'IA, publication sur le partage… Les écrans s'y abonnent avec surChangement().
 
-import { api, adresse } from './api.js'
+import { api, adresse, appli } from './api.js'
 
 export const etat = { pret: false }
 const abonnes = new Set()
@@ -44,7 +44,12 @@ export const estAdmin = () => Boolean(etat.admin)
 
 // Ce poste peut-il modifier le fichier .ktec ? En mode administrateur, ou quand le fichier n'a pas de mot de passe
 // (la main est alors prise toute seule) et que personne d'autre ne le modifie.
-export const peutModifier = () => Boolean(etat.admin) || (!etat.partage?.motDePasse && !etat.partage?.autreAdmin)
+export const peutModifier = () => {
+  // Licence : le droit d'écriture du compte sur cette application (le portail : au moins une application).
+  const c = etat.compte
+  if (c?.licence) return !etat.partage?.autreAdmin && (c.admin || (appli ? c.acces?.[appli] === 'ecriture' : Object.values(c.acces || {}).includes('ecriture')))
+  return Boolean(etat.admin) || (!etat.partage?.motDePasse && !etat.partage?.autreAdmin)
+}
 
 // Réglages, SQL et comptes de la GMAO : en mode administrateur, ou quand le fichier n'a pas de mot de passe.
 export const modeAdmin = () => Boolean(etat.modeAdmin)

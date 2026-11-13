@@ -6,6 +6,7 @@ import { api } from './socle/api.js'
 import { etat, suivreEtat, surChangement, modeAdmin } from './socle/etat.js'
 import { etiquetteIA, etiquetteMySQL } from './socle/connexion.js'
 import { carteMySQL, cartePoste, carteFichier, carteCle } from './socle/reglages.js'
+import { ecranSansAcces, carteLicence, boutonComptes } from './socle/comptes.js'
 import { etiquetteFichier, boutonAdmin } from './socle/fichier.js'
 import { constellation } from './fond.js'
 import { logoSupernova, jouerIntro } from './supernova.js'
@@ -16,8 +17,18 @@ import { pointsNouveaux, encartNouveautes } from './socle/nouveautes.js'
 
 const racine = document.getElementById('portail')
 const barre = h('div', { class: 'portail-etat' })
-const applis = await api('/api/ktec/applis')
+const toutesApplis = await api('/api/ktec/applis')
 await suivreEtat()
+// Licence installée : sans aucun accès, l'écran d'attente remplace tout (il se rouvre seul quand les droits arrivent) ;
+// sinon, seulement les applications permises à ce compte.
+const compte = etat.compte
+const sansAcces = (c) => c?.licence && !c.admin && !Object.keys(c.acces || {}).length
+if (sansAcces(compte)) {
+  ecranSansAcces(racine, compte)
+  surChangement((e) => { if (!sansAcces(e.compte)) location.reload() })
+  await new Promise(() => {}) // le reste du portail ne se dessine pas
+}
+const applis = compte?.licence ? toutesApplis.filter((a) => compte.admin || compte.acces?.[a.id]) : toutesApplis
 
 // Premier lancement sur ce poste : l'assistant (fichier de connaissances, clé du site, connexion à la GMAO).
 // Fichier chiffré sans la clé sur ce poste : seulement l'écran de la clé.
@@ -95,8 +106,8 @@ function ouvrirReglages() {
   const recharger = () => location.reload()
   // En consultation : seulement le fichier de connaissances ; tout le reste est réservé à l'administrateur.
   const contenu = modeAdmin()
-    ? h('div', { class: 'grille grille-2' }, carteMySQL(recharger), cartePoste(recharger), carteFichier(recharger), carteCle(recharger))
-    : h('div', {}, carteFichier(recharger))
+    ? h('div', { class: 'grille grille-2' }, carteLicence(etat.compte), carteMySQL(recharger), cartePoste(recharger), carteFichier(recharger), carteCle(recharger))
+    : h('div', {}, carteLicence(etat.compte), carteFichier(recharger))
   fenetre({ titre: 'Réglages de K.NOVA', large: modeAdmin(), contenu, boutons: [{ texte: 'Fermer', classe: 'discret' }] })
     .then(() => history.replaceState(null, '', '/'))
 }
@@ -160,6 +171,9 @@ async function quitter() {
 const logo = logoSupernova()
 const nom = h('div', { class: 'nom-portail' }, h('h1', {}, nomAppli(NOM_KNOVA)), h('p', { class: 'sous-titre' }, 'Les applications de l’atelier'))
 const entete = h('div', { class: 'portail-entete' }, logo, nom)
+// Le bouton « Comptes » de l'administrateur (licence), avec ses demandes en attente : redessiné avec l'état.
+const zoneComptes = h('span', { class: 'zone-comptes' }, boutonComptes(etat.compte))
+surChangement((e, avant) => { if (e.compte?.demandes !== avant.compte?.demandes || e.compte?.admin !== avant.compte?.admin) vider(zoneComptes, boutonComptes(e.compte)) })
 logo.addEventListener('click', () => intro(true))
 logo.style.cursor = 'pointer'
 const zoneEtat = h('div', { class: 'portail-coin' }, barre)
@@ -184,6 +198,7 @@ const corps = [
     h('a', { class: 'bouton petit discret', href: '/installation/', title: 'Mettre à jour, ajouter ou désinstaller des applications' }, ic('telecharger', 14), 'Installation et mises à jour'),
     h('button', { class: 'petit discret', onclick: () => ouvrirMessage({ appli: 'ktec', ecran: 'Lanceur' }) }, ic('envoyer', 14), 'Message au développeur'),
     boutonMessages,
+    zoneComptes,
     h('button', { class: 'petit discret', onclick: ouvrirReglages }, ic('reglages', 14), 'Réglages'),
     h('button', { class: 'petit discret', onclick: quitter }, ic('sortie', 14), 'Arrêter K.NOVA'),
   ),
