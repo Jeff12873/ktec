@@ -606,3 +606,18 @@ button:disabled::before { animation-play-state: paused; opacity: .4; }
 .carte-repliable > summary { cursor: pointer; list-style: none; }
 .carte-repliable > summary::-webkit-details-marker { display: none; }
 .carte-repliable:not([open]) > summary { margin-bottom: 0; }
+/* MAJ admin : écran Comptes et écran d'attente */
+.editeur-compte { display: grid; gap: 6px; }
+.editeur-compte input[type=checkbox], .niveaux-compte input { width: auto; }
+.niveaux-compte { display: flex; align-items: center; gap: 16px; padding: 3px 0; }
+.niveaux-compte b { width: 90px; }
+.niveaux-compte label { display: inline-flex; align-items: center; gap: 5px; }
+.lignes-compte { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0 0 22px; }
+.lignes-compte label { display: inline-flex; align-items: center; gap: 5px; }
+.entete-demande { margin-bottom: 8px; }
+.demande-compte { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.demande-compte .actions { margin-top: 10px; justify-content: flex-end; }
+.compte-coupe td { opacity: .5; }
+.ecran-sans-acces { max-width: 520px; margin: 12vh auto 0; padding: 0 16px; display: grid; gap: 12px; justify-items: center; text-align: center; }
+.ecran-sans-acces .actions { justify-content: center; }
+.logo-sans-acces { width: 64px; height: 64px; }

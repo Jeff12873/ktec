@@ -4,7 +4,7 @@
 //   - la carte « Licence » des réglages, pour l'importer ou la renouveler.
 // Serveur : serveur/socle/comptes.js.
 
-import { h, vider, ic, essayer, fenetre, notifier, confirmer, nomAppli, dateFr, ilYa } from './ui.js'
+import { h, vider, ic, essayer, fenetre, notifier, confirmer, dateFr } from './ui.js'
 import { api } from './api.js'
 
 const NIVEAUX = [['aucun', 'Aucun'], ['lecture', 'Lecture'], ['ecriture', 'Écriture']]
@@ -159,7 +159,7 @@ export async function ouvrirComptes() {
           const [acces, lignesTexte] = resume(c, lignes)
           return h('tr', { class: c.coupe ? 'compte-coupe' : '' },
             h('td', {}, h('b', {}, c.nom || c.login), c.admin ? h('span', { class: 'etiquette' }, 'admin') : null, h('div', { class: 'discret petit-texte' }, c.login)),
-            h('td', {}, c.coupe ? 'Coupé' : acces), h('td', {}, lignesTexte), h('td', {}, c.vu ? ilYa(c.vu) : '—'),
+            h('td', {}, c.coupe ? 'Coupé' : acces), h('td', {}, lignesTexte), h('td', {}, c.vu ? dateFr(c.vu) : '—'),
             h('td', { class: 'actions' }, h('button', { class: 'petit', onclick: () => modifier(v, c) }, 'Modifier'), c.admin || c.coupe ? null : h('button', { class: 'petit discret danger', onclick: () => couper(c) }, 'Couper')))
         })))))
   }
