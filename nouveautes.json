@@ -1,6 +1,14 @@
 {
   "versions": [
     {
+      "version": "0.12.2",
+      "date": "2026-11-13",
+      "points": [
+        "Comptes : les accès cochés dans « Modifier » sont bien enregistrés (ils repassaient tous à « Aucun »)",
+        "Un compte resté sans aucun accès réapparaît dans les demandes de l'administrateur, avec le nom envoyé depuis son poste"
+      ]
+    },
+    {
       "version": "0.12.1",
       "date": "2026-11-13",
       "points": [

@@ -149,7 +149,7 @@ export function etatCompte() {
     client: l.client, applis: l.applis || [], fin: l.fin || null,
     admins: d.admins.map((a) => d.comptes[a]?.nom || a),
     coupe: Boolean(compte?.coupe),
-    demande: admin || compte ? null : demande(login),
+    demande: admin || aUnAcces(compte) ? null : demande(login),
     demandes: admin ? demandesEnAttente(d).length : 0,
     accueil: Boolean(d.accueil),
   }
@@ -232,8 +232,10 @@ export function demanderAcces({ nom } = {}) {
   return d
 }
 
-// Les demandes à traiter : pas celles d'un administrateur ou d'un compte déjà réglé (restées d'avant).
-const demandesEnAttente = (d) => listerDemandes().filter((x) => x.statut === 'en_attente' && !d.admins.includes(x.login) && !(d.comptes[x.login] && !d.comptes[x.login].coupe))
+// Les demandes à traiter : pas celles d'un administrateur ou d'un compte qui a déjà un accès (restées d'avant).
+// Un compte sans aucun accès voit « Demande envoyée » : sa demande reste visible.
+const aUnAcces = (c) => Boolean(c && !c.coupe && Object.values(c.applis || {}).some((n) => n !== 'aucun'))
+const demandesEnAttente = (d) => listerDemandes().filter((x) => x.statut === 'en_attente' && !d.admins.includes(x.login) && !aUnAcces(d.comptes[x.login]))
 
 export function listerDemandes() {
   const c = chemins()

@@ -73,11 +73,12 @@ export function carteLicence(c) {
 
 // Les cases d'un compte : niveau par application de la licence, lignes permises, administrateur.
 function editeur(v, lignes, compte) {
-  const choix = {}
+  // Les boutons gardés ici : la fenêtre est déjà fermée (retirée de la page) quand on lit les choix.
+  const boutons = {}
   const radios = (app) => {
     const nomGroupe = `acces-${compte.login}-${app}`
-    choix[app] = () => [...document.getElementsByName(nomGroupe)].find((x) => x.checked)?.value || 'aucun'
-    return h('div', { class: 'niveaux-compte' }, h('b', {}, nomDe(app)), NIVEAUX.map(([val, texte]) => h('label', {}, h('input', { type: 'radio', name: nomGroupe, value: val, checked: (compte.applis?.[app] || 'aucun') === val }), texte)))
+    boutons[app] = NIVEAUX.map(([val]) => h('input', { type: 'radio', name: nomGroupe, value: val, checked: (compte.applis?.[app] || 'aucun') === val }))
+    return h('div', { class: 'niveaux-compte' }, h('b', {}, nomDe(app)), NIVEAUX.map(([, texte], i) => h('label', {}, boutons[app][i], texte)))
   }
   const toutes = h('input', { type: 'checkbox', checked: compte.lignes === null || compte.lignes === undefined })
   const cases = lignes.map((l) => [l.id, h('input', { type: 'checkbox', checked: Boolean(compte.lignes?.includes(l.id)) })])
@@ -92,12 +93,12 @@ function editeur(v, lignes, compte) {
     h('label', { class: 'discret' }, admin, ' Administrateur (règle les comptes, accès complet)'))
   const valeur = () => ({
     login: compte.login, nom: nom.value, admin: admin.checked,
-    applis: Object.fromEntries(Object.entries(choix).map(([app, f]) => [app, f()])),
+    applis: Object.fromEntries(Object.entries(boutons).map(([app, liste]) => [app, liste.find((x) => x.checked)?.value || 'aucun'])),
     lignes: toutes.checked ? null : cases.filter(([, c]) => c.checked).map(([id]) => id),
   })
   // « Comme un autre compte » : recopie ses cases.
   const recopier = (autre) => {
-    for (const app of v.licence.applis || []) for (const r of document.getElementsByName(`acces-${compte.login}-${app}`)) r.checked = r.value === (autre.applis?.[app] || 'aucun')
+    for (const [app, liste] of Object.entries(boutons)) for (const r of liste) r.checked = r.value === (autre.applis?.[app] || 'aucun')
     toutes.checked = autre.lignes === null
     zoneLignes.hidden = toutes.checked
     for (const [id, c] of cases) c.checked = Boolean(autre.lignes?.includes(id))
