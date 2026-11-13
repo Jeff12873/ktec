@@ -14,15 +14,6 @@ import { lancerAssistant } from './assistant.js'
 import { ouvrirMessage, envoyerParOutlook } from './socle/message.js'
 import { pointsNouveaux, encartNouveautes } from './socle/nouveautes.js'
 
-// Les applications de la suite, pour montrer aussi celles qui ne sont pas (encore) installées.
-const SUITE = [
-  { id: 'birtec', nom: 'BiRTEC', couleur: '#10b981', sousTitre: 'Rapports BIRT', description: 'Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs de la GMAO.', besoins: ['java', 'birt'] },
-  { id: 'pdrtec', nom: 'PDRTEC', couleur: '#a3e635', sousTitre: 'Recherche de pièces', description: 'Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo.', besoins: ['java'] },
-  { id: 'aitec', nom: 'AITEC', couleur: '#2dd4bf', sousTitre: 'Assistant de dépannage', description: 'L’assistant IA du dépannage : une panne, une machine, la réponse vite, avec ses sources (historique, documents, pannes connues).', besoins: ['ia', 'java'] },
-  // PREVTEC est une porte d'AITEC (même code, mêmes données) : il s'installe avec lui.
-  { id: 'prevtec', nom: 'PREVTEC', couleur: '#38bdf8', sousTitre: 'Plan de maintenance', description: 'Réévaluer le plan de maintenance : le Pareto des pannes et son évolution, un préventif bien orienté, les fiches de niveau 1 et leur charge.', besoins: ['ia', 'java'], porteDe: 'aitec' },
-]
-
 const racine = document.getElementById('portail')
 const barre = h('div', { class: 'portail-etat' })
 const applis = await api('/api/ktec/applis')
@@ -56,6 +47,8 @@ function boutonDesinstaller(a) {
 surChangement(() => boutonsDesinstaller.forEach((b) => { b.hidden = !modeAdmin() }))
 
 // Pastille « IA » : seulement pour une application qui a besoin du modèle d'IA installé sur le poste.
+// Pastille « Bêta » : application encore en travaux (app.json « beta »).
+const pastilleBeta = (a) => (a.beta ? h('span', { class: 'pastille-ia beta', title: 'Application encore en travaux : vos retours sont les bienvenus' }, 'Bêta') : null)
 const pastilleIA = (a) => ((a.besoins || []).includes('ia') ? h('span', { class: 'pastille-ia', title: 'Cette application utilise l’IA installée sur le poste' }, 'IA') : null)
 // Pastille « Eco+ » : l'application existe aussi en un seul fichier HTML, pour les postes sans K.NOVA.
 // Un clic le télécharge (fabriqué à la demande, avec les réglages du site).
@@ -68,18 +61,13 @@ const pastilleEco = (a) => (a.eco
   } }, 'Eco+')
   : null)
 
-const installees = new Set(applis.map((a) => a.id))
 const tuiles = [
   ...applis.map((a) => h('a', { class: 'tuile-appli', href: `/${a.id}/`, 'data-appli': a.id, onclick: ouvrirAppli, style: a.couleur ? { '--accent': a.couleur } : {} },
     h('div', { class: 'tete' }, h('img', { src: `/apps/${a.id}/${a.icone || 'interface/icone.svg'}`, alt: '' }),
-      h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre || '')), h('span', { class: 'pastilles-appli' }, pastilleEco(a), pastilleIA(a))),
+      h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre || '')), h('span', { class: 'pastilles-appli' }, pastilleBeta(a), pastilleEco(a), pastilleIA(a))),
     h('p', {}, a.description || ''),
     // Une porte (PREVTEC) se désinstalle avec son application : pas de bouton à elle.
     h('div', { class: 'pied-tuile' }, h('span', { class: 'version' }, a.porteDe ? `Avec ${applis.find((x) => x.id === a.porteDe)?.nom || a.porteDe} ${a.version}` : `Version ${a.version}`), a.porteDe ? null : boutonDesinstaller(a)))),
-  ...SUITE.filter((a) => !installees.has(a.id)).map((a) => h('a', { class: 'tuile-appli absente', href: '/installation/', 'data-appli': a.id, style: { '--accent': a.couleur }, title: 'Pas encore installée sur ce poste : cliquer pour l’installer' },
-    h('div', { class: 'tete' }, h('img', { src: '/icone.svg', alt: '' }), h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre)), h('span', { class: 'pastilles-appli' }, pastilleEco(a), pastilleIA(a))),
-    h('p', {}, a.description),
-    h('span', { class: 'version' }, a.porteDe ? `Vient avec ${SUITE.find((x) => x.id === a.porteDe)?.nom || a.porteDe} — l’installer` : 'Pas encore installée — l’installer'))),
 ]
 
 tuiles.forEach((t, i) => t.style.setProperty('--i', i))
@@ -177,7 +165,8 @@ logo.style.cursor = 'pointer'
 const zoneEtat = h('div', { class: 'portail-coin' }, barre)
 const corps = [
   applis.length ? null : h('div', { class: 'bandeau' }, ic('alerte'), 'Aucune application installée sur ce poste.'),
-  h('div', { class: 'tuiles-applis' }, tuiles),
+  // Seulement les applications installées, centrées ; aucune : le lien vers l'installation.
+  tuiles.length ? h('div', { class: 'tuiles-applis centrees' }, tuiles) : h('div', { class: 'bandeau info' }, ic('telecharger'), h('span', { style: { flex: 1 } }, 'Aucune application installée sur ce poste.'), h('a', { class: 'bouton petit principal', href: '/installation/' }, 'Installer')),
   // La confidentialité, dite simplement : c'est la première question qu'on pose sur ces outils.
   h('div', { class: 'portail-confiance' },
     h('h2', {}, ic('bouclier', 18), 'Vos informations restent chez vous'),

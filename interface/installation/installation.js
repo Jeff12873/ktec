@@ -52,8 +52,39 @@ function dessiner() {
 }
 
 const versionLisible = (v) => v || '—'
-// Les applications qui ont besoin de l'IA ne s'installent pas si le modèle « moyen » n'est pas conseillé pour ce poste.
-const bloquee = (a) => (a.besoins || []).includes('ia') && etat.capaciteIA && !etat.capaciteIA.ia
+// Poste trop juste pour le modèle d'IA « moyen » conseillé : les applications qui ont besoin de l'IA s'installent quand
+// même, au choix avec une IA légère (prévenu) ou sans IA. Sous 4 Go de mémoire : sans IA seulement.
+const faible = (a) => (a.besoins || []).includes('ia') && etat.capaciteIA && !etat.capaciteIA.ia
+const RAM_IA_LEGERE = 4
+// PREVTEC est une porte d'AITEC (même code, mêmes données) : sa tuile installe AITEC.
+const PREVTEC = { id: 'prevtec', porteDe: 'aitec', nom: 'PREVTEC', couleur: '#38bdf8', sousTitre: 'Plan de maintenance', description: 'Réévaluer le plan de maintenance : le Pareto des pannes, un préventif bien orienté, les fiches de niveau 1. Fonctionne aussi sans IA.' }
+const avecPortes = (applis) => applis.flatMap((a) => (a.id === 'aitec' ? [a, { ...PREVTEC, besoins: a.besoins, disponible: a.disponible, beta: a.beta }] : [a]))
+const idInstalle = (a) => a.porteDe || a.id
+
+// Le choix sur un poste léger : 'legere', 'sans', ou null si l'on renonce.
+async function choisirIA() {
+  const ram = etat.capaciteIA?.ramGo ?? etat.poste?.ramGo ?? 0
+  const legerePossible = ram >= RAM_IA_LEGERE
+  const legere = h('input', { type: 'radio', name: 'choix-ia', value: 'legere', checked: legerePossible, disabled: !legerePossible })
+  const sans = h('input', { type: 'radio', name: 'choix-ia', value: 'sans', checked: !legerePossible })
+  const compris = h('input', { type: 'checkbox', style: { width: 'auto' } })
+  return fenetre({
+    titre: 'Ce poste est léger',
+    contenu: h('div', { class: 'grille', style: { gap: '12px' } },
+      h('p', { class: 'texte-2', style: { margin: 0 } }, etat.capaciteIA?.raison || ''),
+      h('label', { class: `choix-ia${legerePossible ? '' : ' grise'}` }, legere, h('div', {},
+        h('b', {}, 'IA légère'),
+        h('div', { class: 'discret' }, legerePossible ? `Le modèle ${ram >= 8 ? '« petit »' : '« très petit »'} s’installe. L’IA marchera, mais plus lentement et avec des réponses moins justes : relisez ce qu’elle propose.` : `Pas possible : ce poste n’a que ${ram} Go de mémoire.`),
+        legerePossible ? h('label', { style: { display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' } }, compris, 'J’ai compris') : null)),
+      h('label', { class: 'choix-ia' }, sans, h('div', {},
+        h('b', {}, 'Sans IA'),
+        h('div', { class: 'discret' }, 'Rien de plus à télécharger. PREVTEC et le niveau 1 fonctionnent ; l’assistant de dépannage et les textes rédigés par l’IA ne seront pas disponibles.')))),
+    boutons: [{ texte: 'Annuler', classe: 'discret', valeur: null }, { texte: 'Installer', classe: 'principal', action: () => {
+      if (legere.checked && !compris.checked) { notifier('Cochez « J’ai compris » pour l’IA légère.', 'erreur'); return false }
+      return legere.checked ? 'legere' : 'sans'
+    } }],
+  })
+}
 // « 0.4.2 » (copié du kit) et « 0.4.2.7 » (numéro de publication sur GitHub) sont la même version.
 const plusRecente = (dispo, installee) => dispo && installee && dispo !== installee && !dispo.startsWith(installee + '.') && !installee.startsWith(dispo + '.')
 
@@ -61,18 +92,16 @@ const plusRecente = (dispo, installee) => dispo && installee && dispo !== instal
 
 function carteInstallee() {
   const inst = etat.installe
-  const lignes = catalogue.applis.map((a) => {
-    const installee = inst.applis?.[a.id]
+  const lignes = avecPortes(catalogue.applis).map((a) => {
+    const installee = inst.applis?.[idInstalle(a)]
     const actions = installee
-      ? [
+      ? a.porteDe ? [h('span', { class: 'discret' }, 'avec AITEC')] : [
           plusRecente(a.disponible, installee) ? h('button', { class: 'petit principal', onclick: () => lancerMiseAJour([a.id]) }, ic('telecharger', 14), `Mettre à jour (${versionLisible(a.disponible)})`) : h('span', { class: 'discret' }, 'à jour'),
           h('button', { class: 'petit discret danger', onclick: () => desinstaller(a) }, ic('poubelle', 14), 'Désinstaller'),
         ]
-      : bloquee(a)
-        ? [h('span', { class: 'discret', title: etat.capaciteIA.raison }, ic('cadenas', 14), ' Pas sur ce poste')]
-        : [h('button', { class: 'petit', onclick: () => installerSelection([...Object.keys(inst.applis || {}), a.id], inst.dossier) }, ic('plus', 14), 'Ajouter')]
+      : [h('button', { class: 'petit', title: faible(a) ? etat.capaciteIA.raison : '', onclick: () => installerSelection([...Object.keys(inst.applis || {}), idInstalle(a)], inst.dossier) }, ic('plus', 14), faible(a) ? 'Ajouter (poste léger)' : 'Ajouter')]
     // Les nouveautés de la version disponible, en quelques mots, sous le nom de l'application.
-    const points = installee && plusRecente(a.disponible, installee) ? pointsNouveaux(a.nouveautes, installee) : []
+    const points = installee && !a.porteDe && plusRecente(a.disponible, installee) ? pointsNouveaux(a.nouveautes, installee) : []
     return h('tr', {},
       h('td', {}, h('strong', {}, nomAppli(a.nom, a.couleur)), h('div', { class: 'discret', style: { fontSize: '12px' } }, a.sousTitre),
         points.length ? h('ul', { class: 'nouveautes-ligne' }, points.map((p) => h('li', {}, p))) : null),
@@ -124,7 +153,7 @@ function cartePaquet() {
 function formulaireInstallation() {
   // Toutes cochées au départ ; réinstallation depuis un kit : celles déjà installées.
   const dejaLa = Object.keys(etat.installe?.applis || {})
-  const choix = new Set((dejaLa.length ? dejaLa : catalogue.applis.map((a) => a.id)).filter((id) => !bloquee(catalogue.applis.find((a) => a.id === id) || {})))
+  const choix = new Set(dejaLa.length ? dejaLa : catalogue.applis.map((a) => a.id))
   const dossier = h('input', { type: 'text', value: etat.installe?.dossier || etat.dossierParDefaut })
   const modele = h('select', {},
     h('option', { value: 'auto' }, 'Automatique : le plus adapté à ce poste (conseillé)'),
@@ -136,14 +165,15 @@ function formulaireInstallation() {
   const BESOINS = { ia: 'IA', java: 'Java', birt: 'BIRT' }
 
   function dessinerTuiles() {
-    vider(tuiles, catalogue.applis.map((a) => h('label', { class: `tuile-appli ${choix.has(a.id) ? '' : 'absente'}${bloquee(a) ? ' bloquee' : ''}`, style: { cursor: bloquee(a) ? 'not-allowed' : 'pointer', ...(a.couleur ? { '--accent': a.couleur } : {}) }, title: bloquee(a) ? etat.capaciteIA.raison : null },
+    vider(tuiles, avecPortes(catalogue.applis).map((a) => h('label', { class: `tuile-appli ${choix.has(idInstalle(a)) ? '' : 'absente'}${faible(a) ? ' poste-leger' : ''}`, style: { cursor: 'pointer', ...(a.couleur ? { '--accent': a.couleur } : {}) }, title: faible(a) ? etat.capaciteIA.raison : null },
       h('div', { class: 'tete' },
-        h('input', { type: 'checkbox', checked: choix.has(a.id), disabled: bloquee(a), style: { width: 'auto' }, onchange: (e) => { e.target.checked ? choix.add(a.id) : choix.delete(a.id); dessinerTuiles() } }),
+        h('input', { type: 'checkbox', checked: choix.has(idInstalle(a)), style: { width: 'auto' }, onchange: (e) => { e.target.checked ? choix.add(idInstalle(a)) : choix.delete(idInstalle(a)); dessinerTuiles() } }),
         h('div', {}, h('strong', {}, nomAppli(a.nom)), h('span', {}, a.sousTitre)),
+        a.beta ? h('span', { class: 'pastille-ia beta' }, 'Bêta') : null,
         (a.besoins || []).includes('ia') ? h('span', { class: 'pastille-ia' }, 'IA') : h('span', { class: 'pastille-ia sans' }, 'NoIA')),
       h('p', {}, a.description),
-      bloquee(a) ? h('p', { class: 'raison-bloquee' }, ic('cadenas', 14), ' Pas installable sur ce poste : l’IA demandée y serait trop lente.') : null,
-      h('span', { class: 'version' }, `Version ${versionLisible(a.disponible)} · demande : ${(a.besoins || []).map((b) => BESOINS[b] || b).join(', ')}`))))
+      faible(a) ? h('p', { class: 'raison-bloquee' }, ic('alerte', 14), ' Poste léger : IA légère ou sans IA, au choix à l’installation.') : null,
+      h('span', { class: 'version' }, a.porteDe ? 'S’installe avec AITEC : cocher l’une coche l’autre' : `Version ${versionLisible(a.disponible)} · demande : ${(a.besoins || []).map((b) => BESOINS[b] || b).join(', ')}`))))
     zoneIA.hidden = !besoins().has('ia')
   }
   dessinerTuiles()
@@ -168,7 +198,7 @@ function formulaireInstallation() {
   return h('div', {},
     etat.installe ? h('h2', { style: { margin: '10px 0' } }, 'Réinstaller depuis ce ' + (etat.source === 'kit' ? 'kit' : 'paquet')) : null,
     h('h2', { style: { margin: '10px 0' } }, '1. Les applications'),
-    catalogue.applis.some(bloquee) ? h('div', { class: 'bandeau', style: { marginBottom: '12px' } }, ic('cadenas'), `${etat.capaciteIA.raison} ${catalogue.applis.filter(bloquee).map((a) => a.nom).join(' et ')} ne peu${catalogue.applis.filter(bloquee).length > 1 ? 'vent' : 't'} donc pas être installé${catalogue.applis.filter(bloquee).length > 1 ? 's' : ''} ici ; les autres applications, si.`) : null,
+    catalogue.applis.some(faible) ? h('div', { class: 'bandeau', style: { marginBottom: '12px' } }, ic('alerte'), `${etat.capaciteIA.raison} ${catalogue.applis.filter(faible).map((a) => a.nom).join(' et ')} s’installe${catalogue.applis.filter(faible).length > 1 ? 'nt' : ''} quand même : avec une IA légère, ou sans IA (PREVTEC et le niveau 1 fonctionnent sans).`) : null,
     tuiles,
     h('h2', { style: { margin: '24px 0 10px' } }, '2. Le dossier d’installation'),
     h('div', { class: 'carte' },
@@ -264,10 +294,15 @@ function vueSuivi(titre) {
 
 async function installerSelection(applis, dossier, modele = 'auto', raccourcis = true) {
   if (!applis.length) return notifier('Choisissez au moins une application.', 'erreur')
+  let ia = 'auto'
+  if (catalogue.applis.some((a) => applis.includes(a.id) && faible(a))) {
+    ia = await choisirIA()
+    if (!ia) return
+  }
   const suivi = vueSuivi('Installation en cours')
   let resultat = null
   try {
-    await flux('/api/ktec/installation/installer', { dossier, applis, modele, raccourcis }, (type, d) => {
+    await flux('/api/ktec/installation/installer', { dossier, applis, modele, raccourcis, ia }, (type, d) => {
       suivi.surEvenement(type, d)
       if (type === 'fin') resultat = d
       if (type === 'erreur') throw new Error(d.message)

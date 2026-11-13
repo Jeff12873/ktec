@@ -365,6 +365,8 @@ td.nombre, th.nombre { text-align: right; font-variant-numeric: tabular-nums; }
 body.intro-en-cours { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .supernova .orbite, .supernova .soleil { animation: none !important; } }
 .tuiles-applis { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+.tuiles-applis.centrees { display: flex; flex-wrap: wrap; justify-content: center; }
+.tuiles-applis.centrees > .tuile-appli { flex: 0 1 340px; min-width: 280px; }
 .tuile-appli {
   display: flex; flex-direction: column; gap: 12px; padding: 22px; text-decoration: none; color: var(--texte);
   background: var(--carte); border: 1px solid var(--bord); border-radius: var(--rayon-carte);
@@ -383,6 +385,7 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
   margin-left: auto; align-self: flex-start; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .04em;
   color: var(--violet); background: var(--violet-doux); border: 1px solid color-mix(in srgb, var(--violet) 45%, transparent);
 }
+.pastille-ia.beta { color: #f59e0b; background: color-mix(in srgb, #f59e0b 12%, transparent); border-color: color-mix(in srgb, #f59e0b 45%, transparent); }
 .pastille-ia.sans { color: var(--texte-3); background: transparent; border-color: var(--bord); }
 .pastilles-appli { margin-left: auto; align-self: flex-start; display: flex; gap: 6px; }
 .pastilles-appli .pastille-ia { margin-left: 0; }
@@ -417,6 +420,11 @@ a.tuile-appli:hover { border-color: var(--accent); transform: translateY(-2px); 
 .tuile-appli .version { color: color-mix(in srgb, var(--accent) 60%, var(--texte-3)); }
 .tuile-appli.bloquee { opacity: .5; border-style: dashed; }
 .raison-bloquee { color: var(--orange, #f59e0b) !important; font-size: 13px !important; flex: none !important; }
+.tuile-appli.poste-leger { border-color: color-mix(in srgb, #f59e0b 55%, transparent); }
+.choix-ia { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--bord); border-radius: 8px; cursor: pointer; }
+.choix-ia input[type=radio] { width: auto; margin-top: 3px; }
+.choix-ia:has(input:checked) { border-color: var(--accent); }
+.choix-ia.grise { opacity: .55; cursor: not-allowed; }
 
 /* Message au développeur */
 .zone-message { display: grid; gap: 10px; }

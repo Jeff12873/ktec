@@ -1,6 +1,9 @@
 {
   "_lisez_moi": "Catalogue des applications KTEC, lu par l'installateur (en ligne : depuis GitHub, branche main). Chaque application a son dépôt ; la dernière Release de ce dépôt contient <id>.zip. Le socle (KTEC.zip) vient du dépôt ktec.",
-  "socle": { "depot": "Jeff12873/ktec", "paquet": "KTEC.zip" },
+  "socle": {
+    "depot": "Jeff12873/ktec",
+    "paquet": "KTEC.zip"
+  },
   "applis": [
     {
       "id": "birtec",
@@ -9,7 +12,10 @@
       "sousTitre": "Rapports BIRT",
       "description": "Rapports BIRT (tableaux, graphiques, tableaux croisés) et indicateurs de la GMAO.",
       "depot": "Jeff12873/birtec",
-      "besoins": ["java", "birt"]
+      "besoins": [
+        "java",
+        "birt"
+      ]
     },
     {
       "id": "pdrtec",
@@ -18,7 +24,9 @@
       "sousTitre": "Recherche de pièces",
       "description": "Retrouver une pièce de rechange par ses caractéristiques, son emplacement, sa photo — en direct sur la base de la GMAO.",
       "depot": "Jeff12873/pdrtec",
-      "besoins": ["java"]
+      "besoins": [
+        "java"
+      ]
     },
     {
       "id": "aitec",
@@ -27,7 +35,11 @@
       "sousTitre": "Assistant de dépannage, avec PREVTEC",
       "description": "L’assistant IA du dépannage (parc, historique des interventions, documents, réponses avec leurs sources) ; apporte aussi PREVTEC, la réévaluation du plan de maintenance.",
       "depot": "Jeff12873/aitec",
-      "besoins": ["ia", "java"]
+      "besoins": [
+        "ia",
+        "java"
+      ],
+      "beta": true
     }
   ]
 }
